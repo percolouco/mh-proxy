@@ -37,13 +37,16 @@
       var el = document.createElement('div');
       el.className = 'mhx-dla' + (left <= 0 ? ' mhx-dla-past' : left < 3 * 3600e3 ? ' mhx-dla-soon' : '');
       el.textContent = 'DLA : ' + pad(m[3]) + '/' + pad(m[2]) + ' ' + m[4] + ':' + m[5] + (left <= 0 ? ' (d\u00e9pass\u00e9e)' : '');
-      // « poids porté : X minutes » -> « ... / Y minutes restantes », Y = moitié de la durée normale du tour
+      // « poids porté : X minutes » -> « ... / Y minutes restantes », Y = moitié de la durée du tour - X
       var pw = h3.nextElementSibling;
       if (pw && d.tour > 0 && !pw.querySelector('.mhx-poids') && /poids port/.test(pw.textContent)) {
         var sp = document.createElement('span');
         sp.className = 'mhx-poids';
-        sp.textContent = ' / ' + Math.round(d.tour / 2) + ' minutes restantes';
-        pw.appendChild(sp);
+        var px = /(\d+)\s*minute/.exec(pw.textContent);
+        if (px) {
+          sp.textContent = ' / ' + Math.max(0, Math.round(d.tour / 2) - parseInt(px[1], 10)) + ' minutes restantes';
+          pw.appendChild(sp);
+        }
       }
       // dans le bloc « poids porté » (2e enfant) pour ne pas décaler la mise en page de l'encart
       var poids = h3.nextElementSibling;
