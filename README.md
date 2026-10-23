@@ -53,3 +53,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.3.1 | 2026-10-23 | Bouton IT avec les images fournies (normal + survol) |
 | 0.3.2 | 2026-10-23 | Bouton IT placé entre « Mon profil » et « Ma vue » |
 | 0.3.3 | 2026-10-23 | Bouton IT sous « Ma vue », sans `font-size: 0` |
+| 0.4.0 | 2026-10-23 | Page Suivants : DLA de chaque suivant affichée dans son encart (lue dans le `data-json`, aucune requête en plus) |
