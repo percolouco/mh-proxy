@@ -22,3 +22,8 @@ a.interface-it::after {
     width: 0; height: 0;
     background: url(/_mhx/img/interfaceit2.jpg);
 }
+
+/* Page Suivants : DLA affichée dans l'encart de chaque suivant */
+.mhx-dla { font-size: 0.9em; }
+.mhx-dla-soon { color: #b36b00; font-weight: bold; }
+.mhx-dla-past { color: #b00020; font-weight: bold; }
