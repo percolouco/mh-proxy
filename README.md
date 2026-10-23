@@ -61,4 +61,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.5.0 | 2026-10-23 | Fonctions des userscripts MHD intégrées (envoi mission/équipe, infos troll au début de tour, analyse DLA monstre) |
 | 0.5.1 | 2026-10-23 | Page Suivants : « poids porté : X minutes / Y minutes restantes » (Y = moitié de la durée du tour moins X) |
 | 0.5.3 | 2026-10-23 | Page Suivants : gowaps en couleur via une liste commune (mh.percolouco.com/gowap/gowap_perks.php), couleur au choix, encart de gestion en bas de page, « Ramasse les Trésors » ajouté en vert depuis la page profil du suivant |
-| 0.5.4 | 2026-10-23 | Analyse monstre : seuls les événements du monstre (« un… ») comptent, durée du tour de la CDM utilisée comme référence, peut rejouer = début du tour + durée |
+| 0.5.4 | 2026-10-23 | Analyse monstre : durée du tour = CDM en priorité (historique seulement sans CDM), début = dernier événement du monstre (« un… »), peut rejouer = début + durée, cumul = peut rejouer + durée |
