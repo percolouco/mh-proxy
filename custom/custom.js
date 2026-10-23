@@ -45,7 +45,7 @@
     var id = q.get('id_target');
     if (q.get('type') !== 'F' || !/^\d+$/.test(id || '')) return;
     var txt = document.body ? document.body.textContent : '';
-    if (!/amélioration/i.test(txt) || !/Ramasse\s+les\s+Trésors/i.test(txt)) return;
+    if (!/am\u00e9lioration/i.test(txt) || !/Ramasse\s+les\s+Tr\u00e9sors/i.test(txt)) return;
     perksCall('', function (list) {
       if (list && !list[id]) perksCall('action=set&color=vert&id=' + id, function () {});
     });
@@ -101,14 +101,14 @@
       var sel = select(list[id]);
       sel.onchange = function () { save('action=set&id=' + id + '&color=' + sel.value); };
       var del = document.createElement('button');
-      del.type = 'button'; del.textContent = '✕';
+      del.type = 'button'; del.textContent = '\u2715';
       del.onclick = function () { save('action=del&id=' + id); };
       row.appendChild(lab); row.appendChild(sel); row.appendChild(del);
       box.appendChild(row);
     });
     var add = document.createElement('div');
     var inp = document.createElement('input');
-    inp.type = 'text'; inp.placeholder = 'n° du gowap'; inp.size = 10;
+    inp.type = 'text'; inp.placeholder = 'n\u00b0 du gowap'; inp.size = 10;
     var sel = select('vert');
     var btn = document.createElement('button');
     btn.type = 'button'; btn.textContent = 'Ajouter';
@@ -385,22 +385,22 @@
     }
     var pad = function (x) { return (x < 10 ? '0' : '') + x; };
     var fmt = function (dt) {
-      return pad(dt.getDate()) + '/' + pad(dt.getMonth() + 1) + ' à ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+      return pad(dt.getDate()) + '/' + pad(dt.getMonth() + 1) + ' \u00e0 ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
     };
     var debut = act[act.length - 1];
     var min = new Date(debut.getTime() + moy * 3600000);
     var max = new Date(min.getTime() + moy * 3600000);
     var h = Math.floor(moy);
     return {
-      dla: h + 'h ' + pad(Math.round((moy - h) * 60)) + 'm' + (cdm ? ' (CDM)' : ' (historique)'),
+      dla: h + 'h ' + pad(Math.round((moy - h) * 60)) + 'm' + (cdm ? ' (CDM)' : ' (historique, peu fiable : CDM introuvable)'),
       debut: fmt(debut), min: fmt(min), max: fmt(max)
     };
   }
 
   // « Durée du tour   3-5 → 4  heures » dans la CDM du monstre
   function monsterCdmTurn() {
-    var txt = (document.body ? document.body.textContent : '').normalize('NFC').replace(/[\s ]+/g, ' ');
-    var m = /Durée du tour\s*(\d+(?:[.,]\d+)?)\s*[-–]\s*(\d+(?:[.,]\d+)?)(?:\s*(?:→|->|➔|➜)\s*(\d+(?:[.,]\d+)?))?/.exec(txt);
+    var txt = (document.body ? document.body.textContent : '').normalize('NFC').replace(/[\s\u00a0]+/g, ' ');
+    var m = /Dur\u00e9e du tour\s*(\d+(?:[.,]\d+)?)\s*[-\u2013]\s*(\d+(?:[.,]\d+)?)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(txt);
     if (!m) return null;
     var f = function (x) { return parseFloat(x.replace(',', '.')); };
     var lo = f(m[1]), hi = f(m[2]);
@@ -421,7 +421,7 @@
         if (!m) return;
         if (all.indexOf(m[1]) < 0) all.push(m[1]);
         // événement du monstre : la description (texte après la date et le type) commence par « un… »
-        var after = txt.slice(txt.indexOf(m[1]) + m[1].length).replace(/^\s*[A-ZÀ-Ü]+\s*/, '');
+        var after = txt.slice(txt.indexOf(m[1]) + m[1].length).replace(/^\s*[A-Z\u00c0-\u00dc]+\s*/, '');
         if (/^\s*(?:un|une)\s/i.test(after) && dates.indexOf(m[1]) < 0) dates.push(m[1]);
       });
       if (!dates.length) dates = all; // format inattendu : on retombe sur tous les événements
@@ -429,10 +429,10 @@
       if (!s) return;
       var box = document.createElement('div');
       box.className = 'mhx-monstre';
-      box.innerHTML = '<h4>🦇 Analyse Tactique (Script MH2)</h4>' +
-        '<b>Durée du tour estimée :</b> ' + s.dla + '<br>' +
-        '<b>Dernier tour commencé le :</b> ' + s.debut + '<br>' +
-        '<b>Peut rejouer à partir du :</b> ' + s.min + '<br>' +
+      box.innerHTML = '<h4>\ud83e\udd87 Analyse Tactique (Script MH2)</h4>' +
+        '<b>Dur\u00e9e du tour estim\u00e9e :</b> ' + s.dla + '<br>' +
+        '<b>Dernier tour commenc\u00e9 le :</b> ' + s.debut + '<br>' +
+        '<b>Peut rejouer \u00e0 partir du :</b> ' + s.min + '<br>' +
         '<b>Son prochain cumul est le :</b> ' + s.max;
       var form = document.querySelector('form[action=""]');
       if (form && form.parentNode) form.parentNode.insertBefore(box, form);
