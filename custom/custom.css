@@ -1,25 +1,25 @@
 /* Surcouche perso MountyHall — chargée dans chaque page via le proxy. */
 
-/* Bouton « IT » du menu de gauche (aucune image MH : texte sur fond bois sombre) */
+/* Bouton « IT » du menu de gauche : mêmes images que les autres boutons (normal + survol) */
 a.interface-it,
 a.interface-it:link,
 a.interface-it:visited {
     display: inline-block;
     width: 200px;
-    height: 30px;
-    line-height: 30px;
-    text-align: center;
-    font: bold 15px/30px Georgia, "Times New Roman", serif;
-    letter-spacing: 2px;
-    color: #f1dcae;
-    text-shadow: 0 1px 2px #000;
+    height: 26px;
+    background: url(/_mhx/img/interfaceit.jpg) no-repeat 0 0;
+    font-size: 0;      /* texte « IT » conservé dans le HTML mais masqué (comme les autres boutons) */
+    color: transparent;
     text-decoration: none;
-    background: linear-gradient(#5a3d22, #3b2713);
-    border-top: 1px solid #8a6a3f;
-    border-bottom: 1px solid #1e1409;
 }
 a.interface-it:hover,
 a.interface-it:active {
-    color: #fff;
-    background: linear-gradient(#6d4a29, #4a3019);
+    background-image: url(/_mhx/img/interfaceit2.jpg);
+}
+/* préchargement de l'image de survol (même principe que les ::after de MH) */
+a.interface-it::after {
+    content: '';
+    display: block;
+    width: 0; height: 0;
+    background: url(/_mhx/img/interfaceit2.jpg);
 }
