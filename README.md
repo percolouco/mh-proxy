@@ -10,6 +10,7 @@ avec une **surcouche perso** (CSS/JS) sans rien installer sur le poste.
 
 - Relaie toutes les requêtes vers `https://games.mountyhall.com` (en-tête `Host` d'origine).
 - Réécrit les redirections (`Location`), les cookies (domaine) et les liens absolus vers MH.
+- **Mobile** : MH redirige les smartphones vers `smartphone.mountyhall.com` d'après le User-Agent. Le proxy présente un User-Agent « bureau » à MH quand le client est mobile/tablette (`map $http_user_agent` dans `nginx.conf`) : le jeu complet (avec la surcouche) s'affiche donc aussi sur téléphone.
 - Désactive la compression amont pour pouvoir modifier le HTML, et injecte avant `</head>` de chaque page :
   `/_mhx/custom.css` et `/_mhx/custom.js` (fichiers du dossier `custom/`, servis sans cache).
 - `custom.js` est protégé par `window.__mhx` contre une double exécution.
@@ -47,3 +48,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 |---|---|---|
 | 0.1.0 | 2026-10-23 | Reverse proxy minimal + injection CSS/JS, testé (login, frames, accents) |
 | 0.2.0 | 2026-10-23 | Bouton « IT » dans le menu → page tactique de mh.percolouco.com |
+| 0.3.0 | 2026-10-23 | Plus de redirection vers smartphone.mountyhall.com sur mobile (User-Agent bureau) |
