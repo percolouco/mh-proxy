@@ -15,6 +15,10 @@ avec une **surcouche perso** (CSS/JS) sans rien installer sur le poste.
   `/_mhx/custom.css` et `/_mhx/custom.js` (fichiers du dossier `custom/`, servis sans cache).
 - `custom.js` est protégé par `window.__mhx` contre une double exécution.
 - `custom.js` ajoute un bouton **IT** dans le menu de gauche (sous « Ma vue ») qui ouvre `https://mh.percolouco.com/tactique/tactique.php` dans le cadre de contenu ; images `custom/img/interfaceit.jpg` (normal) et `interfaceit2.jpg` (survol), style dans `custom.css`.
+- `custom.js` intègre aussi les fonctions des userscripts **MHD** (Firefox/Chrome), sans rien installer : un seul code pour tous les navigateurs (pas de `GM_*`, les endpoints de `mh.percolouco.com` autorisent le CORS). Lecture de la page affichée uniquement, jamais d'action dans le jeu :
+  - pages **Gestion des Étapes / Récompenses / Équipe** d'une mission : envoi automatique à `mission/includes/update/update_mission.php` (pastille verte/rouge en haut à droite) ;
+  - **TurnStart.php** : envoi de la ligne troll à `tactique/includes/sp_mh/parser_handler.php` ;
+  - **profil d'un monstre** (`MonsterView.php`) : encart « Analyse Tactique » (DLA estimée, prochain tour/cumul).
 - Les pages `frameset` n'ont pas de `</head>` : seule leur contenu (cadres) est injecté, c'est voulu.
 
 ## Fichiers
@@ -54,3 +58,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.3.2 | 2026-10-23 | Bouton IT placé entre « Mon profil » et « Ma vue » |
 | 0.3.3 | 2026-10-23 | Bouton IT sous « Ma vue », sans `font-size: 0` |
 | 0.4.0 | 2026-10-23 | Page Suivants : DLA de chaque suivant affichée dans son encart (lue dans le `data-json`, aucune requête en plus) |
+| 0.5.0 | 2026-10-23 | Fonctions des userscripts MHD intégrées (envoi mission/équipe, infos troll au début de tour, analyse DLA monstre) |
