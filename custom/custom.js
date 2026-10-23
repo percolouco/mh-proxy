@@ -27,6 +27,11 @@
     var pad = function (n) { return (n < 10 ? '0' : '') + n; };
     document.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
       var box = h3.parentNode;
+      // gowap avec l'amélioration « Ramasse les Trésors » : encart en vert (cherché dans le data-json,
+      // l'encart et les blocs qui suivent jusqu'au prochain suivant)
+      var info = h3.getAttribute('data-json') + ' ' + box.textContent;
+      for (var sib = box.nextElementSibling; sib && !sib.matches('.monstre-entete') && !sib.querySelector('.monstre-entete'); sib = sib.nextElementSibling) info += ' ' + sib.textContent;
+      if (/Ramasse\s+les\s+Tr(?:\u00e9|e|\\u00e9)sors/i.test(info)) box.classList.add('mhx-ramasse');
       if (box.querySelector('.mhx-dla')) return;
       var d;
       try { d = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }

@@ -24,6 +24,7 @@ a.interface-it::after {
 }
 
 /* Page Suivants : DLA affichée dans l'encart de chaque suivant */
+.mhx-ramasse { background: #8fcf9a !important; }
 .mhx-dla { font-size: 0.9em; }
 .mhx-dla-soon { color: #b36b00; font-weight: bold; }
 .mhx-dla-past { color: #b00020; font-weight: bold; }
