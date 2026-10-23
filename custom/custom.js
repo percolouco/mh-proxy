@@ -20,23 +20,103 @@
     a.parentNode.insertBefore(document.createElement('br'), a.nextSibling);
   }
 
-  // Améliorations des gowaps : la page profil/équipement d'un suivant (Play_a_Action.php?type=F&id=-4&id_target=N)
-  // affiche « Ramasse les Trésors » ; on le mémorise dans le navigateur (localStorage) par numéro de gowap
-  // pour colorer la page Suivants. Lecture seule : rien n'est envoyé ni soumis.
-  var PERKS_KEY = 'mhx-gowap-ramasse';
-  function gowapPerks() {
-    try { return JSON.parse(localStorage.getItem(PERKS_KEY) || '{}') || {}; } catch (e) { return {}; }
+  // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
+  // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
+  var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
+  var PERK_COLORS = { vert: '#8fcf9a', rouge: '#e8a0a0', orange: '#f2c48d', jaune: '#efe48a', violet: '#c8a8e0' };
+
+  // GET si body est vide, POST sinon ; cb(liste {id: couleur}) ou cb(null) en cas d'erreur
+  function perksCall(body, cb) {
+    var opt = { referrerPolicy: 'no-referrer' };
+    if (body) {
+      opt.method = 'POST';
+      opt.headers = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
+      opt.body = body;
+    }
+    fetch(PERKS_URL, opt).then(function (r) { return r.ok ? r.json() : null; })
+      .then(cb, function () { cb(null); });
   }
+
+  // Page profil d'un suivant (Play_a_Action.php?type=F&id=-4&id_target=N) : « Ramasse les Trésors »
+  // dans les améliorations -> ajouté en vert à la liste commune s'il n'y est pas déjà.
   function rememberGowapPerks() {
     if (!/\/Play_a_Action\.php$/.test(location.pathname)) return;
     var q = new URLSearchParams(location.search);
     var id = q.get('id_target');
     if (q.get('type') !== 'F' || !/^\d+$/.test(id || '')) return;
     var txt = document.body ? document.body.textContent : '';
-    if (!/am\u00e9lioration/i.test(txt)) return; // page sans section améliorations : on ne change rien
-    var perks = gowapPerks();
-    if (/Ramasse\s+les\s+Tr\u00e9sors/i.test(txt)) perks[id] = 1; else delete perks[id];
-    try { localStorage.setItem(PERKS_KEY, JSON.stringify(perks)); } catch (e) {}
+    if (!/amélioration/i.test(txt) || !/Ramasse\s+les\s+Trésors/i.test(txt)) return;
+    perksCall('', function (list) {
+      if (list && !list[id]) perksCall('action=set&color=vert&id=' + id, function () {});
+    });
+  }
+
+  // Bloc le plus proche (en remontant) qui porte le fond bleu des encarts, sinon l'encart lui-même
+  function followerBlock(h3) {
+    if (h3.mhxBlock) return h3.mhxBlock; // après coloration le fond d'origine n'est plus détectable
+    for (var el = h3; el && el !== document.body; el = el.parentNode) {
+      if (el.nodeType === 1 && /tableau2_fo/.test(getComputedStyle(el).backgroundImage)) return (h3.mhxBlock = el);
+    }
+    return (h3.mhxBlock = h3.parentNode);
+  }
+
+  function colorFollowers(list) {
+    document.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
+      var el = followerBlock(h3);
+      if (el.dataset.mhxBg === undefined) el.dataset.mhxBg = el.style.cssText;
+      el.style.cssText = el.dataset.mhxBg;
+      var gid = /\((\d+)\)/.exec(h3.textContent);
+      var c = gid && list[gid[1]];
+      if (c && PERK_COLORS[c]) el.style.setProperty('background', PERK_COLORS[c], 'important');
+    });
+  }
+
+  // Encart en bas de la page Suivants : liste commune, couleur modifiable, ajout / retrait d'un gowap
+  function addGowapPanel(list) {
+    var box = document.getElementById('mhx-gowaps');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'mhx-gowaps';
+      document.body.appendChild(box);
+    }
+    box.textContent = '';
+    var title = document.createElement('b');
+    title.textContent = 'Gowaps en couleur (liste commune)';
+    box.appendChild(title);
+    var save = function (body) { perksCall(body, function (l) { if (l) { colorFollowers(l); addGowapPanel(l); } }); };
+    var select = function (current) {
+      var sel = document.createElement('select');
+      Object.keys(PERK_COLORS).forEach(function (k) {
+        var o = document.createElement('option');
+        o.value = k; o.textContent = k; o.selected = k === current;
+        sel.appendChild(o);
+      });
+      return sel;
+    };
+    Object.keys(list).forEach(function (id) {
+      var row = document.createElement('div');
+      var lab = document.createElement('span');
+      lab.textContent = id + ' ';
+      lab.style.background = PERK_COLORS[list[id]] || '';
+      var sel = select(list[id]);
+      sel.onchange = function () { save('action=set&id=' + id + '&color=' + sel.value); };
+      var del = document.createElement('button');
+      del.type = 'button'; del.textContent = '✕';
+      del.onclick = function () { save('action=del&id=' + id); };
+      row.appendChild(lab); row.appendChild(sel); row.appendChild(del);
+      box.appendChild(row);
+    });
+    var add = document.createElement('div');
+    var inp = document.createElement('input');
+    inp.type = 'text'; inp.placeholder = 'n° du gowap'; inp.size = 10;
+    var sel = select('vert');
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = 'Ajouter';
+    btn.onclick = function () {
+      if (/^\d{1,10}$/.test(inp.value.trim())) save('action=set&id=' + inp.value.trim() + '&color=' + sel.value);
+    };
+    add.appendChild(inp); add.appendChild(sel); add.appendChild(btn);
+    box.appendChild(add);
   }
 
   // Page « Suivants » : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
@@ -46,9 +126,6 @@
     var pad = function (n) { return (n < 10 ? '0' : '') + n; };
     document.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
       var box = h3.parentNode;
-      // gowap avec l'amélioration « Ramasse les Trésors » (mémorisée par rememberGowapPerks) : encart en vert
-      var gid = /\((\d+)\)/.exec(h3.textContent);
-      if (gid && gowapPerks()[gid[1]]) box.classList.add('mhx-ramasse');
       if (box.querySelector('.mhx-dla')) return;
       var d;
       try { d = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
@@ -73,6 +150,11 @@
       // dans le bloc « poids porté » (2e enfant) pour ne pas décaler la mise en page de l'encart
       var poids = h3.nextElementSibling;
       (poids && poids.tagName === 'DIV' ? poids : box).appendChild(el);
+    });
+    perksCall('', function (list) {
+      if (!list) return;
+      colorFollowers(list);
+      addGowapPanel(list);
     });
   }
   // ---------------------------------------------------------------------------
