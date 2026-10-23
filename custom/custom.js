@@ -400,7 +400,7 @@
   // « Durée du tour   3-5 → 4  heures » dans la CDM du monstre
   function monsterCdmTurn() {
     var txt = (document.body ? document.body.textContent : '').normalize('NFC').replace(/[\s\u00a0]+/g, ' ');
-    var m = /Dur\u00e9e du tour\s*(\d+(?:[.,]\d+)?)\s*[-\u2013]\s*(\d+(?:[.,]\d+)?)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(txt);
+    var m = /Dur\u00e9e du tour[^\d]{0,40}?(\d+(?:[.,]\d+)?)\s*[-\u2013]\s*(\d+(?:[.,]\d+)?)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(txt);
     if (!m) return null;
     var f = function (x) { return parseFloat(x.replace(',', '.')); };
     var lo = f(m[1]), hi = f(m[2]);
