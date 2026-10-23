@@ -27,3 +27,10 @@ a.interface-it::after {
 .mhx-dla { font-size: 0.9em; }
 .mhx-dla-soon { color: #b36b00; font-weight: bold; }
 .mhx-dla-past { color: #b00020; font-weight: bold; }
+
+/* Script MHD : pastille de statut (envoi mission) et analyse tactique d'un monstre */
+#mhx-badge { position: fixed; top: 15px; right: 15px; z-index: 999999; padding: 10px 15px; border-radius: 6px; color: #fff; font: bold 13px Arial, sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,.3); pointer-events: none; transition: opacity .4s ease-in-out; }
+#mhx-badge.mhx-badge-ok { background: #2e7d32; }
+#mhx-badge.mhx-badge-err { background: #d32f2f; }
+.mhx-monstre { margin: 15px auto; padding: 10px; background: #fcf8e3; border: 1px solid #8a6d3b; border-radius: 4px; width: 80%; text-align: center; color: #8a6d3b; font-family: Arial, sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+.mhx-monstre h4 { margin: 0 0 8px 0; color: #a94442; }
