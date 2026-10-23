@@ -20,6 +20,25 @@
     a.parentNode.insertBefore(document.createElement('br'), a.nextSibling);
   }
 
+  // Améliorations des gowaps : la page profil/équipement d'un suivant (Play_a_Action.php?type=F&id=-4&id_target=N)
+  // affiche « Ramasse les Trésors » ; on le mémorise dans le navigateur (localStorage) par numéro de gowap
+  // pour colorer la page Suivants. Lecture seule : rien n'est envoyé ni soumis.
+  var PERKS_KEY = 'mhx-gowap-ramasse';
+  function gowapPerks() {
+    try { return JSON.parse(localStorage.getItem(PERKS_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function rememberGowapPerks() {
+    if (!/\/Play_a_Action\.php$/.test(location.pathname)) return;
+    var q = new URLSearchParams(location.search);
+    var id = q.get('id_target');
+    if (q.get('type') !== 'F' || !/^\d+$/.test(id || '')) return;
+    var txt = document.body ? document.body.textContent : '';
+    if (!/am\u00e9lioration/i.test(txt)) return; // page sans section améliorations : on ne change rien
+    var perks = gowapPerks();
+    if (/Ramasse\s+les\s+Tr\u00e9sors/i.test(txt)) perks[id] = 1; else delete perks[id];
+    try { localStorage.setItem(PERKS_KEY, JSON.stringify(perks)); } catch (e) {}
+  }
+
   // Page « Suivants » : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
   // Elle est déjà dans le data-json du <h3> : aucune requête supplémentaire.
   function addFollowerDla() {
@@ -27,18 +46,9 @@
     var pad = function (n) { return (n < 10 ? '0' : '') + n; };
     document.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
       var box = h3.parentNode;
-      // gowap avec l'amélioration « Ramasse les Trésors » : encart en vert (cherché dans le data-json,
-      // l'encart et les blocs qui suivent jusqu'au prochain suivant)
-      var info = h3.getAttribute('data-json') + ' ' + box.textContent;
-      for (var sib = box.nextElementSibling; sib && !sib.matches('.monstre-entete') && !sib.querySelector('.monstre-entete'); sib = sib.nextElementSibling) info += ' ' + sib.textContent;
-      if (/Ramasse\s+les\s+Tr(?:\u00e9|e|\\u00e9)sors/i.test(info)) box.classList.add('mhx-ramasse');
-      if (!box.querySelector('.mhx-debug')) { // TEMPORAIRE : affiche le contenu brut du data-json
-        var dbg = document.createElement('pre');
-        dbg.className = 'mhx-debug';
-        dbg.style.cssText = 'font-size:11px;white-space:pre-wrap;word-break:break-all;background:#fff;color:#000;margin:2px;padding:2px;';
-        dbg.textContent = h3.getAttribute('data-json');
-        box.appendChild(dbg);
-      }
+      // gowap avec l'amélioration « Ramasse les Trésors » (mémorisée par rememberGowapPerks) : encart en vert
+      var gid = /\((\d+)\)/.exec(h3.textContent);
+      if (gid && gowapPerks()[gid[1]]) box.classList.add('mhx-ramasse');
       if (box.querySelector('.mhx-dla')) return;
       var d;
       try { d = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
@@ -315,7 +325,7 @@
     }, 500);
   }
 
-  function init() { addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
