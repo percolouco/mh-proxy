@@ -8,8 +8,7 @@ a.interface-it:visited {
     width: 200px;
     height: 26px;
     background: url(/_mhx/img/interfaceit.jpg) no-repeat 0 0;
-    font-size: 0;      /* texte « IT » conservé dans le HTML mais masqué (comme les autres boutons) */
-    color: transparent;
+    color: transparent; /* texte « IT » conservé dans le HTML mais masqué (comme les autres boutons) */
     text-decoration: none;
 }
 a.interface-it:hover,
