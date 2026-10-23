@@ -14,7 +14,7 @@ avec une **surcouche perso** (CSS/JS) sans rien installer sur le poste.
 - Désactive la compression amont pour pouvoir modifier le HTML, et injecte avant `</head>` de chaque page :
   `/_mhx/custom.css` et `/_mhx/custom.js` (fichiers du dossier `custom/`, servis sans cache).
 - `custom.js` est protégé par `window.__mhx` contre une double exécution.
-- `custom.js` ajoute un bouton **IT** dans le menu de gauche (sous « Tanières ») qui ouvre `https://mh.percolouco.com/tactique/tactique.php` dans le cadre de contenu ; style dans `custom.css`.
+- `custom.js` ajoute un bouton **IT** dans le menu de gauche (sous « Tanières ») qui ouvre `https://mh.percolouco.com/tactique/tactique.php` dans le cadre de contenu ; images `custom/img/interfaceit.jpg` (normal) et `interfaceit2.jpg` (survol), style dans `custom.css`.
 - Les pages `frameset` n'ont pas de `</head>` : seule leur contenu (cadres) est injecté, c'est voulu.
 
 ## Fichiers
@@ -23,6 +23,7 @@ avec une **surcouche perso** (CSS/JS) sans rien installer sur le poste.
 mh-proxy/
 ├── nginx.conf                  # proxy + injection de la surcouche
 ├── custom/custom.css|js        # surcouche perso (à éditer, pas de rebuild)
+├── custom/img/                 # images de la surcouche (bouton IT)
 ├── deploy/docker-compose.yml   # copié dans /opt/container/mh-proxy/
 └── README.md
 ```
@@ -49,3 +50,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.1.0 | 2026-10-23 | Reverse proxy minimal + injection CSS/JS, testé (login, frames, accents) |
 | 0.2.0 | 2026-10-23 | Bouton « IT » dans le menu → page tactique de mh.percolouco.com |
 | 0.3.0 | 2026-10-23 | Plus de redirection vers smartphone.mountyhall.com sur mobile (User-Agent bureau) |
+| 0.3.1 | 2026-10-23 | Bouton IT avec les images fournies (normal + survol) |
