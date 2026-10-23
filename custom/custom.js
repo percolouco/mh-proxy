@@ -342,42 +342,50 @@
       function () {});
   }
 
-  // Profil d'un monstre : estime sa DLA à partir de l'historique des événements.
-  function monsterDla(dateStrs) {
+  // Profil d'un monstre : estime sa DLA à partir de ses propres événements (ceux qui commencent par « un… »,
+  // pas ceux des joueurs qui l'attaquent) et de la durée du tour lue dans la CDM quand elle est affichée.
+  // Début du tour = premier événement du groupe ; peut rejouer = début + durée ; cumul = peut rejouer + durée.
+  function monsterDla(dateStrs, cdm) {
     var toDate = function (s) {
       var a = s.split(' '), d = a[0].split('/'), t = a[1].split(':');
       return new Date(d[2], d[1] - 1, d[0], t[0], t[1], t[2]);
     };
     var dates = dateStrs.map(toDate).sort(function (a, b) { return a - b; });
-    if (dates.length < 2) return null;
-    var act = [dates[0]];
+    if (!dates.length) return null;
+    var act = [dates[0]]; // débuts de tour : les événements à moins de 2 min d'écart sont le même tour
     for (var i = 1; i < dates.length; i++) {
       if ((dates[i] - act[act.length - 1]) / 1000 > 120) act.push(dates[i]);
     }
-    if (act.length < 2) return null;
     var deltas = [];
     for (var k = 1; k < act.length; k++) deltas.push((act[k] - act[k - 1]) / 3600000);
-    var sans = deltas.filter(function (d) { return d <= 16; });
-    if (!sans.length) return null;
-    var sorted = sans.slice().sort(function (a, b) { return a - b; });
-    var mid = Math.floor(sorted.length / 2);
-    var med = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-    var valid = [];
-    for (var n = 0; n < sans.length;) {
-      var d = sans[n];
-      if (d < med * 0.75 && n + 1 < sans.length && Math.abs(d + sans[n + 1] - med) < med * 0.25) {
-        valid.push(d + sans[n + 1]);
-        n += 2;
-        continue;
+    // avec la CDM on écarte les écarts hors fourchette (tours sautés, événements manquants)
+    var sans = deltas.filter(function (d) { return cdm ? d >= cdm.min * 0.75 && d <= cdm.max * 1.25 : d <= 16; });
+    var moy;
+    if (sans.length) {
+      var sorted = sans.slice().sort(function (a, b) { return a - b; });
+      var mid = Math.floor(sorted.length / 2);
+      var med = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      var valid = [];
+      for (var n = 0; n < sans.length;) {
+        var d = sans[n];
+        if (d < med * 0.75 && n + 1 < sans.length && Math.abs(d + sans[n + 1] - med) < med * 0.25) {
+          valid.push(d + sans[n + 1]); // un événement manquant a coupé un tour en deux
+          n += 2;
+          continue;
+        }
+        if (d >= med * 0.75) valid.push(d);
+        n++;
       }
-      if (d >= med * 0.75) valid.push(d);
-      n++;
+      var last3 = (valid.length ? valid : sans).slice(-3);
+      moy = last3.reduce(function (a, b) { return a + b; }, 0) / last3.length;
+    } else if (cdm) {
+      moy = cdm.avg;
+    } else {
+      return null;
     }
-    var last3 = (valid.length ? valid : sans).slice(-3);
-    var moy = last3.reduce(function (a, b) { return a + b; }, 0) / last3.length;
     var pad = function (x) { return (x < 10 ? '0' : '') + x; };
     var fmt = function (dt) {
-      return pad(dt.getDate()) + '/' + pad(dt.getMonth() + 1) + ' \u00e0 ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+      return pad(dt.getDate()) + '/' + pad(dt.getMonth() + 1) + ' à ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
     };
     var min = new Date(act[act.length - 1].getTime() + moy * 3600000);
     var max = new Date(min.getTime() + moy * 3600000);
@@ -385,21 +393,30 @@
     return { dla: h + 'h ' + pad(Math.floor((moy - h) * 60)) + 'm', min: fmt(min), max: fmt(max) };
   }
 
+  // « Durée du tour   3-5 → 4  heures » dans la CDM du monstre
+  function monsterCdmTurn() {
+    var m = /Durée du tour\s*(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)(?:\s*(?:→|->)\s*(\d+(?:[.,]\d+)?))?/.exec(document.body.textContent);
+    if (!m) return null;
+    var f = function (x) { return parseFloat(x.replace(',', '.')); };
+    var lo = f(m[1]), hi = f(m[2]);
+    return { min: lo, max: hi, avg: m[3] ? f(m[3]) : (lo + hi) / 2 };
+  }
+
   function addMonsterAnalysis() {
     if (!/\/MonsterView\.php$/.test(location.pathname)) return;
     setTimeout(function () {
       var dates = [];
       document.querySelectorAll('#events tbody tr').forEach(function (tr) {
-        var m = /(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2})/.exec(tr.textContent);
+        var m = /(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2})\s*[A-ZÀ-Ü]+\s*(?:un|une)\s/.exec(tr.textContent.replace(/\s+/g, ' '));
         if (m && dates.indexOf(m[1]) < 0) dates.push(m[1]);
       });
-      var s = dates.length >= 2 ? monsterDla(dates) : null;
+      var s = dates.length ? monsterDla(dates, monsterCdmTurn()) : null;
       if (!s || document.querySelector('.mhx-monstre')) return;
       var box = document.createElement('div');
       box.className = 'mhx-monstre';
-      box.innerHTML = '<h4>\ud83e\udd87 Analyse Tactique (Script MH2)</h4>' +
-        '<b>Dur\u00e9e du tour estim\u00e9e :</b> ' + s.dla + '<br>' +
-        '<b>Peut rejouer \u00e0 partir du :</b> ' + s.min + '<br>' +
+      box.innerHTML = '<h4>🦇 Analyse Tactique (Script MH2)</h4>' +
+        '<b>Durée du tour estimée :</b> ' + s.dla + '<br>' +
+        '<b>Peut rejouer à partir du :</b> ' + s.min + '<br>' +
         '<b>Son prochain cumul est le :</b> ' + s.max;
       var form = document.querySelector('form[action=""]');
       if (form && form.parentNode) form.parentNode.insertBefore(box, form);
