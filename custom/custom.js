@@ -32,6 +32,13 @@
       var info = h3.getAttribute('data-json') + ' ' + box.textContent;
       for (var sib = box.nextElementSibling; sib && !sib.matches('.monstre-entete') && !sib.querySelector('.monstre-entete'); sib = sib.nextElementSibling) info += ' ' + sib.textContent;
       if (/Ramasse\s+les\s+Tr(?:\u00e9|e|\\u00e9)sors/i.test(info)) box.classList.add('mhx-ramasse');
+      if (!box.querySelector('.mhx-debug')) { // TEMPORAIRE : affiche le contenu brut du data-json
+        var dbg = document.createElement('pre');
+        dbg.className = 'mhx-debug';
+        dbg.style.cssText = 'font-size:11px;white-space:pre-wrap;word-break:break-all;background:#fff;color:#000;margin:2px;padding:2px;';
+        dbg.textContent = h3.getAttribute('data-json');
+        box.appendChild(dbg);
+      }
       if (box.querySelector('.mhx-dla')) return;
       var d;
       try { d = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
