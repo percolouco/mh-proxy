@@ -405,11 +405,17 @@
   function addMonsterAnalysis() {
     if (!/\/MonsterView\.php$/.test(location.pathname)) return;
     setTimeout(function () {
-      var dates = [];
+      var dates = [], all = [];
       document.querySelectorAll('#events tbody tr').forEach(function (tr) {
-        var m = /(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2})\s*[A-ZÀ-Ü]+\s*(?:un|une)\s/.exec(tr.textContent.replace(/\s+/g, ' '));
-        if (m && dates.indexOf(m[1]) < 0) dates.push(m[1]);
+        var txt = tr.textContent.replace(/\s+/g, ' ');
+        var m = /(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2})/.exec(txt);
+        if (!m) return;
+        if (all.indexOf(m[1]) < 0) all.push(m[1]);
+        // événement du monstre : la description (texte après la date et le type) commence par « un… »
+        var after = txt.slice(txt.indexOf(m[1]) + m[1].length).replace(/^\s*[A-Z\u00c0-\u00dc]+\s*/, '');
+        if (/^\s*(?:un|une)\s/i.test(after) && dates.indexOf(m[1]) < 0) dates.push(m[1]);
       });
+      if (!dates.length) dates = all; // format inattendu : on retombe sur tous les événements
       var s = dates.length ? monsterDla(dates, monsterCdmTurn()) : null;
       if (!s || document.querySelector('.mhx-monstre')) return;
       var box = document.createElement('div');
