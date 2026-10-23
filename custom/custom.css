@@ -1,1 +1,25 @@
 /* Surcouche perso MountyHall — chargée dans chaque page via le proxy. */
+
+/* Bouton « IT » du menu de gauche (aucune image MH : texte sur fond bois sombre) */
+a.interface-it,
+a.interface-it:link,
+a.interface-it:visited {
+    display: inline-block;
+    width: 200px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    font: bold 15px/30px Georgia, "Times New Roman", serif;
+    letter-spacing: 2px;
+    color: #f1dcae;
+    text-shadow: 0 1px 2px #000;
+    text-decoration: none;
+    background: linear-gradient(#5a3d22, #3b2713);
+    border-top: 1px solid #8a6a3f;
+    border-bottom: 1px solid #1e1409;
+}
+a.interface-it:hover,
+a.interface-it:active {
+    color: #fff;
+    background: linear-gradient(#6d4a29, #4a3019);
+}
