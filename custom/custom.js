@@ -638,10 +638,10 @@
         var ref = tr.querySelector('td.ref'), pa = tr.querySelector('td.mhx-pacol'), pv = tr.querySelector('td.mhx-pvcol2'), dl = tr.querySelector('td.mhx-dlacol');
         var e = ref && etat[ref.textContent.trim()];
         if (!e || !pa || !pv || !dl) return;
-        // temps restant avant la prochaine DLA (format 4h00) ; vide si inconnue ou d\u00e9j\u00e0 d\u00e9pass\u00e9e
+        // temps restant avant la prochaine DLA (format 4h00) ; ~ si estim\u00e9e (DLA enregistr\u00e9e d\u00e9pass\u00e9e : on ajoute la dur\u00e9e du tour)
         var rest = typeof e.dla_dans === 'number' ? e.dla_dans - Math.round((Date.now() - t0) / 1000) : -1;
         var dt = '';
-        if (rest > 0) { var mn = Math.floor(rest / 60); dt = Math.floor(mn / 60) + 'h' + ('0' + (mn % 60)).slice(-2); }
+        if (rest > 0) { var mn = Math.floor(rest / 60); dt = (e.dla_estimee ? '~' : '') + Math.floor(mn / 60) + 'h' + ('0' + (mn % 60)).slice(-2); }
         if (dl.textContent !== dt) dl.textContent = dt;
         var txt = e.pa === null ? '' : String(e.pa);
         if (pa.textContent !== txt) pa.textContent = txt;
