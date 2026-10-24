@@ -619,16 +619,16 @@
       };
       if (!hr.querySelector('.mhx-pah')) {
         var tag = hAct.tagName.toLowerCase();
-        hAct.parentNode.insertBefore(mk(tag, 'mhx-pah', 'PA', 40), hAct.nextSibling);
+        hAct.parentNode.insertBefore(mk(tag, 'mhx-pah', 'PA', 20), hAct.nextSibling);
         hRef.parentNode.insertBefore(mk(tag, 'mhx-pvth', 'PV', 66), hRef);
-        hRef.parentNode.insertBefore(mk(tag, 'mhx-dlah', 'DLA \u00e0...', 90), hRef);
+        hRef.parentNode.insertBefore(mk(tag, 'mhx-dlah', 'DLA \u00e0...', 50), hRef);
       }
       document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (tr) {
         var act = tr.querySelector('td.actions'), ref = tr.querySelector('td.ref');
         if (!act || !ref || tr.querySelector('td.mhx-pacol')) return;
-        act.parentNode.insertBefore(mk('td', 'mhx-pacol', '', 40), act.nextSibling);
+        act.parentNode.insertBefore(mk('td', 'mhx-pacol', '', 20), act.nextSibling);
         ref.parentNode.insertBefore(mk('td', 'mhx-pvcol2', '', 66), ref);
-        ref.parentNode.insertBefore(mk('td', 'mhx-dlacol', '', 90), ref);
+        ref.parentNode.insertBefore(mk('td', 'mhx-dlacol', '', 50), ref);
       });
       return true;
     };
