@@ -42,3 +42,4 @@ a.interface-it::after {
 .mhx-pv { color: #7a1f1f; font-weight: bold; font-size: 0.9em; white-space: nowrap; }
 body.mhx-pv-lecture [id^="popupCDM"] { visibility: hidden !important; }
 .mhx-pv-doute { color: #b36b00; }
+.mhx-pv-ok { color: #1b8a2f; }
