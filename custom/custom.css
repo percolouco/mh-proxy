@@ -47,7 +47,7 @@ a.interface-it::after {
 body.mhx-pv-lecture [id^="popupCDM"] { visibility: hidden !important; }
 
 /* Page Ma vue : colonnes PA et PV des trolls (mêmes couleurs que le récap tactique) */
-.mhx-pacol, .mhx-pah, .mhx-pvth { text-align: center !important; }
+.mhx-pacol, .mhx-pah, .mhx-pvth, .mhx-dlah, .mhx-dlacol { text-align: center !important; }
 .mhx-pvcol2 { text-align: center !important; white-space: nowrap; }
 .mhx-pa-vert { background-color: #b8eeb8 !important; background-image: none !important; }
 .mhx-pvbar { height: 8px; margin-top: 4px; border: 1px solid #000; }

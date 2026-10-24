@@ -604,7 +604,7 @@
   var ETAT_URL = 'https://mh.percolouco.com/notif/trolls_etat.php';
   function addTrollEtat() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var etat = null, started = false;
+    var etat = null, started = false, t0 = 0;
     var ensureCols = function () {
       var hr = document.querySelector('#VUE_trolls thead tr');
       if (!hr) return false;
@@ -621,21 +621,28 @@
         var tag = hAct.tagName.toLowerCase();
         hAct.parentNode.insertBefore(mk(tag, 'mhx-pah', 'PA', 40), hAct.nextSibling);
         hRef.parentNode.insertBefore(mk(tag, 'mhx-pvth', 'PV', 66), hRef);
+        hRef.parentNode.insertBefore(mk(tag, 'mhx-dlah', 'DLA dans...', 80), hRef);
       }
       document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (tr) {
         var act = tr.querySelector('td.actions'), ref = tr.querySelector('td.ref');
         if (!act || !ref || tr.querySelector('td.mhx-pacol')) return;
         act.parentNode.insertBefore(mk('td', 'mhx-pacol', '', 40), act.nextSibling);
         ref.parentNode.insertBefore(mk('td', 'mhx-pvcol2', '', 66), ref);
+        ref.parentNode.insertBefore(mk('td', 'mhx-dlacol', '', 80), ref);
       });
       return true;
     };
     var show = function () {
       if (!etat) return;
       document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (tr) {
-        var ref = tr.querySelector('td.ref'), pa = tr.querySelector('td.mhx-pacol'), pv = tr.querySelector('td.mhx-pvcol2');
+        var ref = tr.querySelector('td.ref'), pa = tr.querySelector('td.mhx-pacol'), pv = tr.querySelector('td.mhx-pvcol2'), dl = tr.querySelector('td.mhx-dlacol');
         var e = ref && etat[ref.textContent.trim()];
-        if (!e || !pa || !pv) return;
+        if (!e || !pa || !pv || !dl) return;
+        // temps restant avant la prochaine DLA (format 4h00) ; vide si inconnue ou d\u00e9j\u00e0 d\u00e9pass\u00e9e
+        var rest = typeof e.dla_dans === 'number' ? e.dla_dans - Math.round((Date.now() - t0) / 1000) : -1;
+        var dt = '';
+        if (rest > 0) { var mn = Math.floor(rest / 60); dt = Math.floor(mn / 60) + 'h' + ('0' + (mn % 60)).slice(-2); }
+        if (dl.textContent !== dt) dl.textContent = dt;
         var txt = e.pa === null ? '' : String(e.pa);
         if (pa.textContent !== txt) pa.textContent = txt;
         // comme le récap : vert si la DLA est dépassée ou si le troll a au moins 4 PA
@@ -666,12 +673,13 @@
         if (!ids.length) return;
         fetch(ETAT_URL + '?ids=' + ids.join(','), { referrerPolicy: 'no-referrer' })
           .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (j) { if (j) { etat = j; show(); } })
+          .then(function (j) { if (j) { etat = j; t0 = Date.now(); show(); } })
           .catch(function () {});
       }
     };
     var n = 0;
     var iv = setInterval(function () { start(); ensureCols(); show(); if (++n > 25) clearInterval(iv); }, 2000);
+    setInterval(show, 60000); // le temps restant avance
     start();
     var tbl = document.getElementById('VUE_trolls');
     if (tbl && window.MutationObserver) {
