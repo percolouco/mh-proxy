@@ -180,9 +180,9 @@
     // Vraie colonne « PV » entre « Niv. » et « R\u00e9f. » : une cellule ajout\u00e9e apr\u00e8s celle du niveau dans chaque ligne
     var ensureCol = function () {
       var th = document.querySelector('#VUE_monstres thead tr td:nth-child(3), #VUE_monstres thead tr th:nth-child(3)');
-      if (th && /^\s*Niv/i.test(th.textContent) && !th.parentNode.querySelector('.mhx-pvcol')) {
+      if (th && /^\s*Niv/i.test(th.textContent) && !th.parentNode.querySelector('.mhx-pvh')) {
         var h = document.createElement(th.tagName.toLowerCase());
-        h.className = 'mhx-pvcol';
+        h.className = 'mhx-pvh'; // sans style propre : il reprend celui des autres en-têtes du tableau
         h.textContent = 'PV';
         h.style.cssText = 'width: 80px; display: table-cell;';
         th.parentNode.insertBefore(h, th.nextSibling);
@@ -201,7 +201,7 @@
       var td = r.tr.querySelector('td.mhx-pvcol');
       if (!c || !td) return;
       if (c.k === 'fam') { td.textContent = ''; td.className = 'mhx-pvcol'; td.title = ''; return; } // familier : pas d'info
-      var txt = c.v + ' PV' + (c.k === 'doute' ? ' \u26a0' : c.k === 'bless' ? ' \u2713' : '');
+      var txt = c.v + ' PV';
       if (td.textContent !== txt) td.textContent = txt;
       td.className = 'mhx-pvcol mhx-pv-' + c.k;
       td.title = c.k === 'bless' ? 'CDM fiable (blessure connue)'
