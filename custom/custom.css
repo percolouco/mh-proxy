@@ -39,7 +39,7 @@ a.interface-it::after {
 .mhx-monstre h4 { margin: 0 0 8px 0; color: #a94442; }
 
 /* Page Ma vue : colonne PV entre « Niv. » et « Réf. » */
-.mhx-pvcol { white-space: nowrap; font-weight: bold; font-size: 0.9em; text-align: right; }
+.mhx-pvcol { white-space: nowrap; font-weight: bold; font-size: 0.8em; text-align: right; padding-left: 1px; padding-right: 2px; }
 /* vert : CDM fiable (✓) ; orange : CDM simple ; rouge : estimation pas encore viable */
 .mhx-pv-bless { color: #1b8a2f; }
 .mhx-pv-ok { color: #d2740a; }

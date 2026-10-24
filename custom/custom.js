@@ -161,7 +161,7 @@
   //  - avec une ligne « Blessure » en plus : CDM fiable, même affichage + ✓ ;
   //  - avec l'intervalle de confiance jaune (second intervalle) : CDM pas encore viable, on affiche
   //    « ~65 PV » (valeur après la flèche) + ⚠.
-  var PV_KEY = 'mhx-pv-monstres-2';
+  var PV_KEY = 'mhx-pv-monstres-3';
   function pvCache() {
     try { return JSON.parse(localStorage.getItem(PV_KEY) || '{}') || {}; } catch (e) { return {}; }
   }
@@ -184,7 +184,7 @@
         var h = document.createElement(th.tagName.toLowerCase());
         h.className = 'mhx-pvcol';
         h.textContent = 'PV';
-        h.style.cssText = 'width: 110px; display: table-cell;';
+        h.style.cssText = 'width: 80px; display: table-cell;';
         th.parentNode.insertBefore(h, th.nextSibling);
       }
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
@@ -192,7 +192,7 @@
         if (!niv || tr.cells.length < 6 || tr.querySelector('td.mhx-pvcol')) return;
         var td = document.createElement('td');
         td.className = 'mhx-pvcol';
-        td.style.display = 'table-cell'; // footable masque les cellules qu'il ne connaît pas
+        td.style.cssText = 'width: 80px; display: table-cell;'; // footable masque les cellules qu'il ne connaît pas
         niv.parentNode.insertBefore(td, niv.nextSibling);
       });
     };
@@ -200,6 +200,7 @@
       var c = cache[r.id];
       var td = r.tr.querySelector('td.mhx-pvcol');
       if (!c || !td) return;
+      if (c.k === 'fam') { td.textContent = ''; td.className = 'mhx-pvcol'; td.title = ''; return; } // familier : pas d'info
       var txt = c.v + ' PV' + (c.k === 'doute' ? ' \u26a0' : c.k === 'bless' ? ' \u2713' : '');
       if (td.textContent !== txt) td.textContent = txt;
       td.className = 'mhx-pvcol mhx-pv-' + c.k;
@@ -209,12 +210,13 @@
     var readPv = function (id) {
       var pop = document.getElementById('popupCDM' + id);
       if (!pop) return null;
-      var res = null, bless = false;
+      var res = null, bless = false, familier = false;
       pop.querySelectorAll('tr').forEach(function (tr) {
         var c = tr.cells;
         if (!c || c.length < 2) return;
         var lab = c[0].textContent.trim();
         if (/^Blessure$/i.test(lab) && c[1].textContent.trim()) bless = true;
+        if (/^Famille$/i.test(lab) && /^\s*Familier/i.test(c[1].textContent)) familier = true;
         if (/^Points de Vie$/i.test(lab)) {
           var td = c[1].cloneNode(true);
           var doute = td.querySelector('span') !== null; // intervalle de confiance à 80 % (jaune)
@@ -232,6 +234,7 @@
           }
         }
       });
+      if (familier) return { v: '', k: 'fam' };
       if (res && bless && res.k === 'ok') res.k = 'bless';
       return res;
     };
