@@ -177,14 +177,34 @@
       });
       return out;
     };
-    // Le texte est affiché par le CSS (::after d'un attribut) dans la cellule du niveau : aucun noeud ajouté, donc
-    // ni colonne ni texte en plus pour Mountyzilla (qui lit les cellules par leur position et le niveau par son texte).
+    // Vraie colonne « PV » entre « Niv. » et « R\u00e9f. » : une cellule ajout\u00e9e apr\u00e8s celle du niveau dans chaque ligne
+    var ensureCol = function () {
+      var th = document.querySelector('#VUE_monstres thead tr td:nth-child(3), #VUE_monstres thead tr th:nth-child(3)');
+      if (th && /^\s*Niv/i.test(th.textContent) && !th.parentNode.querySelector('.mhx-pvcol')) {
+        var h = document.createElement(th.tagName.toLowerCase());
+        h.className = 'mhx-pvcol';
+        h.textContent = 'PV';
+        h.style.cssText = 'width: 110px; display: table-cell;';
+        th.parentNode.insertBefore(h, th.nextSibling);
+      }
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var niv = tr.cells[2]; // colonne « Niv. » : présente dans toutes les lignes, même sans niveau cliquable
+        if (!niv || tr.cells.length < 6 || tr.querySelector('td.mhx-pvcol')) return;
+        var td = document.createElement('td');
+        td.className = 'mhx-pvcol';
+        td.style.display = 'table-cell'; // footable masque les cellules qu'il ne connaît pas
+        niv.parentNode.insertBefore(td, niv.nextSibling);
+      });
+    };
     var show = function (r) {
       var c = cache[r.id];
-      if (!c) return;
+      var td = r.tr.querySelector('td.mhx-pvcol');
+      if (!c || !td) return;
       var txt = c.v + ' PV' + (c.k === 'doute' ? ' \u26a0' : c.k === 'bless' ? ' \u2713' : '');
-      if (r.niv.getAttribute('data-mhx-pv') !== txt) r.niv.setAttribute('data-mhx-pv', txt);
-      if (r.niv.getAttribute('data-mhx-k') !== c.k) r.niv.setAttribute('data-mhx-k', c.k);
+      if (td.textContent !== txt) td.textContent = txt;
+      td.className = 'mhx-pvcol mhx-pv-' + c.k;
+      td.title = c.k === 'bless' ? 'CDM fiable (blessure connue)'
+        : c.k === 'doute' ? 'Estimation : la CDM n\u2019est pas encore fiable' : '';
     };
     var readPv = function (id) {
       var pop = document.getElementById('popupCDM' + id);
@@ -242,18 +262,14 @@
         busy = false;
       }
     };
-    var head = function () {
-      var th = document.querySelector('#VUE_monstres thead td[style*="width: 20px"], #VUE_monstres thead td:nth-child(3)');
-      if (th && /^\s*Niv/i.test(th.textContent)) th.setAttribute('data-mhx-th', '1');
-    };
     var n = 0, timer = setInterval(function () {
-      head();
+      ensureCol();
       rows().forEach(show);
       harvest();
       var tb = document.querySelector('#VUE_monstres tbody');
       if (tb && !tb.mhxObserved) {
         tb.mhxObserved = true;
-        new MutationObserver(function () { rows().forEach(show); }).observe(tb, { childList: true });
+        new MutationObserver(function () { ensureCol(); rows().forEach(show); }).observe(tb, { childList: true });
       }
       if (++n > 25) clearInterval(timer);
     }, 2000);

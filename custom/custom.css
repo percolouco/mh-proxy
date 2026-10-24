@@ -38,13 +38,10 @@ a.interface-it::after {
 .mhx-monstre { margin: 15px auto; padding: 10px; background: #fcf8e3; border: 1px solid #8a6d3b; border-radius: 4px; width: 80%; text-align: center; color: #8a6d3b; font-family: Arial, sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,.2); }
 .mhx-monstre h4 { margin: 0 0 8px 0; color: #a94442; }
 
-/* Page Ma vue : PV des monstres, affichés dans la cellule du niveau (colonne « Niv. » élargie, avant « Réf. ») */
-#VUE_monstres thead td[data-mhx-th], #VUE_monstres td[data-indxmz] { width: 150px !important; min-width: 150px !important; max-width: 150px; white-space: nowrap; }
-td[data-mhx-pv] { overflow: hidden; }
-td[data-mhx-pv]::after { content: "  " attr(data-mhx-pv); font-weight: bold; font-size: 0.9em; margin-left: 6px; }
-td[data-mhx-th]::after { content: " / PV"; }
+/* Page Ma vue : colonne PV entre « Niv. » et « Réf. » */
+.mhx-pvcol { white-space: nowrap; font-weight: bold; font-size: 0.9em; text-align: right; }
 /* vert : CDM fiable (✓) ; orange : CDM simple ; rouge : estimation pas encore viable */
-td[data-mhx-k="bless"]::after { color: #1b8a2f; }
-td[data-mhx-k="ok"]::after { color: #d2740a; }
-td[data-mhx-k="doute"]::after { color: #c0222b; }
+.mhx-pv-bless { color: #1b8a2f; }
+.mhx-pv-ok { color: #d2740a; }
+.mhx-pv-doute { color: #c0222b; }
 body.mhx-pv-lecture [id^="popupCDM"] { visibility: hidden !important; }
