@@ -72,3 +72,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.8.1 | 2026-10-24 | Page Ma vue : colonne PV en police 12px |
 | 0.8.2 | 2026-10-24 | Page Ma vue : colonne PV sans sigles (couleur et ~ seulement), en-tête PV au style des autres en-têtes |
 | 0.9.0 | 2026-10-24 | Page Ma vue : colonnes PA (après Actions) et PV (avant Réf.) des trolls, lues dans le récap tactique du serveur MH (endpoint `notif/trolls_etat.php`) |
+| 0.9.1 | 2026-10-24 | Page Ma vue : colonne PV des trolls réduite (66 px) |
