@@ -119,6 +119,37 @@
     box.appendChild(add);
   }
 
+  // Résultat du sortilège Téléportation : le portail créé est signalé dans le groupe WhatsApp (envoi fait par
+  // le serveur MH). Lecture du texte affiché seulement, rien n'est soumis dans le jeu ; un portail n'est
+  // envoyé qu'une fois (le serveur garde son numéro).
+  var NOTIF_PORTAIL_URL = 'https://mh.percolouco.com/notif/portail_whatsapp.php';
+  function rememberTrollId() {
+    var id = document.body && document.body.getAttribute('data-idtroll');
+    if (/^\d+$/.test(id || '')) { try { localStorage.setItem('mhx-idtroll', id); } catch (e) {} }
+  }
+  function currentTrollId() {
+    var id = document.body && document.body.getAttribute('data-idtroll');
+    if (!/^\d+$/.test(id || '')) {
+      try { id = localStorage.getItem('mhx-idtroll'); } catch (e) { id = null; }
+    }
+    return /^\d+$/.test(id || '') ? id : null;
+  }
+  function sendPortalNotice() {
+    if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
+    var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
+    var num = '([+-]?\\d+)';
+    var m = new RegExp('Portail de T\u00e9l\u00e9portation \\((\\d+)\\) en X = ' + num + ' \\| Y = ' + num + ' \\| N = ' + num +
+      '.*?conduit en : X = ' + num + ' \\| Y = ' + num + ' \\| N = ' + num +
+      '.*?Erreur de calcul : X=' + num + ' ?\\| ?Y=' + num + ' ?\\| ?N=' + num).exec(txt);
+    var troll = currentTrollId();
+    if (!m || !troll) return;
+    var k = ['pid', 'x', 'y', 'n', 'dx', 'dy', 'dn', 'ex', 'ey', 'en'];
+    var body = 'troll=' + troll + k.map(function (key, i) { return '&' + key + '=' + encodeURIComponent(m[i + 1].replace(/^\+/, '')); }).join('');
+    mhdPost(NOTIF_PORTAIL_URL, body, function (ok) {
+      mhdBadge(ok ? 'Portail signal\u00e9 sur WhatsApp' : 'Portail : envoi WhatsApp impossible', !ok);
+    });
+  }
+
   // Page « Suivants » : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
   // Elle est déjà dans le data-json du <h3> : aucune requête supplémentaire.
   function addFollowerDla() {
@@ -440,7 +471,7 @@
     })();
   }
 
-  function init() { rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { rememberTrollId(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
