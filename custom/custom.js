@@ -152,6 +152,32 @@
     });
   }
 
+  // TEMPORAIRE (diagnostic) : envoie une fois le HTML de « Ma vue » du troll 95681 au serveur MH.
+  // Le numéro du troll est repéré dans les appels json_vue.php (paramètre t=), interceptés dès le chargement.
+  var vueTroll = null;
+  (function () {
+    var seen = function (url) {
+      var m = /json_vue\.php\?[^#]*[?&]?t=(\d+)/.exec(String(url));
+      if (m) vueTroll = m[1];
+    };
+    try {
+      var open = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (method, url) { seen(url); return open.apply(this, arguments); };
+      var f = window.fetch;
+      if (f) window.fetch = function (input) { seen(input && input.url ? input.url : input); return f.apply(this, arguments); };
+    } catch (e) {}
+  })();
+  function captureVueTemp() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    setTimeout(function () {
+      if (vueTroll !== '95681') return;
+      try { if (localStorage.getItem('mhx-vue-captured')) return; } catch (e) {}
+      mhdPost('https://mh.percolouco.com/notif/capture_vue.php',
+        'troll=95681&html=' + encodeURIComponent(document.documentElement.outerHTML),
+        function (ok) { if (ok) { try { localStorage.setItem('mhx-vue-captured', '1'); } catch (e) {} } });
+    }, 6000);
+  }
+
   // Page « Suivants » : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
   // Elle est déjà dans le data-json du <h3> : aucune requête supplémentaire.
   function addFollowerDla() {
@@ -473,7 +499,7 @@
     })();
   }
 
-  function init() { sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { captureVueTemp(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
