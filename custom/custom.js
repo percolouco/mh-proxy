@@ -123,16 +123,18 @@
   // le serveur MH). Lecture du texte affiché seulement, rien n'est soumis dans le jeu ; un portail n'est
   // envoyé qu'une fois (le serveur garde son numéro).
   var NOTIF_PORTAIL_URL = 'https://mh.percolouco.com/notif/portail_whatsapp.php';
-  function rememberTrollId() {
-    var id = document.body && document.body.getAttribute('data-idtroll');
-    if (/^\d+$/.test(id || '')) { try { localStorage.setItem('mhx-idtroll', id); } catch (e) {} }
-  }
+  // Numéro du troll connecté : data-idtroll de la page, sinon d'un cadre du même jeu (menu, vue...) ouvert avec
+  // la même session. Pas de valeur mémorisée d'une autre session : mieux vaut ne rien envoyer qu'un mauvais nom.
   function currentTrollId() {
-    var id = document.body && document.body.getAttribute('data-idtroll');
-    if (!/^\d+$/.test(id || '')) {
-      try { id = localStorage.getItem('mhx-idtroll'); } catch (e) { id = null; }
+    var wins = [window, window.parent, window.top];
+    try { for (var i = 0; i < window.top.frames.length; i++) wins.push(window.top.frames[i]); } catch (e) { /* cadres inaccessibles */ }
+    for (var j = 0; j < wins.length; j++) {
+      try {
+        var id = wins[j].document.body.getAttribute('data-idtroll');
+        if (/^\d+$/.test(id || '')) return id;
+      } catch (e) { /* cadre d'une autre origine */ }
     }
-    return /^\d+$/.test(id || '') ? id : null;
+    return null;
   }
   function sendPortalNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
@@ -471,7 +473,7 @@
     })();
   }
 
-  function init() { rememberTrollId(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
