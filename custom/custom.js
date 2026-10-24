@@ -156,13 +156,18 @@
   // Source : le popup CDM de Mountyzilla (clic sur le niveau du monstre), que Mountyzilla remplit lui-même.
   // On l'ouvre une fraction de seconde (masqué par le CSS), on lit la ligne « Points de Vie », puis on le referme.
   // Ouvrir ce popup n'est qu'un affichage, rien n'est envoyé au jeu. Pas de valeur pour les Gowap Apprivoisés.
-  var PV_KEY = 'mhx-pv-monstres';
+  // Trois cas dans la ligne « Points de Vie » du popup :
+  //  - « 90-110 → 100 PV » seul : on affiche « 90-110 PV » ;
+  //  - avec une ligne « Blessure » en plus : CDM fiable, même affichage + ✓ ;
+  //  - avec l'intervalle de confiance jaune (second intervalle) : CDM pas encore viable, on affiche
+  //    « ~65 PV » (valeur après la flèche) + ⚠.
+  var PV_KEY = 'mhx-pv-monstres-2';
   function pvCache() {
     try { return JSON.parse(localStorage.getItem(PV_KEY) || '{}') || {}; } catch (e) { return {}; }
   }
   function addMonsterPv() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var cache = pvCache(), busy = false, tries = {};
+    var cache = pvCache(), busy = false, tries = {}, done = {};
     var rows = function () {
       var out = [];
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
@@ -173,25 +178,50 @@
       return out;
     };
     var show = function (r) {
-      var txt = cache[r.id];
-      if (!txt || r.tr.querySelector('.mhx-pv')) return;
-      var sp = document.createElement('span');
-      sp.className = 'mhx-pv';
-      sp.textContent = ' ' + txt + ' PV';
-      r.nom.parentNode.insertBefore(sp, r.nom.nextSibling);
+      var c = cache[r.id];
+      if (!c) return;
+      var sp = r.tr.querySelector('.mhx-pv');
+      if (!sp) {
+        sp = document.createElement('span');
+        sp.className = 'mhx-pv';
+        r.nom.parentNode.insertBefore(sp, r.nom.nextSibling);
+      }
+      var txt = ' ' + c.v + ' PV';
+      if (c.k === 'bless') txt += ' \u2713';
+      if (c.k === 'doute') txt += ' \u26a0';
+      sp.textContent = txt;
+      sp.className = 'mhx-pv' + (c.k === 'doute' ? ' mhx-pv-doute' : '');
+      sp.title = c.k === 'bless' ? 'CDM fiable (blessure connue)'
+        : c.k === 'doute' ? 'Estimation : la CDM n\u2019est pas encore fiable' : '';
     };
     var readPv = function (id) {
       var pop = document.getElementById('popupCDM' + id);
       if (!pop) return null;
-      var found = null;
+      var res = null, bless = false;
       pop.querySelectorAll('tr').forEach(function (tr) {
         var c = tr.cells;
-        if (c && c.length > 1 && /^\s*Points de Vie\s*$/i.test(c[0].textContent)) {
-          var m = /(\d+)\s*-\s*(\d+)/.exec(c[1].textContent) || /(\d+)/.exec(c[1].textContent);
-          if (m) found = m[2] ? m[1] + '-' + m[2] : m[1];
+        if (!c || c.length < 2) return;
+        var lab = c[0].textContent.trim();
+        if (/^Blessure$/i.test(lab) && c[1].textContent.trim()) bless = true;
+        if (/^Points de Vie$/i.test(lab)) {
+          var td = c[1].cloneNode(true);
+          var doute = td.querySelector('span') !== null; // intervalle de confiance à 80 % (jaune)
+          td.querySelectorAll('span').forEach(function (x) { x.remove(); });
+          var t = td.textContent.replace(/[\s\u00a0]+/g, ' ');
+          var m = /(\d+)\s*-\s*(\d+)\s*\u2192\s*(\d+(?:[.,]\d+)?)/.exec(t);
+          if (doute) {
+            var avg = m ? m[3] : ((/(\d+(?:[.,]\d+)?)\s*PV/.exec(t) || [])[1]);
+            if (avg) res = { v: '~' + avg, k: 'doute' };
+          } else if (m) {
+            res = { v: m[1] + '-' + m[2], k: 'ok' };
+          } else {
+            var m2 = /(\d+)\s*-\s*(\d+)/.exec(t) || /(\d+)/.exec(t);
+            if (m2) res = { v: m2[2] ? m2[1] + '-' + m2[2] : m2[1], k: 'ok' };
+          }
         }
       });
-      return found;
+      if (res && bless && res.k === 'ok') res.k = 'bless';
+      return res;
     };
     var sleep = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
     var harvest = async function () {
@@ -199,18 +229,22 @@
       busy = true;
       document.body.classList.add('mhx-pv-lecture');
       try {
-        var list = rows(), added = false;
+        var list = rows(), changed = false;
         for (var i = 0; i < list.length; i++) {
           var r = list[i];
-          if (cache[r.id] || (tries[r.id] || 0) >= 5 || document.getElementById('popupCDM' + r.id)) { show(r); continue; }
+          show(r);
+          if (done[r.id] || (tries[r.id] || 0) >= 5 || document.getElementById('popupCDM' + r.id)) continue;
           tries[r.id] = (tries[r.id] || 0) + 1;
           r.niv.click();
           await sleep(40);
           var pv = readPv(r.id);
-          if (document.getElementById('popupCDM' + r.id)) r.niv.click(); // referme (le clic bascule le popup)
-          if (pv) { cache[r.id] = pv; added = true; show(r); }
+          if (document.getElementById('popupCDM' + r.id)) { r.niv.click(); done[r.id] = true; } // referme (le clic bascule le popup)
+          if (pv) {
+            if (!cache[r.id] || cache[r.id].v !== pv.v || cache[r.id].k !== pv.k) { cache[r.id] = pv; changed = true; }
+            show(r);
+          }
         }
-        if (added) { try { localStorage.setItem(PV_KEY, JSON.stringify(cache)); } catch (e) {} }
+        if (changed) { try { localStorage.setItem(PV_KEY, JSON.stringify(cache)); } catch (e) {} }
       } finally {
         document.body.classList.remove('mhx-pv-lecture');
         busy = false;
