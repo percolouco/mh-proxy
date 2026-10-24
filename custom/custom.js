@@ -153,35 +153,79 @@
   }
 
   // Page « Ma vue » : PV de chaque monstre (fourchette « xxx-yyy PV ») sur sa ligne, dans la colonne du nom.
-  // Les lignes arrivent après coup (chargement en JS) et la table peut être retriée : on réapplique à chaque changement.
-  // Valeurs de test pour l'instant (pvMonstre) ; la source des vraies CDM reste à brancher.
-  function pvMonstre(ref) {
-    var lo = 100 + (ref * 7) % 300;
-    return { min: lo, max: lo + 10 + (ref % 15) };
+  // Source : le popup CDM de Mountyzilla (clic sur le niveau du monstre), que Mountyzilla remplit lui-même.
+  // On l'ouvre une fraction de seconde (masqué par le CSS), on lit la ligne « Points de Vie », puis on le referme.
+  // Ouvrir ce popup n'est qu'un affichage, rien n'est envoyé au jeu. Pas de valeur pour les Gowap Apprivoisés.
+  var PV_KEY = 'mhx-pv-monstres';
+  function pvCache() {
+    try { return JSON.parse(localStorage.getItem(PV_KEY) || '{}') || {}; } catch (e) { return {}; }
   }
   function addMonsterPv() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var apply = function () {
+    var cache = pvCache(), busy = false, tries = {};
+    var rows = function () {
+      var out = [];
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
-        var ref = tr.querySelector('td.ref');
-        var nom = tr.querySelector('td a.monstre');
-        if (!ref || !nom || tr.querySelector('.mhx-pv')) return;
-        var pv = pvMonstre(parseInt(ref.textContent, 10) || 0);
-        var sp = document.createElement('span');
-        sp.className = 'mhx-pv';
-        sp.textContent = ' ' + pv.min + '-' + pv.max + ' PV';
-        nom.parentNode.insertBefore(sp, nom.nextSibling);
+        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre'), niv = tr.querySelector('td[data-indxmz]');
+        if (!ref || !nom || !niv || /^\s*Gowap Apprivois/i.test(nom.textContent)) return;
+        out.push({ tr: tr, id: ref.textContent.trim(), nom: nom, niv: niv });
       });
+      return out;
+    };
+    var show = function (r) {
+      var txt = cache[r.id];
+      if (!txt || r.tr.querySelector('.mhx-pv')) return;
+      var sp = document.createElement('span');
+      sp.className = 'mhx-pv';
+      sp.textContent = ' ' + txt + ' PV';
+      r.nom.parentNode.insertBefore(sp, r.nom.nextSibling);
+    };
+    var readPv = function (id) {
+      var pop = document.getElementById('popupCDM' + id);
+      if (!pop) return null;
+      var found = null;
+      pop.querySelectorAll('tr').forEach(function (tr) {
+        var c = tr.cells;
+        if (c && c.length > 1 && /^\s*Points de Vie\s*$/i.test(c[0].textContent)) {
+          var m = /(\d+)\s*-\s*(\d+)/.exec(c[1].textContent) || /(\d+)/.exec(c[1].textContent);
+          if (m) found = m[2] ? m[1] + '-' + m[2] : m[1];
+        }
+      });
+      return found;
+    };
+    var sleep = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
+    var harvest = async function () {
+      if (busy) return;
+      busy = true;
+      document.body.classList.add('mhx-pv-lecture');
+      try {
+        var list = rows(), added = false;
+        for (var i = 0; i < list.length; i++) {
+          var r = list[i];
+          if (cache[r.id] || (tries[r.id] || 0) >= 5 || document.getElementById('popupCDM' + r.id)) { show(r); continue; }
+          tries[r.id] = (tries[r.id] || 0) + 1;
+          r.niv.click();
+          await sleep(40);
+          var pv = readPv(r.id);
+          if (document.getElementById('popupCDM' + r.id)) r.niv.click(); // referme (le clic bascule le popup)
+          if (pv) { cache[r.id] = pv; added = true; show(r); }
+        }
+        if (added) { try { localStorage.setItem(PV_KEY, JSON.stringify(cache)); } catch (e) {} }
+      } finally {
+        document.body.classList.remove('mhx-pv-lecture');
+        busy = false;
+      }
     };
     var n = 0, timer = setInterval(function () {
-      apply();
+      rows().forEach(show);
+      harvest();
       var tb = document.querySelector('#VUE_monstres tbody');
       if (tb && !tb.mhxObserved) {
         tb.mhxObserved = true;
-        new MutationObserver(apply).observe(tb, { childList: true });
+        new MutationObserver(function () { rows().forEach(show); }).observe(tb, { childList: true });
       }
-      if (++n > 40) clearInterval(timer);
-    }, 1000);
+      if (++n > 25) clearInterval(timer);
+    }, 2000);
   }
 
   // Page « Suivants » : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
