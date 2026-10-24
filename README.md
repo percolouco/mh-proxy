@@ -69,3 +69,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.7.1 | 2026-10-24 | Page Ma vue : la coche « CDM fiable » est en vert |
 | 0.7.2 | 2026-10-24 | Page Ma vue : PV en vert (CDM fiable ✓), orange (CDM simple), rouge (estimation ~ pas encore viable) |
 | 0.8.0 | 2026-10-24 | Page Ma vue : colonne « PV » (80 px) entre « Niv. » et « Réf. » (PV lus dans le popup CDM de Mountyzilla ; vert ✓ fiable, orange simple, rouge ~ estimation ⚠) ; rien pour les Familiers (Gowap Apprivoisé, famille « Familier ») |
+| 0.8.1 | 2026-10-24 | Page Ma vue : colonne PV en police 12px |
