@@ -81,3 +81,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.11.0 | 2026-10-24 | Résultat d'un Lancer de Créatures (saisie + lancer, dégâts cumulés, morts) envoyé dans le groupe WhatsApp (`notif/lancer_whatsapp.php`) |
 | 0.12.0 | 2026-10-24 | Attaque réussie sur un monstre (sortilège ou compétence) envoyée dans le groupe WhatsApp : dégâts, PV perdus, mort, butin |
 | 0.12.1 | 2026-10-24 | Message d'attaque : nom du sortilège ou de la compétence lu dans le titre de l'écran de résultat |
+| 0.12.2 | 2026-10-24 | Message d'attaque : ligne XP au-dessus de 2 PX, ligne butin retirée |
