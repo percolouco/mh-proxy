@@ -37,3 +37,6 @@ a.interface-it::after {
 #mhx-badge.mhx-badge-err { background: #d32f2f; }
 .mhx-monstre { margin: 15px auto; padding: 10px; background: #fcf8e3; border: 1px solid #8a6d3b; border-radius: 4px; width: 80%; text-align: center; color: #8a6d3b; font-family: Arial, sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,.2); }
 .mhx-monstre h4 { margin: 0 0 8px 0; color: #a94442; }
+
+/* Page Ma vue : PV des monstres */
+.mhx-pv { color: #7a1f1f; font-weight: bold; font-size: 0.9em; white-space: nowrap; }
