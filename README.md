@@ -79,3 +79,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.9.5 | 2026-10-24 | Page Ma vue : colonnes PA (20 px) et DLA à... (50 px) plus étroites |
 | 0.10.0 | 2026-10-24 | Page Ma vue : les trolls admin visibles dans IT absents de la vue sont ajoutés (données du serveur MH, actions vides, distance calculée) |
 | 0.11.0 | 2026-10-24 | Résultat d'un Lancer de Créatures (saisie + lancer, dégâts cumulés, morts) envoyé dans le groupe WhatsApp (`notif/lancer_whatsapp.php`) |
+| 0.12.0 | 2026-10-24 | Attaque réussie sur un monstre (sortilège ou compétence) envoyée dans le groupe WhatsApp : dégâts, PV perdus, mort, butin |

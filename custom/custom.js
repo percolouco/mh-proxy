@@ -173,13 +173,30 @@
     }
     return null;
   }
+  // Attaque réussie sur un monstre (sortilège ou compétence) : dégâts, PV perdus, mort, butin -> groupe WhatsApp.
+  function parseAttaque(txt) {
+    var m = /Vous avez attaqu\u00e9 (?:une|un|la|le|l\u2019|l')\s?(.+?) \((\d+)\) gr\u00e2ce \u00e0 (un sortil\u00e8ge|une comp\u00e9tence)/.exec(txt);
+    if (!m || !/TOUCH\u00c9/.test(txt)) return null;
+    var d = /inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/.exec(txt);
+    if (!d) return null;
+    var pv = /ne perdra que (\d+) points? de vie/.exec(txt);
+    var ef = /a donc un (EFFET [A-Z\u00c9]+)/.exec(txt);
+    var bu = /laiss\u00e9 tomber (.+?) ?\.(?=\s|$|[A-Z])/.exec(txt);
+    var mon = { role: 'cible', nom: m[1], id: m[2], degats: parseInt(d[1], 10), mort: /Vous l'avez TU\u00c9/.test(txt) };
+    if (pv) mon.pv = parseInt(pv[1], 10);
+    if (bu) mon.butin = bu[1].replace(/'/g, '').replace(/\s+/g, ' ').trim();
+    var jets = (txt.match(/(?:Votre jet d'Attaque|Le jet d'Esquive de votre adversaire|Jet de R\u00e9sistance) (?:est de )?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
+    return { type: 'attaque', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets, monstres: [mon] };
+  }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
-    var res = parseLancer(document.body.textContent.replace(/[\s\u00a0]+/g, ' '));
+    var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
+    var res = parseLancer(txt) || parseAttaque(txt);
+    if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
     mhdPost(NOTIF_LANCER_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(res)), function (ok) {
-      mhdBadge(ok ? 'Lancer signal\u00e9 sur WhatsApp' : 'Lancer : envoi WhatsApp impossible', !ok);
+      mhdBadge(ok ? 'Action signal\u00e9e sur WhatsApp' : 'Action : envoi WhatsApp impossible', !ok);
     });
   }
   function sendPortalNotice() {
