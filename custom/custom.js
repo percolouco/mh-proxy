@@ -37,8 +37,8 @@
       .then(cb, function () { cb(null); });
   }
 
-  // Page profil d'un suivant (Play_a_Action.php?type=F&id=-4&id_target=N) : « Ramasse les Trésors »
-  // dans les améliorations -> ajouté en vert à la liste commune s'il n'y est pas déjà.
+  // Page profil d'un suivant (Play_a_Action.php?type=F&id=-4&id_target=N) : \u00ab Ramasse les Tr\u00e9sors \u00bb
+  // dans les am\u00e9liorations -> ajout\u00e9 en vert \u00e0 la liste commune s'il n'y est pas d\u00e9j\u00e0.
   function rememberGowapPerks() {
     if (!/\/Play_a_Action\.php$/.test(location.pathname)) return;
     var q = new URLSearchParams(location.search);
@@ -51,9 +51,9 @@
     });
   }
 
-  // Bloc le plus proche (en remontant) qui porte le fond bleu des encarts, sinon l'encart lui-même
+  // Bloc le plus proche (en remontant) qui porte le fond bleu des encarts, sinon l'encart lui-m\u00eame
   function followerBlock(h3) {
-    if (h3.mhxBlock) return h3.mhxBlock; // après coloration le fond d'origine n'est plus détectable
+    if (h3.mhxBlock) return h3.mhxBlock; // apr\u00e8s coloration le fond d'origine n'est plus d\u00e9tectable
     for (var el = h3; el && el !== document.body; el = el.parentNode) {
       if (el.nodeType === 1 && /tableau2_fo/.test(getComputedStyle(el).backgroundImage)) return (h3.mhxBlock = el);
     }
@@ -120,11 +120,11 @@
   }
 
   // Résultat du sortilège Téléportation : le portail créé est signalé dans le groupe WhatsApp (envoi fait par
-  // le serveur MH). Lecture du texte affiché seulement, rien n'est soumis dans le jeu ; un portail n'est
-  // envoyé qu'une fois (le serveur garde son numéro).
+  // le serveur MH). Lecture du texte affich\u00e9 seulement, rien n'est soumis dans le jeu ; un portail n'est
+  // envoy\u00e9 qu'une fois (le serveur garde son num\u00e9ro).
   var NOTIF_PORTAIL_URL = 'https://mh.percolouco.com/notif/portail_whatsapp.php';
-  // Numéro du troll connecté : data-idtroll de la page, sinon d'un cadre du même jeu (menu, vue...) ouvert avec
-  // la même session. Pas de valeur mémorisée d'une autre session : mieux vaut ne rien envoyer qu'un mauvais nom.
+  // Num\u00e9ro du troll connect\u00e9 : data-idtroll de la page, sinon d'un cadre du m\u00eame jeu (menu, vue...) ouvert avec
+  // la m\u00eame session. Pas de valeur m\u00e9moris\u00e9e d'une autre session : mieux vaut ne rien envoyer qu'un mauvais nom.
   function currentTrollId() {
     var wins = [window, window.parent, window.top];
     try { for (var i = 0; i < window.top.frames.length; i++) wins.push(window.top.frames[i]); } catch (e) { /* cadres inaccessibles */ }
@@ -135,6 +135,52 @@
       } catch (e) { /* cadre d'une autre origine */ }
     }
     return null;
+  }
+  // R\u00e9sultat d'un Lancer de Cr\u00e9atures : monstres touch\u00e9s, d\u00e9g\u00e2ts, morts -> groupe WhatsApp (m\u00eame principe que le portail).
+  // Deux pages possibles : la saisie (« Vous tentez de saisir… ») et le lancer (« Vous avez lancé X sur Y »).
+  var NOTIF_LANCER_URL = 'https://mh.percolouco.com/notif/lancer_whatsapp.php';
+  function parseLancer(txt) {
+    var art = '(?:une|un|la|le|l\u2019|l\')\\s?', mon = '(.+?) \\((\\d+)\\)';
+    var deg = function (t, re) { var m = re.exec(t); return m ? parseInt(m[1], 10) : null; };
+    var mort = function (t) { return /TU\u00c9/.test(t); };
+    var m = new RegExp('Vous avez lanc\u00e9 ' + art + mon + ' sur ' + art + mon + '\\s?\\.').exec(txt);
+    if (m) {
+      var reste = txt.slice(m.index + m[0].length), parts = reste.split(new RegExp('Et sur ' + art));
+      var out = [{ role: 'lance', nom: m[1], id: m[2], degats: deg(parts[0], /a subi (\d+) points? de d\u00e9g\u00e2ts/), mort: mort(parts[0]) }];
+      var cibles = parts.length > 1 ? parts.slice(1) : [];
+      cibles.forEach(function (p) {
+        var c = new RegExp('^' + mon + '\\s?:').exec(p);
+        if (c) out.push({ role: 'cible', nom: c[1], id: c[2], degats: deg(p, /inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/), mort: mort(p) });
+      });
+      if (out.length === 1) out.push({ role: 'cible', nom: m[3], id: m[4], degats: deg(reste, /inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/), mort: mort(reste) });
+      // la m\u00eame page peut contenir la saisie juste avant : la cr\u00e9ature lanc\u00e9e a alors pris deux coups
+      var sa = new RegExp('Vous tentez de saisir ' + art + mon + ' gr\u00e2ce \u00e0').exec(txt.slice(0, m.index));
+      if (sa && sa[2] === out[0].id && /r\u00e9ussi \u00e0 attraper/.test(txt.slice(0, m.index))) {
+        var d1 = deg(txt.slice(0, m.index), /inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/);
+        if (d1 !== null && out[0].degats !== null) {
+          out[0].detail = d1 + ' + ' + out[0].degats;
+          out[0].degats += d1;
+          out[0].mort = out[0].mort || mort(txt.slice(0, m.index));
+        }
+      }
+      out = out.filter(function (x) { return x.degats !== null; });
+      return out.length ? { type: 'lancer', monstres: out } : null;
+    }
+    var s = new RegExp('Vous tentez de saisir ' + art + mon + ' gr\u00e2ce \u00e0').exec(txt);
+    if (s && /r\u00e9ussi \u00e0 attraper/.test(txt)) {
+      var d = deg(txt, /inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/);
+      if (d !== null) return { type: 'saisie', monstres: [{ role: 'saisi', nom: s[1], id: s[2], degats: d, mort: mort(txt) }] };
+    }
+    return null;
+  }
+  function sendLancerNotice() {
+    if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
+    var res = parseLancer(document.body.textContent.replace(/[\s\u00a0]+/g, ' '));
+    var troll = currentTrollId();
+    if (!res || !troll) return;
+    mhdPost(NOTIF_LANCER_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(res)), function (ok) {
+      mhdBadge(ok ? 'Lancer signal\u00e9 sur WhatsApp' : 'Lancer : envoi WhatsApp impossible', !ok);
+    });
   }
   function sendPortalNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
@@ -154,8 +200,8 @@
 
   // Page « Ma vue » : PV de chaque monstre (fourchette « xxx-yyy PV ») sur sa ligne, dans la colonne du nom.
   // Source : le popup CDM de Mountyzilla (clic sur le niveau du monstre), que Mountyzilla remplit lui-même.
-  // On l'ouvre une fraction de seconde (masqué par le CSS), on lit la ligne « Points de Vie », puis on le referme.
-  // Ouvrir ce popup n'est qu'un affichage, rien n'est envoyé au jeu. Pas de valeur pour les Gowap Apprivoisés.
+  // On l'ouvre une fraction de seconde (masqu\u00e9 par le CSS), on lit la ligne \u00ab Points de Vie \u00bb, puis on le referme.
+  // Ouvrir ce popup n'est qu'un affichage, rien n'est envoy\u00e9 au jeu. Pas de valeur pour les Gowap Apprivois\u00e9s.
   // Trois cas dans la ligne « Points de Vie » du popup :
   //  - « 90-110 → 100 PV » seul : on affiche « 90-110 PV » ;
   //  - avec une ligne « Blessure » en plus : CDM fiable, même affichage + ✓ ;
@@ -192,7 +238,7 @@
         if (!niv || tr.cells.length < 6 || tr.querySelector('td.mhx-pvcol')) return;
         var td = document.createElement('td');
         td.className = 'mhx-pvcol';
-        td.style.cssText = 'width: 80px; display: table-cell;'; // footable masque les cellules qu'il ne connaît pas
+        td.style.cssText = 'width: 80px; display: table-cell;'; // footable masque les cellules qu'il ne conna\u00eet pas
         niv.parentNode.insertBefore(td, niv.nextSibling);
       });
     };
@@ -278,7 +324,7 @@
     }, 2000);
   }
 
-  // Page « Suivants » : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
+  // Page \u00ab Suivants \u00bb : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
   // Elle est déjà dans le data-json du <h3> : aucune requête supplémentaire.
   function addFollowerDla() {
     if (!/\/Play_e_follo\.php$/.test(location.pathname)) return;
@@ -306,7 +352,7 @@
           pw.appendChild(sp);
         }
       }
-      // dans le bloc « poids porté » (2e enfant) pour ne pas décaler la mise en page de l'encart
+      // dans le bloc \u00ab poids port\u00e9 \u00bb (2e enfant) pour ne pas d\u00e9caler la mise en page de l'encart
       var poids = h3.nextElementSibling;
       (poids && poids.tagName === 'DIV' ? poids : box).appendChild(el);
     });
@@ -358,7 +404,7 @@
   }
 
   // Type de page de gestion de mission (Étapes / Récompenses / Équipe), sinon null.
-  // Étapes et Récompenses l'emportent toujours sur Équipe.
+  // \u00c9tapes et R\u00e9compenses l'emportent toujours sur \u00c9quipe.
   function mhdPageType() {
     var titre = mhdNorm(document.title);
     var h1 = document.querySelector('h1');
@@ -375,7 +421,7 @@
   }
 
   // Lit la page de mission et renvoie les paramètres à envoyer, ou null si rien à envoyer
-  // (page pas encore rendue, tableau absent...). `err` reçoit un message d'erreur éventuel.
+  // (page pas encore rendue, tableau absent...). `err` re\u00e7oit un message d'erreur \u00e9ventuel.
   function mhdReadMission(type, err) {
     var h1 = document.querySelector('h1');
     var m = /Mission\s*\[(\d+)\]/.exec(h1 ? h1.textContent : '') || /mi=(\d+)/.exec(location.href);
@@ -440,7 +486,7 @@
           else if (isEquipier) equipiers.push(troll);
         }
       });
-      // étape « Validable » : l'avancement vaut l'objectif
+      // \u00e9tape \u00ab Validable \u00bb : l'avancement vaut l'objectif
       if (validable && hasProgress) cur = tgt;
       if (hasProgress) { current = cur; target = tgt; }
       if (!meneur && !equipiers.length) return null; // page pas encore rendue : on n'envoie rien
@@ -503,7 +549,7 @@
 
   // Profil d'un monstre : estime sa DLA.
   // 1. Durée du tour : celle de la CDM quand elle est affichée (« Durée du tour 3-5 → 4 heures »), sinon estimée
-  //    à partir de l'historique du monstre.
+  //    \u00e0 partir de l'historique du monstre.
   // 2. Début du tour : dernier événement du monstre (ceux qui commencent par « un… »), pas ceux des joueurs.
   // Peut rejouer = début du tour + durée ; cumul = peut rejouer + durée.
   function monsterDla(dateStrs, cdm) {
@@ -513,7 +559,7 @@
     };
     var dates = dateStrs.map(toDate).sort(function (a, b) { return a - b; });
     if (!dates.length) return null;
-    var act = [dates[0]]; // débuts de tour : les événements à moins de 2 min d'écart sont le même tour
+    var act = [dates[0]]; // d\u00e9buts de tour : les \u00e9v\u00e9nements \u00e0 moins de 2 min d'\u00e9cart sont le m\u00eame tour
     for (var i = 1; i < dates.length; i++) {
       if ((dates[i] - act[act.length - 1]) / 1000 > 120) act.push(dates[i]);
     }
@@ -632,7 +678,7 @@
       });
       return true;
     };
-    // Trolls admin (visible dans IT) absents de la vue du joueur : ajoutés d'après le serveur MH, cellules d'actions vides
+    // Trolls admin (visible dans IT) absents de la vue du joueur : ajout\u00e9s d'apr\u00e8s le serveur MH, cellules d'actions vides
     var GUILDES = { 3848: 'Tr\u00f5lls Of Darkness II' };
     var addMissing = function () {
       var tb = document.querySelector('#VUE_trolls tbody');
@@ -757,7 +803,7 @@
     }
   }
 
-  function init() { addMonsterPv(); addTrollEtat(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); addTrollEtat(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
