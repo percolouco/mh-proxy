@@ -76,3 +76,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.9.2 | 2026-10-24 | Page Ma vue : colonne « DLA dans... » (temps restant avant la prochaine DLA, ex. 4h00) |
 | 0.9.3 | 2026-10-24 | Page Ma vue : « DLA dans... » aussi pour les trolls dont la DLA enregistrée est dépassée (estimation avec la durée du tour, affichée avec ~) |
 | 0.9.4 | 2026-10-24 | Page Ma vue : colonne « DLA à... » (heure de la prochaine DLA, temps restant au survol) |
+| 0.9.5 | 2026-10-24 | Page Ma vue : colonnes PA (20 px) et DLA à... (50 px) plus étroites |
