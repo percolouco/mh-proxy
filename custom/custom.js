@@ -632,6 +632,68 @@
       });
       return true;
     };
+    // Trolls admin (visible dans IT) absents de la vue du joueur : ajoutés d'après le serveur MH, cellules d'actions vides
+    var GUILDES = { 3848: 'Tr\u00f5lls Of Darkness II' };
+    var addMissing = function () {
+      var tb = document.querySelector('#VUE_trolls tbody');
+      var model = tb && tb.querySelector('tr');
+      var me = currentTrollId();
+      if (!model || !me) return;
+      var pos = null, have = {};
+      tb.querySelectorAll('tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref');
+        if (!ref) return;
+        have[ref.textContent.trim()] = true;
+        if (ref.textContent.trim() === me) {
+          var g = function (c) { var t = tr.querySelector('td.' + c); return t ? parseInt(t.textContent, 10) : NaN; };
+          pos = [g('x'), g('y'), g('n')];
+        }
+      });
+      Object.keys(etat).forEach(function (id) {
+        var e = etat[id];
+        if (!e.admin || have[id]) return;
+        var dist = pos && !isNaN(pos[0] + pos[1] + pos[2]) ? Math.max(Math.abs(e.x - pos[0]), Math.abs(e.y - pos[1]), Math.abs(e.n - pos[2])) : null;
+        var tr = model.cloneNode(true);
+        tr.className = (tr.className || '') + ' mhx-horsvue';
+        var set = function (c, txt) { var t = tr.querySelector('td.' + c); if (t) { t.textContent = txt; t.removeAttribute('data-sort-value'); } };
+        tr.querySelectorAll('td.mhx-pacol, td.mhx-pvcol2, td.mhx-dlacol').forEach(function (t) { t.textContent = ''; t.title = ''; });
+        set('dist', dist === null ? '' : dist);
+        var d = tr.querySelector('td.dist'); if (d) d.removeAttribute('data-trajcanv-xyn');
+        var act = tr.querySelector('td.actions'); if (act) act.textContent = '';
+        set('ref', id); set('niv', e.niveau); set('race', e.race); set('x', e.x); set('y', e.y); set('n', e.n);
+        var nom = tr.querySelector('td.ref'); nom = nom && nom.nextElementSibling;
+        // les cellules Nom et Guilde ne portent pas de classe fixe : Nom suit R\u00e9f., Guilde suit Nom
+        var gu = nom && nom.nextElementSibling;
+        if (nom) {
+          nom.textContent = '';
+          var a = document.createElement('a');
+          a.className = 'troll'; a.href = 'javascript:PVT(' + id + ')'; a.textContent = e.nom;
+          nom.appendChild(a);
+          nom.setAttribute('data-sort-value', e.nom);
+          nom.title = 'Hors de port\u00e9e de vue : ajout\u00e9 d\u2019apr\u00e8s le serveur MH';
+        }
+        if (gu) {
+          gu.textContent = '';
+          if (e.guilde) {
+            var ga = document.createElement('a');
+            ga.href = 'javascript:PVG(' + e.guilde + ')';
+            ga.textContent = GUILDES[e.guilde] || ('Guilde ' + e.guilde);
+            gu.appendChild(ga);
+          }
+          gu.removeAttribute('data-sort-value');
+        }
+        // plac\u00e9 par distance croissante parmi les lignes existantes
+        var before = null;
+        if (dist !== null) {
+          tb.querySelectorAll('tr').forEach(function (r) {
+            var dc = r.querySelector('td.dist'), v = dc ? parseInt(dc.textContent, 10) : NaN;
+            if (!before && !isNaN(v) && v > dist) before = r;
+          });
+        }
+        tb.insertBefore(tr, before);
+        have[id] = true;
+      });
+    };
     var show = function () {
       if (!etat) return;
       document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (tr) {
@@ -679,9 +741,9 @@
           if (/^\d+$/.test(id) && ids.indexOf(id) < 0) ids.push(id);
         });
         if (!ids.length) return;
-        fetch(ETAT_URL + '?ids=' + ids.join(','), { referrerPolicy: 'no-referrer' })
+        fetch(ETAT_URL + '?admin=1&ids=' + ids.join(','), { referrerPolicy: 'no-referrer' })
           .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (j) { if (j) { etat = j; t0 = Date.now(); show(); } })
+          .then(function (j) { if (j) { etat = j; t0 = Date.now(); addMissing(); show(); } })
           .catch(function () {});
       }
     };
