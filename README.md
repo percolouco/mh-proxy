@@ -65,4 +65,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.5.5 | 2026-10-23 | custom.js : caractères accentués échappés (la page monstre est en ISO-8859-1, le script plantait) |
 | 0.6.0 | 2026-10-24 | Résultat du sortilège Téléportation : le portail créé (qui, où, destination, erreur de calcul) est signalé dans le groupe WhatsApp via le serveur MH (notif/portail_whatsapp.php, WAHA) |
 | 0.6.1 | 2026-10-24 | Portail WhatsApp : numéro du troll lu uniquement dans la page / les cadres de la session en cours |
-| 0.7.0 | 2026-10-24 | Page Ma vue : fourchette « xxx-yyy PV » sur la ligne de chaque monstre, lue dans le popup CDM de Mountyzilla (clic sur le niveau, ouvert masqué puis refermé), mémorisée dans le navigateur ; rien pour les Gowap Apprivoisés et les monstres flous |
+| 0.7.0 | 2026-10-24 | Page Ma vue : PV des monstres sur leur ligne, lus dans le popup CDM de Mountyzilla (clic sur le niveau, ouvert masqué puis refermé) ; « xxx-yyy PV » ; ✓ si la CDM a une ligne Blessure (fiable) ; « ~valeur PV » + ⚠ si l’intervalle de confiance jaune est présent (pas encore viable) ; rien pour les Gowap Apprivoisés et les monstres flous |
