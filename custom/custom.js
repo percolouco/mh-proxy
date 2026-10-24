@@ -186,7 +186,8 @@
     if (pv) mon.pv = parseInt(pv[1], 10);
     if (bu) mon.butin = bu[1].replace(/'/g, '').replace(/\s+/g, ' ').trim();
     var jets = (txt.match(/(?:Votre jet d'Attaque|Le jet d'Esquive de votre adversaire|Jet de R\u00e9sistance) (?:est de )?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
-    return { type: 'attaque', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets, monstres: [mon] };
+    var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt); // titre de l'\u00e9cran : \u00ab Sortil\u00e8ge : Vampirisme \u00bb
+    return { type: 'attaque', nom: tt ? tt[1] : '', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets, monstres: [mon] };
   }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
