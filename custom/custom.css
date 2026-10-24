@@ -41,5 +41,7 @@ a.interface-it::after {
 /* Page Ma vue : PV des monstres */
 .mhx-pv { color: #7a1f1f; font-weight: bold; font-size: 0.9em; white-space: nowrap; }
 body.mhx-pv-lecture [id^="popupCDM"] { visibility: hidden !important; }
-.mhx-pv-doute { color: #b36b00; }
-.mhx-pv-ok { color: #1b8a2f; }
+/* vert : CDM fiable (✓) ; orange : CDM simple ; rouge : estimation pas encore viable */
+.mhx-pv-bless { color: #1b8a2f; }
+.mhx-pv-ok { color: #d2740a; }
+.mhx-pv-doute { color: #c0222b; }
