@@ -181,10 +181,10 @@
     if (!d) return null;
     var pv = /ne perdra que (\d+) points? de vie/.exec(txt);
     var ef = /a donc un (EFFET [A-Z\u00c9]+)/.exec(txt);
-    var bu = /laiss\u00e9 tomber (.+?) ?\.(?=\s|$|[A-Z])/.exec(txt);
+    var px = /gagn\u00e9 un total de (\d+) PX/.exec(txt);
     var mon = { role: 'cible', nom: m[1], id: m[2], degats: parseInt(d[1], 10), mort: /Vous l'avez TU\u00c9/.test(txt) };
     if (pv) mon.pv = parseInt(pv[1], 10);
-    if (bu) mon.butin = bu[1].replace(/'/g, '').replace(/\s+/g, ' ').trim();
+    if (px) mon.px = parseInt(px[1], 10);
     var jets = (txt.match(/(?:Votre jet d'Attaque|Le jet d'Esquive de votre adversaire|Jet de R\u00e9sistance) (?:est de )?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt); // titre de l'\u00e9cran : \u00ab Sortil\u00e8ge : Vampirisme \u00bb
     return { type: 'attaque', nom: tt ? tt[1] : '', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets, monstres: [mon] };
