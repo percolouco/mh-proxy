@@ -152,30 +152,36 @@
     });
   }
 
-  // TEMPORAIRE (diagnostic) : envoie une fois le HTML de « Ma vue » du troll 95681 au serveur MH.
-  // Le numéro du troll est repéré dans les appels json_vue.php (paramètre t=), interceptés dès le chargement.
-  var vueTroll = null;
-  (function () {
-    var seen = function (url) {
-      var m = /json_vue\.php\?[^#]*[?&]?t=(\d+)/.exec(String(url));
-      if (m) vueTroll = m[1];
-    };
-    try {
-      var open = XMLHttpRequest.prototype.open;
-      XMLHttpRequest.prototype.open = function (method, url) { seen(url); return open.apply(this, arguments); };
-      var f = window.fetch;
-      if (f) window.fetch = function (input) { seen(input && input.url ? input.url : input); return f.apply(this, arguments); };
-    } catch (e) {}
-  })();
-  function captureVueTemp() {
+  // Page « Ma vue » : PV de chaque monstre (fourchette « xxx-yyy PV ») sur sa ligne, dans la colonne du nom.
+  // Les lignes arrivent après coup (chargement en JS) et la table peut être retriée : on réapplique à chaque changement.
+  // Valeurs de test pour l'instant (pvMonstre) ; la source des vraies CDM reste à brancher.
+  function pvMonstre(ref) {
+    var lo = 100 + (ref * 7) % 300;
+    return { min: lo, max: lo + 10 + (ref % 15) };
+  }
+  function addMonsterPv() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    setTimeout(function () {
-      if (vueTroll !== '95681') return;
-      try { if (localStorage.getItem('mhx-vue-captured')) return; } catch (e) {}
-      mhdPost('https://mh.percolouco.com/notif/capture_vue.php',
-        'troll=95681&html=' + encodeURIComponent(document.documentElement.outerHTML),
-        function (ok) { if (ok) { try { localStorage.setItem('mhx-vue-captured', '1'); } catch (e) {} } });
-    }, 6000);
+    var apply = function () {
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref');
+        var nom = tr.querySelector('td a.monstre');
+        if (!ref || !nom || tr.querySelector('.mhx-pv')) return;
+        var pv = pvMonstre(parseInt(ref.textContent, 10) || 0);
+        var sp = document.createElement('span');
+        sp.className = 'mhx-pv';
+        sp.textContent = ' ' + pv.min + '-' + pv.max + ' PV';
+        nom.parentNode.insertBefore(sp, nom.nextSibling);
+      });
+    };
+    var n = 0, timer = setInterval(function () {
+      apply();
+      var tb = document.querySelector('#VUE_monstres tbody');
+      if (tb && !tb.mhxObserved) {
+        tb.mhxObserved = true;
+        new MutationObserver(apply).observe(tb, { childList: true });
+      }
+      if (++n > 40) clearInterval(timer);
+    }, 1000);
   }
 
   // Page « Suivants » : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
@@ -499,7 +505,7 @@
     })();
   }
 
-  function init() { captureVueTemp(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
