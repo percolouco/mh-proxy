@@ -599,7 +599,87 @@
     })();
   }
 
-  function init() { addMonsterPv(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  // Page Ma vue : deux colonnes pour les trolls, PA (après Actions) et PV (avant Réf.), lues dans le récap tactique du
+  // serveur MH (mêmes valeurs, mêmes couleurs). Cellule vide quand le serveur ne connaît pas le troll.
+  var ETAT_URL = 'https://mh.percolouco.com/notif/trolls_etat.php';
+  function addTrollEtat() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var etat = null, started = false;
+    var ensureCols = function () {
+      var hr = document.querySelector('#VUE_trolls thead tr');
+      if (!hr) return false;
+      var hAct = hr.querySelector('.actions'), hRef = hr.querySelector('.ref');
+      if (!hAct || !hRef) return false;
+      var mk = function (tag, cls, txt, w) {
+        var e = document.createElement(tag);
+        e.className = cls;
+        if (txt) e.textContent = txt;
+        e.style.cssText = 'width: ' + w + 'px; display: table-cell;'; // footable masque les cellules qu'il ne connait pas
+        return e;
+      };
+      if (!hr.querySelector('.mhx-pah')) {
+        var tag = hAct.tagName.toLowerCase();
+        hAct.parentNode.insertBefore(mk(tag, 'mhx-pah', 'PA', 40), hAct.nextSibling);
+        hRef.parentNode.insertBefore(mk(tag, 'mhx-pvth', 'PV', 90), hRef);
+      }
+      document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (tr) {
+        var act = tr.querySelector('td.actions'), ref = tr.querySelector('td.ref');
+        if (!act || !ref || tr.querySelector('td.mhx-pacol')) return;
+        act.parentNode.insertBefore(mk('td', 'mhx-pacol', '', 40), act.nextSibling);
+        ref.parentNode.insertBefore(mk('td', 'mhx-pvcol2', '', 90), ref);
+      });
+      return true;
+    };
+    var show = function () {
+      if (!etat) return;
+      document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), pa = tr.querySelector('td.mhx-pacol'), pv = tr.querySelector('td.mhx-pvcol2');
+        var e = ref && etat[ref.textContent.trim()];
+        if (!e || !pa || !pv) return;
+        var txt = e.pa === null ? '' : String(e.pa);
+        if (pa.textContent !== txt) pa.textContent = txt;
+        // comme le récap : vert si la DLA est dépassée ou si le troll a au moins 4 PA
+        pa.className = 'mhx-pacol' + (e.pa !== null && (e.dla_passee || e.pa >= 4) ? ' mhx-pa-vert' : '');
+        if (e.pv === null || !e.pvmax || pv.firstChild) return;
+        var r = e.pv / e.pvmax;
+        var t = document.createElement('div');
+        t.textContent = e.pv + ' / ' + e.pvmax;
+        var bar = document.createElement('div');
+        bar.className = 'mhx-pvbar';
+        var fill = document.createElement('div');
+        fill.className = r >= 0.8 ? 'mhx-pvfill-vert' : r >= 0.5 ? 'mhx-pvfill-orange' : 'mhx-pvfill-rouge';
+        fill.style.width = Math.max(0, Math.min(100, r * 100)) + '%';
+        bar.appendChild(fill);
+        pv.appendChild(t);
+        pv.appendChild(bar);
+      });
+    };
+    var start = function () {
+      if (!ensureCols()) return;
+      if (!started) {
+        started = true;
+        var ids = [];
+        document.querySelectorAll('#VUE_trolls tbody td.ref').forEach(function (td) {
+          var id = td.textContent.trim();
+          if (/^\d+$/.test(id) && ids.indexOf(id) < 0) ids.push(id);
+        });
+        if (!ids.length) return;
+        fetch(ETAT_URL + '?ids=' + ids.join(','), { referrerPolicy: 'no-referrer' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { if (j) { etat = j; show(); } })
+          .catch(function () {});
+      }
+    };
+    var n = 0;
+    var iv = setInterval(function () { start(); ensureCols(); show(); if (++n > 25) clearInterval(iv); }, 2000);
+    start();
+    var tbl = document.getElementById('VUE_trolls');
+    if (tbl && window.MutationObserver) {
+      new MutationObserver(function () { ensureCols(); show(); }).observe(tbl, { childList: true, subtree: true });
+    }
+  }
+
+  function init() { addMonsterPv(); addTrollEtat(); sendPortalNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
