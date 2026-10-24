@@ -64,3 +64,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.5.4 | 2026-10-23 | Analyse monstre : durée du tour = CDM en priorité (historique seulement sans CDM), début = dernier événement du monstre (« un… »), peut rejouer = début + durée, cumul = peut rejouer + durée |
 | 0.5.5 | 2026-10-23 | custom.js : caractères accentués échappés (la page monstre est en ISO-8859-1, le script plantait) |
 | 0.6.0 | 2026-10-24 | Résultat du sortilège Téléportation : le portail créé (qui, où, destination, erreur de calcul) est signalé dans le groupe WhatsApp via le serveur MH (notif/portail_whatsapp.php, WAHA) |
+| 0.6.1 | 2026-10-24 | Portail WhatsApp : numéro du troll lu uniquement dans la page / les cadres de la session en cours |
