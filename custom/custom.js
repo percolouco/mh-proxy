@@ -177,22 +177,14 @@
       });
       return out;
     };
+    // Le texte est affiché par le CSS (::after d'un attribut) dans la cellule du niveau : aucun noeud ajouté, donc
+    // ni colonne ni texte en plus pour Mountyzilla (qui lit les cellules par leur position et le niveau par son texte).
     var show = function (r) {
       var c = cache[r.id];
       if (!c) return;
-      var sp = r.tr.querySelector('.mhx-pv');
-      if (!sp) {
-        sp = document.createElement('span');
-        sp.className = 'mhx-pv';
-        r.nom.parentNode.insertBefore(sp, r.nom.nextSibling);
-      }
-      var txt = ' ' + c.v + ' PV';
-      if (c.k === 'doute') txt += ' \u26a0';
-      sp.textContent = txt;
-      if (c.k === 'bless') sp.textContent += ' \u2713';
-      sp.className = 'mhx-pv mhx-pv-' + c.k;
-      sp.title = c.k === 'bless' ? 'CDM fiable (blessure connue)'
-        : c.k === 'doute' ? 'Estimation : la CDM n\u2019est pas encore fiable' : '';
+      var txt = c.v + ' PV' + (c.k === 'doute' ? ' \u26a0' : c.k === 'bless' ? ' \u2713' : '');
+      if (r.niv.getAttribute('data-mhx-pv') !== txt) r.niv.setAttribute('data-mhx-pv', txt);
+      if (r.niv.getAttribute('data-mhx-k') !== c.k) r.niv.setAttribute('data-mhx-k', c.k);
     };
     var readPv = function (id) {
       var pop = document.getElementById('popupCDM' + id);
@@ -250,7 +242,12 @@
         busy = false;
       }
     };
+    var head = function () {
+      var th = document.querySelector('#VUE_monstres thead td[style*="width: 20px"], #VUE_monstres thead td:nth-child(3)');
+      if (th && /^\s*Niv/i.test(th.textContent)) th.setAttribute('data-mhx-th', '1');
+    };
     var n = 0, timer = setInterval(function () {
+      head();
       rows().forEach(show);
       harvest();
       var tb = document.querySelector('#VUE_monstres tbody');
