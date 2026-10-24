@@ -189,13 +189,8 @@
       var txt = ' ' + c.v + ' PV';
       if (c.k === 'doute') txt += ' \u26a0';
       sp.textContent = txt;
-      if (c.k === 'bless') {
-        var ok = document.createElement('span');
-        ok.className = 'mhx-pv-ok';
-        ok.textContent = ' \u2713';
-        sp.appendChild(ok);
-      }
-      sp.className = 'mhx-pv' + (c.k === 'doute' ? ' mhx-pv-doute' : '');
+      if (c.k === 'bless') sp.textContent += ' \u2713';
+      sp.className = 'mhx-pv mhx-pv-' + c.k;
       sp.title = c.k === 'bless' ? 'CDM fiable (blessure connue)'
         : c.k === 'doute' ? 'Estimation : la CDM n\u2019est pas encore fiable' : '';
     };

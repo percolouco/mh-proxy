@@ -67,3 +67,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.6.1 | 2026-10-24 | Portail WhatsApp : numéro du troll lu uniquement dans la page / les cadres de la session en cours |
 | 0.7.0 | 2026-10-24 | Page Ma vue : PV des monstres sur leur ligne, lus dans le popup CDM de Mountyzilla (clic sur le niveau, ouvert masqué puis refermé) ; « xxx-yyy PV » ; ✓ si la CDM a une ligne Blessure (fiable) ; « ~valeur PV » + ⚠ si l’intervalle de confiance jaune est présent (pas encore viable) ; rien pour les Gowap Apprivoisés et les monstres flous |
 | 0.7.1 | 2026-10-24 | Page Ma vue : la coche « CDM fiable » est en vert |
+| 0.7.2 | 2026-10-24 | Page Ma vue : PV en vert (CDM fiable ✓), orange (CDM simple), rouge (estimation ~ pas encore viable) |
