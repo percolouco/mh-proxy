@@ -621,14 +621,14 @@
         var tag = hAct.tagName.toLowerCase();
         hAct.parentNode.insertBefore(mk(tag, 'mhx-pah', 'PA', 40), hAct.nextSibling);
         hRef.parentNode.insertBefore(mk(tag, 'mhx-pvth', 'PV', 66), hRef);
-        hRef.parentNode.insertBefore(mk(tag, 'mhx-dlah', 'DLA dans...', 80), hRef);
+        hRef.parentNode.insertBefore(mk(tag, 'mhx-dlah', 'DLA \u00e0...', 90), hRef);
       }
       document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (tr) {
         var act = tr.querySelector('td.actions'), ref = tr.querySelector('td.ref');
         if (!act || !ref || tr.querySelector('td.mhx-pacol')) return;
         act.parentNode.insertBefore(mk('td', 'mhx-pacol', '', 40), act.nextSibling);
         ref.parentNode.insertBefore(mk('td', 'mhx-pvcol2', '', 66), ref);
-        ref.parentNode.insertBefore(mk('td', 'mhx-dlacol', '', 80), ref);
+        ref.parentNode.insertBefore(mk('td', 'mhx-dlacol', '', 90), ref);
       });
       return true;
     };
@@ -641,8 +641,16 @@
         // temps restant avant la prochaine DLA (format 4h00) ; ~ si estim\u00e9e (DLA enregistr\u00e9e d\u00e9pass\u00e9e : on ajoute la dur\u00e9e du tour)
         var rest = typeof e.dla_dans === 'number' ? e.dla_dans - Math.round((Date.now() - t0) / 1000) : -1;
         var dt = '';
-        if (rest > 0) { var mn = Math.floor(rest / 60); dt = (e.dla_estimee ? '~' : '') + Math.floor(mn / 60) + 'h' + ('0' + (mn % 60)).slice(-2); }
+        var tip = '';
+        if (rest > 0) {
+          // heure de la prochaine DLA (heure locale, avec le jour si ce n'est pas aujourd'hui) ; temps restant au survol
+          var d = new Date(Date.now() + rest * 1000), p2 = function (x) { return ('0' + x).slice(-2); };
+          var mn = Math.floor(rest / 60), now = new Date();
+          dt = (e.dla_estimee ? '~' : '') + (d.toDateString() === now.toDateString() ? '' : p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + ' ') + p2(d.getHours()) + 'h' + p2(d.getMinutes());
+          tip = 'Dans ' + Math.floor(mn / 60) + 'h' + p2(mn % 60) + (e.dla_estimee ? ' (estimation)' : '');
+        }
         if (dl.textContent !== dt) dl.textContent = dt;
+        if (dl.title !== tip) dl.title = tip;
         var txt = e.pa === null ? '' : String(e.pa);
         if (pa.textContent !== txt) pa.textContent = txt;
         // comme le récap : vert si la DLA est dépassée ou si le troll a au moins 4 PA
