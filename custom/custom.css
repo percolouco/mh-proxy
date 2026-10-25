@@ -55,3 +55,6 @@ body.mhx-pv-lecture [id^="popupCDM"] { visibility: hidden !important; }
 .mhx-pvfill-vert { background: #22c55e; }
 .mhx-pvfill-orange { background: #f97316; }
 .mhx-pvfill-rouge { background: #ef4444; }
+
+/* Page Ma vue : trolls ajoutés hors de la vue (données du serveur MH) : légèrement estompés, nom en italique */
+tr.mhx-horsvue > td { opacity: 0.7; font-style: italic; }
