@@ -189,10 +189,23 @@
     var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt); // titre de l'\u00e9cran : \u00ab Sortil\u00e8ge : Vampirisme \u00bb
     return { type: 'attaque', nom: tt ? tt[1] : '', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets, monstres: [mon] };
   }
+  // Compétence Baroufle : symphonie, effets, durée et lieu -> groupe WhatsApp.
+  function parseBaroufle(txt) {
+    var so = /Vous parvenez \u00e0 jouer (\d+) sons?/.exec(txt);
+    if (!so) return null;
+    var sy = /symphonie suivante : ["\u201c\u00ab] ?(.+?) ?["\u201d\u00bb]/.exec(txt);
+    var ef = /effet suivant :\s*(.+?)\s*Votre tintamarre aura des effets pendant (\d+) tours?/.exec(txt);
+    var po = /X = ([+-]?\d+) \| Y = ([+-]?\d+) \| N = ([+-]?\d+)/.exec(txt.slice(txt.indexOf('Votre m\u00e9lodie')));
+    var effets = ef ? ef[1].split(/\s-\s(?=[A-Z\u00c0-\u00dc])/).map(function (e) { return e.replace(/^ ?- ?/, '').replace(/ : de /, ' : ').trim(); }).filter(Boolean) : [];
+    var jets = (txt.match(/jet de (\d+) sur/) || [])[1] || '';
+    var res = { type: 'baroufle', sons: parseInt(so[1], 10), symphonie: sy ? sy[1] : '', effets: effets, tours: ef ? parseInt(ef[2], 10) : 0, sig: jets };
+    if (po) { res.x = po[1]; res.y = po[2]; res.n = po[3]; }
+    return res;
+  }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
-    var res = parseLancer(txt) || parseAttaque(txt);
+    var res = parseLancer(txt) || parseAttaque(txt) || parseBaroufle(txt);
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
