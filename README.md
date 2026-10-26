@@ -107,3 +107,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.21.3 | 2026-10-26 | Popup sacro : malus PV sur sa propre ligne, titre du bandeau retiré (× conservé) |
 | 0.22.0 | 2026-10-26 | Ma vue, Trésors : boutons de filtre Parchemin / Composant / Gigots de Gob (additionnables, bouton Tout) |
 | 0.22.1 | 2026-10-26 | Filtres Trésors placés sur la même ligne que Filtre / Copier |
+| 0.22.2 | 2026-10-26 | Filtres Trésors : bouton « Tout » retiré |

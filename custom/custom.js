@@ -230,17 +230,6 @@
         });
         bar.appendChild(b);
       });
-      var tout = document.createElement('button');
-      tout.type = 'button';
-      tout.className = 'mh_form_submit mhx-tfiltre';
-      tout.textContent = 'Tout';
-      tout.addEventListener('click', function (ev) {
-        ev.preventDefault();
-        actifs = {};
-        try { localStorage.setItem(KEY, '{}'); } catch (e) { /* stockage indisponible */ }
-        apply();
-      });
-      bar.appendChild(tout);
       info = document.createElement('span');
       info.className = 'mhx-tinfo';
       bar.appendChild(info);
