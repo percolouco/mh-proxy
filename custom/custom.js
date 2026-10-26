@@ -121,7 +121,7 @@
         if (!old) {
           old = document.createElement('span');
           old.className = 'mhx-fa';
-          old.textContent = ' \u1f4ab';
+          old.textContent = ' \ud83d\udcab';
           nom.parentNode.insertBefore(old, nom.nextSibling);
         }
         old.title = tip;
