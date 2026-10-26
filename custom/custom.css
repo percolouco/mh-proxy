@@ -64,3 +64,6 @@ tr.mhx-gw > td { background: var(--mhx-gw) !important; background-image: none !i
 
 /* Menu : image des points cardinaux au début de #favoris */
 #mhx-pistage { display: block; width: 100%; max-width: 200px; height: auto; margin: auto 14px; }
+
+/* Page Ma vue : la colonne PV des trolls est cliquable (demande de sacro) */
+td.mhx-pvcol2:not(:empty) { cursor: pointer; }
