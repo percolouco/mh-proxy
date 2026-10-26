@@ -1300,7 +1300,7 @@
         var after = txt.slice(txt.indexOf(m[1]) + m[1].length).replace(/^\s*[A-Z\u00c0-\u00dc]+\s*/, '');
         if (/^\s*(?:un|une)\s/i.test(after) && dates.indexOf(m[1]) < 0) dates.push(m[1]);
       });
-      if (!dates.length) dates = all; // format inattendu : on retombe sur tous les événements
+      if (!dates.length) dates = all; // format inattendu : on retombe sur tous les \u00e9v\u00e9nements
       var s = dates.length ? monsterDla(dates, cdm) : null;
       if (!s) return;
       var box = document.createElement('div');
@@ -1335,40 +1335,104 @@
         var it = { ref: txt(tr, 'td.ref'), nom: nomCell ? nomCell.textContent.replace(/[\s\u00a0]+/g, ' ').trim() : '', x: txt(tr, 'td.x'), y: txt(tr, 'td.y'), n: txt(tr, 'td.n'), dist: txt(tr, 'td.dist'), icone: (tr.querySelector('td.actions img') || document.createElement('img')).getAttribute('src') || '' };
         if (/^\d+$/.test(it.ref) && it.nom) items.push(it);
       });
-      mhdPost(TRESORS_URL, 'troll=' + me + '&data=' + encodeURIComponent(JSON.stringify(items)), function () {});
+      // positions des gowaps apprivoises et des trolls (hors moi) pour le filtre « Personne sur la case » de la page Ordres
+      var occ = { gowap: [], troll: [] }, moi = currentTrollId();
+      var pos3 = function (r) { var x = parseInt(txt(r, 'td.x'), 10), y = parseInt(txt(r, 'td.y'), 10), n = parseInt(txt(r, 'td.n'), 10); return isNaN(x + y + n) ? null : [x, y, n]; };
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (r) {
+        var nom = r.querySelector('td a.monstre'), q = pos3(r);
+        if (nom && q && /^\s*Gowap Apprivois/i.test(nom.textContent)) occ.gowap.push(q);
+      });
+      document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (r) {
+        var q = pos3(r);
+        if (q && !r.classList.contains('mhx-horsvue') && txt(r, 'td.ref') !== moi) occ.troll.push(q);
+      });
+      mhdPost(TRESORS_URL, 'troll=' + me + '&data=' + encodeURIComponent(JSON.stringify(items)) + '&occ=' + encodeURIComponent(JSON.stringify(occ)), function () {});
     })();
   }
 
-  // Second bloc de la page Ordres : memes colonnes que le tableau Tresors de Ma vue (Dist., Actions, Ref., Nom, X, Y, N), tri au clic sur l'en-tete.
+  // Second bloc de la page Ordres : meme presentation que la partie Tresors de Ma vue (table.vue du jeu : colonnes Dist., Actions,
+  // Ref., Nom, X, Y, N), avec « Plus grosses piles » et les filtres Parchemin / Composant / Gigots de Gob / Personne sur la case.
   function addVueTable(parent, before, d) {
+    ['/mountyhall/libs/vue.css?v=1.82', '/mountyhall/libs/footable-bootstrap.css?version=1.13'].forEach(function (href) {
+      if (document.querySelector('link[href="' + href + '"]')) return;
+      var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
+    });
     var box = document.createElement('div');
     box.id = 'mhx-tresors-ordres2';
-    box.innerHTML = '<div class="mhx-to-titre">Tr\u00e9sors (m\u00eame affichage que Ma vue)</div>';
-    var tab = document.createElement('div');
-    tab.className = 'mhx-to-tab mhx-to-tab-vue';
-    var t = document.createElement('table');
-    t.className = 'mh_tdborder';
-    t.id = 'mhx-vue-copie';
-    var cols = [['dist', 'Dist.', 'dist'], ['', 'Actions', null], ['ref', 'R\u00e9f.', 'ref'], ['', 'Nom', 'nom'], ['x', 'X', 'x'], ['y', 'Y', 'y'], ['n', 'N', 'n']];
-    var hd = t.createTHead(), hr = hd.insertRow(), tb = t.createTBody();
+    var titre = document.createElement('div');
+    titre.className = 'mh_tdtitre mhx-to2-titre';
+    titre.innerHTML = '<h3>TR\u00c9SORS</h3>';
+    box.appendChild(titre);
+    var occ = d.occ || { gowap: [], troll: [] };
+    var actifs = {}, excl = { actif: false, dist: 0 }, pilesN = 5, pilesOn = false, sel = null, tri = { cle: 'dist', sens: 1 };
+    var pilesBox = document.createElement('div'); pilesBox.id = 'mhx-tpiles';
+    var pl = document.createElement('div'); pl.className = 'mhx-piles-ligne';
+    var bp = document.createElement('button'); bp.type = 'button'; bp.className = 'mh_form_submit mhx-tfiltre'; bp.textContent = 'Plus grosses piles';
+    var sp = document.createElement('select'); sp.className = 'mhx-tdist';
+    [3, 5, 10, 20].forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n; if (n === 5) o.selected = true; sp.appendChild(o); });
+    var l1 = document.createElement('span'); l1.textContent = 'Afficher les';
+    var l2 = document.createElement('span'); l2.textContent = 'piles (de la plus grosse \u00e0 la plus petite)';
+    pl.appendChild(bp); pl.appendChild(l1); pl.appendChild(sp); pl.appendChild(l2);
+    var liste = document.createElement('div'); liste.className = 'mhx-piles-liste';
+    pilesBox.appendChild(pl); pilesBox.appendChild(liste);
+    var bar = document.createElement('div'); bar.id = 'mhx-tfiltres';
+    var info = document.createElement('span'); info.className = 'mhx-tinfo';
+    var table = document.createElement('table');
+    table.className = 'mh_tdborder footable vue';
+    var hd = table.createTHead(), hr = hd.insertRow(), tb = table.createTBody();
     hd.className = 'mh_tdtitre';
-    var tri = { cle: 'dist', sens: 1 };
+    var cols = [['dist', 'Dist.', 'dist'], ['actions', 'Actions', null], ['ref', 'R\u00e9f.', 'ref'], ['', 'Nom', 'nom'], ['x', 'X', 'x'], ['y', 'Y', 'y'], ['n', 'N', 'n']];
+    var sortable = document.createElement('div'); sortable.className = 'horizontal-scroll';
+    var proche = function (it, liste2) {
+      return liste2.some(function (q) { return q[2] === it.n && Math.max(Math.abs(q[0] - it.x), Math.abs(q[1] - it.y)) <= excl.dist; });
+    };
+    var visibles = function () {
+      var on = TRESOR_ORDRES_FILTRES.filter(function (f, i) { return actifs[i]; });
+      return d.items.filter(function (it) {
+        if (on.length && !on.some(function (f) { return f[1].test(it.nom); })) return false;
+        if (excl.actif && (proche(it, occ.gowap || []) || proche(it, occ.troll || []))) return false;
+        return true;
+      });
+    };
     var draw = function () {
+      var items = visibles();
+      info.textContent = items.length < d.items.length ? items.length + ' / ' + d.items.length + ' affich\u00e9s' : '';
       tb.textContent = '';
-      d.items.slice().sort(function (a, b) {
+      items.sort(function (a, b) {
         var va = a[tri.cle], vb = b[tri.cle];
         return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * tri.sens || a.ref - b.ref;
       }).forEach(function (it) {
         var tr = tb.insertRow();
-        tr.className = 'mh_tdpage';
+        tr.className = 'mh_tdpage' + (sel && sel === it.x + ';' + it.y + ';' + it.n ? ' mhx-pile-hl' : '');
         cols.forEach(function (c) {
           var td = tr.insertCell();
+          if (c[0]) td.className = c[0];
           if (c[1] === 'Actions') {
-            if (it.icone) { var im = document.createElement('img'); im.src = it.icone; im.alt = 'Tr\u00e9sor'; im.height = 20; td.appendChild(im); }
-            td.className = 'actions';
-          } else if (c[1] === 'Nom') td.textContent = it.nom;
-          else { td.textContent = it[c[2]]; if (c[0]) td.className = c[0]; }
+            if (it.icone) {
+              var sp2 = document.createElement('span'); sp2.className = 'cm cm-tresor';
+              var im = document.createElement('img'); im.src = it.icone; im.alt = 'Tr\u00e9sor'; im.height = 20;
+              sp2.appendChild(im); td.appendChild(sp2);
+            }
+          } else td.textContent = c[1] === 'Nom' ? it.nom : it[c[2]];
         });
+      });
+      liste.textContent = '';
+      if (!pilesOn) return;
+      var g = {};
+      items.forEach(function (it) { var k = it.x + ';' + it.y + ';' + it.n; (g[k] = g[k] || []).push(it); });
+      var top = Object.keys(g).map(function (k) { return { k: k, l: g[k] }; }).sort(function (a, b) { return b.l.length - a.l.length; }).slice(0, pilesN);
+      var tete = document.createElement('div'); tete.className = 'mhx-piles-tete';
+      tete.textContent = top.length + ' pile' + (top.length > 1 ? 's' : '') + ' sur ' + Object.keys(g).length + ' \u2014 cliquer sur une ligne pour la rep\u00e9rer dans le tableau';
+      liste.appendChild(tete);
+      top.forEach(function (t, i) {
+        var noms = {};
+        t.l.forEach(function (it) { var nm = /centaines? de GG/i.test(it.nom) || /^\d+ .*GG/i.test(it.nom) ? 'GG' : it.nom; noms[nm] = (noms[nm] || 0) + 1; });
+        var compo = Object.keys(noms).sort(function (a, b) { return noms[b] - noms[a]; }).map(function (nm) { return noms[nm] + ' ' + nm; }).join(', ');
+        var row = document.createElement('div');
+        row.className = 'mhx-pile' + (sel === t.k ? ' mhx-pile-sel' : '');
+        row.textContent = (i + 1) + '. ' + t.l.length + ' tr\u00e9sors \u2014 X=' + t.l[0].x + ' | Y=' + t.l[0].y + ' | N=' + t.l[0].n + ' (dist. ' + t.l[0].dist + ') : ' + compo;
+        row.addEventListener('click', function () { sel = sel === t.k ? null : t.k; draw(); var h = tb.querySelector('tr.mhx-pile-hl'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'nearest' }); });
+        liste.appendChild(row);
       });
     };
     cols.forEach(function (c) {
@@ -1380,9 +1444,23 @@
         td.addEventListener('click', function () { tri = { cle: c[2], sens: tri.cle === c[2] ? -tri.sens : 1 }; draw(); });
       }
     });
+    TRESOR_ORDRES_FILTRES.forEach(function (f, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'mh_form_submit mhx-tfiltre'; b.textContent = f[0];
+      b.addEventListener('click', function () { actifs[i] = !actifs[i]; b.classList.toggle('mhx-actif', !!actifs[i]); draw(); });
+      bar.appendChild(b);
+    });
+    var bx = document.createElement('button'); bx.type = 'button'; bx.className = 'mh_form_submit mhx-tfiltre'; bx.textContent = 'Personne sur la case';
+    bx.title = 'Masque les tr\u00e9sors ayant un gowap apprivois\u00e9 ou un troll \u00e0 la distance r\u00e9gl\u00e9e (positions de la derni\u00e8re vue)';
+    bx.addEventListener('click', function () { excl.actif = !excl.actif; bx.classList.toggle('mhx-actif', excl.actif); draw(); });
+    var sd = document.createElement('select'); sd.className = 'mhx-tdist';
+    ['m\u00eame case', '\u2264 1 case', '\u2264 2 cases', '\u2264 3 cases'].forEach(function (t, i) { var o = document.createElement('option'); o.value = i; o.textContent = t; sd.appendChild(o); });
+    sd.addEventListener('change', function () { excl.dist = parseInt(sd.value, 10) || 0; draw(); });
+    bar.appendChild(bx); bar.appendChild(sd); bar.appendChild(info);
+    bp.addEventListener('click', function () { pilesOn = !pilesOn; pilesBox.classList.toggle('mhx-piles-on', pilesOn); bp.classList.toggle('mhx-actif', pilesOn); draw(); });
+    sp.addEventListener('change', function () { pilesN = parseInt(sp.value, 10) || 5; draw(); });
+    box.appendChild(pilesBox); box.appendChild(bar);
+    sortable.appendChild(table); box.appendChild(sortable);
     draw();
-    tab.appendChild(t);
-    box.appendChild(tab);
     parent.insertBefore(box, before);
   }
 
@@ -1512,7 +1590,7 @@
   }
   function aggroTroll() {
     var me = (document.body && document.body.getAttribute('data-idtroll')) || currentTrollId();
-    try { // page ouverte hors du jeu (pas de cadre) : troll mémorisé lors d'une visite précédente
+    try { // page ouverte hors du jeu (pas de cadre) : troll m\u00e9moris\u00e9 lors d'une visite pr\u00e9c\u00e9dente
       if (/^\d+$/.test(me || '')) localStorage.setItem('mhx-troll', me);
       else me = localStorage.getItem('mhx-troll');
     } catch (e) { /* stockage indisponible */ }
