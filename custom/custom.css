@@ -81,3 +81,10 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 /* Pictos d'effets (FA, HE) à côté du nom des monstres */
 .mhx-fa { font-size: 1.35em; line-height: 1; vertical-align: middle; cursor: help; }
 .mhx-sacro-who { margin-top: 2px; }
+
+/* Page Ma vue, Trésors : boutons de filtre (Parchemin / Composant / Gigots de Gob), additionnables */
+#mhx-tfiltres { margin: 4px 0 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#mhx-tfiltres .mhx-tfiltre { min-height: 26px; cursor: pointer; }
+#mhx-tfiltres .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
+#mhx-tfiltres .mhx-tinfo { font-size: 12px; margin-left: 4px; }
+tr.mhx-tfiltre-cache { display: none !important; }

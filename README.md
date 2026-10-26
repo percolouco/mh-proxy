@@ -105,3 +105,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.21.1 | 2026-10-26 | Demande de sacro : ligne « Malus PV : N (suivant : M) » (popup et message) d'après les bonus/malus enregistrés |
 | 0.21.2 | 2026-10-26 | Image pistage placée tout en bas de la div #favoris |
 | 0.21.3 | 2026-10-26 | Popup sacro : malus PV sur sa propre ligne, titre du bandeau retiré (× conservé) |
+| 0.22.0 | 2026-10-26 | Ma vue, Trésors : boutons de filtre Parchemin / Composant / Gigots de Gob (additionnables, bouton Tout) |
