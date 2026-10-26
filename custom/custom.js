@@ -1572,9 +1572,16 @@
     var proche = function (it, liste2) {
       return liste2.some(function (q) { return q[2] === it.n && Math.max(Math.abs(q[0] - it.x), Math.abs(q[1] - it.y)) <= excl.dist; });
     };
+    var portee = null, limiteVue = false, bv = null;
+    var majPortee = function () { // la portee peut n'etre memorisee qu'apres l'ouverture de la page (lecture du Profil en arriere-plan)
+      var gv = gowapVueGet(gowapId());
+      portee = gv ? gv.v + gv.b : null;
+      if (bv) bv.textContent = portee === null ? 'Dans la vue du suivant (vue inconnue)' : 'Dans la vue du suivant (\u2264 ' + portee + ')';
+    };
     var visibles = function () {
       var on = TRESOR_ORDRES_FILTRES.filter(function (f, i) { return actifs[i]; });
       return d.items.filter(function (it) {
+        if (limiteVue && portee !== null && it.dist > portee) return false;
         if (on.length && !on.some(function (f) { return f[1].test(it.nom); })) return false;
         if (excl.actif && (proche(it, occ.gowap || []) || proche(it, occ.troll || []))) return false;
         return true;
@@ -1644,6 +1651,12 @@
     var sd = document.createElement('select'); sd.className = 'mhx-tdist';
     ['m\u00eame case', '\u2264 1 case', '\u2264 2 cases', '\u2264 3 cases'].forEach(function (t, i) { var o = document.createElement('option'); o.value = i; o.textContent = t; sd.appendChild(o); });
     sd.addEventListener('change', function () { excl.dist = parseInt(sd.value, 10) || 0; draw(); });
+    bv = document.createElement('button'); bv.type = 'button'; bv.className = 'mh_form_submit mhx-tfiltre';
+    bv.title = 'Masque les tr\u00e9sors situ\u00e9s au-del\u00e0 de la port\u00e9e de vue du suivant';
+    bv.addEventListener('click', function () { majPortee(); limiteVue = !limiteVue; bv.classList.toggle('mhx-actif', limiteVue); draw(); });
+    bar.insertBefore(bv, bar.firstChild);
+    majPortee();
+    setTimeout(function () { majPortee(); if (limiteVue) draw(); }, 2500);
     bar.appendChild(bx); bar.appendChild(sd); bar.appendChild(info);
     bp.addEventListener('click', function () { pilesOn = !pilesOn; pilesBox.classList.toggle('mhx-piles-on', pilesOn); bp.classList.toggle('mhx-actif', pilesOn); draw(); });
     sp.addEventListener('change', function () { pilesN = parseInt(sp.value, 10) || 5; draw(); });
