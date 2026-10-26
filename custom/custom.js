@@ -181,8 +181,10 @@
     mhdPost(NOTIF_BM_URL, 'troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
   }
 
-  // Page Ma vue, partie Trésors : boutons Parchemin / Composant / Gigots de Gob. Les filtres s'additionnent (un trésor est
-  // gardé s'il correspond à l'un des boutons actifs) ; aucun bouton actif = tout est affiché. Affichage seulement, rien n'est envoyé.
+  // Page Ma vue, partie Trésors : boutons Parchemin / Composant / Gigots de Gob, additionnables (un trésor est gardé s'il
+  // correspond à l'un des boutons actifs ; aucun bouton = tout) ; plus deux boutons « Sans gowap » / « Sans troll » qui masquent
+  // les trésors ayant un gowap apprivoisé (ou un troll, hors le troll connecté) à moins de N cases (même niveau N), N réglable de 0 à 3.
+  // Affichage seulement, rien n'est envoyé au jeu.
   var TRESOR_FILTRES = [
     { cle: 'parchemin', label: 'Parchemin', re: /^Parchemin/i },
     { cle: 'composant', label: 'Composant', re: /^Composant/i },
@@ -190,26 +192,59 @@
   ];
   function addTresorFilters() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var KEY = 'mhx-tresor-filtres';
-    var actifs = {};
+    var KEY = 'mhx-tresor-filtres', KEY_EX = 'mhx-tresor-exclusion';
+    var actifs = {}, excl = { gowap: false, troll: false, dist: 0 };
     try { actifs = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { actifs = {}; }
+    try { var ex = JSON.parse(localStorage.getItem(KEY_EX) || '{}') || {}; excl = { gowap: !!ex.gowap, troll: !!ex.troll, dist: Math.min(3, Math.max(0, parseInt(ex.dist, 10) || 0)) }; } catch (e) { /* r\u00e9glages par d\u00e9faut */ }
     var bar = null, info = null;
     var rows = function () { return document.querySelectorAll('#VUE_tresors tbody tr.mh_tdpage'); };
+    var pos = function (tr) {
+      var x = tr.querySelector('td.x'), y = tr.querySelector('td.y'), n = tr.querySelector('td.n');
+      if (!x || !y || !n) return null;
+      var p = { x: parseInt(x.textContent, 10), y: parseInt(y.textContent, 10), n: parseInt(n.textContent, 10) };
+      return (isNaN(p.x) || isNaN(p.y) || isNaN(p.n)) ? null : p;
+    };
+    // positions des gowaps apprivoisés (tableau Monstres) et des trolls (tableau Trôlls), sans le troll connecté ni les trolls ajoutés hors vue
+    var positions = function () {
+      var gw = [], tr = [], moi = currentTrollId();
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (r) {
+        var nom = r.querySelector('td a.monstre'), p = pos(r);
+        if (nom && p && /^\s*Gowap Apprivois/i.test(nom.textContent)) gw.push(p);
+      });
+      document.querySelectorAll('#VUE_trolls tbody tr').forEach(function (r) {
+        var ref = r.querySelector('td.ref'), p = pos(r);
+        if (!ref || !p || r.classList.contains('mhx-horsvue') || ref.textContent.trim() === moi) return;
+        tr.push(p);
+      });
+      return { gowap: gw, troll: tr };
+    };
+    var proche = function (p, liste) {
+      return liste.some(function (q) { return q.n === p.n && Math.max(Math.abs(q.x - p.x), Math.abs(q.y - p.y)) <= excl.dist; });
+    };
     var apply = function () {
       var on = TRESOR_FILTRES.filter(function (f) { return actifs[f.cle]; });
+      var pz = (excl.gowap || excl.troll) ? positions() : null;
       var total = 0, vus = 0;
       rows().forEach(function (tr) {
         var cell = tr.cells[3];
         var nom = cell ? cell.textContent.replace(/[\s\u00a0]+/g, ' ').trim() : '';
         var garde = !on.length || on.some(function (f) { return f.re.test(nom); });
+        if (garde && pz) {
+          var p = pos(tr);
+          if (p && ((excl.gowap && proche(p, pz.gowap)) || (excl.troll && proche(p, pz.troll)))) garde = false;
+        }
         tr.classList.toggle('mhx-tfiltre-cache', !garde);
         total++;
         if (garde) vus++;
       });
       if (bar) {
         bar.querySelectorAll('button[data-cle]').forEach(function (b) { b.classList.toggle('mhx-actif', !!actifs[b.getAttribute('data-cle')]); });
-        if (info) info.textContent = on.length ? vus + ' / ' + total : '';
+        bar.querySelectorAll('button[data-excl]').forEach(function (b) { b.classList.toggle('mhx-actif', !!excl[b.getAttribute('data-excl')]); });
+        if (info) info.textContent = (on.length || pz) ? vus + ' / ' + total : '';
       }
+    };
+    var save = function () {
+      try { localStorage.setItem(KEY, JSON.stringify(actifs)); localStorage.setItem(KEY_EX, JSON.stringify(excl)); } catch (e) { /* stockage indisponible */ }
     };
     var build = function () {
       var table = document.getElementById('VUE_tresors');
@@ -225,15 +260,43 @@
         b.addEventListener('click', function (ev) {
           ev.preventDefault();
           actifs[f.cle] = !actifs[f.cle];
-          try { localStorage.setItem(KEY, JSON.stringify(actifs)); } catch (e) { /* stockage indisponible */ }
+          save();
           apply();
         });
         bar.appendChild(b);
       });
+      [['gowap', 'Sans gowap'], ['troll', 'Sans troll']].forEach(function (e) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'mh_form_submit mhx-tfiltre';
+        b.setAttribute('data-excl', e[0]);
+        b.title = 'Masque les tr\u00e9sors ayant un ' + (e[0] === 'gowap' ? 'gowap apprivois\u00e9' : 'troll') + ' \u00e0 la distance r\u00e9gl\u00e9e';
+        b.textContent = e[1];
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          excl[e[0]] = !excl[e[0]];
+          save();
+          apply();
+        });
+        bar.appendChild(b);
+      });
+      var sel = document.createElement('select');
+      sel.className = 'mhx-tdist';
+      sel.title = 'Distance du gowap / troll au tr\u00e9sor (m\u00eame niveau) pour l\'exclusion';
+      ['m\u00eame case', '\u2264 1 case', '\u2264 2 cases', '\u2264 3 cases'].forEach(function (t, i) {
+        var o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = t;
+        if (i === excl.dist) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', function () { excl.dist = parseInt(sel.value, 10) || 0; save(); apply(); });
+      sel.addEventListener('click', function (ev) { ev.stopPropagation(); });
+      bar.appendChild(sel);
       info = document.createElement('span');
       info.className = 'mhx-tinfo';
       bar.appendChild(info);
-      // m\u00eame ligne que les boutons Filtre / Copier du titre Tr\u00e9sors ; sinon juste au-dessus du tableau
+      // même ligne que les boutons Filtre / Copier du titre Trésors ; sinon juste au-dessus du tableau
       var titre = document.querySelector('label[for="toggle_tresors"] > div');
       if (titre) { bar.classList.add('mhx-tfiltres-ligne'); titre.appendChild(bar); }
       else table.parentNode.insertBefore(bar, table);

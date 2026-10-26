@@ -113,3 +113,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.24.0 | 2026-10-26 | Ma vue : interrupteurs plus fins (16 px) ; option « Blocs ouverts à l'ouverture » (Monstres, Trôlls, Trésors... ouverts ou fermés), mémorisée par troll sur le serveur |
 | 0.24.1 | 2026-10-26 | Ma vue : les deux interrupteurs sur la même ligne |
 | 0.25.0 | 2026-10-26 | Kiki Meter : essais de sorts / compétences comptés par troll sur le serveur MH (ratés, effets réduits, dégât max) et tableau des 5 trolls dans Mon Profil (meilleur vert, pire rouge) |
+| 0.26.0 | 2026-10-26 | Filtres Trésors : boutons « Sans gowap » / « Sans troll » avec distance réglable (même case, 1, 2 ou 3 cases) |

@@ -107,3 +107,4 @@ tr.mhx-tfiltre-cache { display: none !important; }
 .mhx-kikitab td.mhx-kiki-rouge { background: #f5b5b5; font-weight: bold; }
 .mhx-kikinote { margin-top: 6px; font-size: 11px; font-style: italic; }
 #mhx-kiki { grid-column: 1 / -1; }
+#mhx-tfiltres .mhx-tdist { min-height: 26px; font-size: 12px; max-width: 110px; }
