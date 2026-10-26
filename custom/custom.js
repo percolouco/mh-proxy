@@ -20,6 +20,52 @@
     a.parentNode.insertBefore(document.createElement('br'), a.nextSibling);
   }
 
+  // Bouton « Pistage » du menu de gauche, au-dessus du bloc « DLA et position » : affiche l'image des points cardinaux en popup.
+  // Le bloc est cherché par son texte (« DLA ») ; sans lui, le bouton va sous le bouton IT.
+  function addPistageButton() {
+    if (!/\/Play_menu\.php$/.test(location.pathname) || document.querySelector('a.mhx-pistage')) return;
+    var menu = document.querySelector('menu') || document.body;
+    var a = document.createElement('a');
+    a.href = '#';
+    a.className = 'mhx-pistage';
+    a.textContent = 'Pistage';
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      // le menu est un cadre étroit : le popup s'affiche dans le cadre de contenu (même domaine), sinon dans le menu
+      var doc = document;
+      try { var fr = window.parent && window.parent.frames['Contenu']; if (fr && fr.document && fr.document.body) doc = fr.document; } catch (err) { doc = document; }
+      if (doc.getElementById('mhx-pistage-pop')) return;
+      var ov = doc.createElement('div');
+      ov.id = 'mhx-pistage-pop';
+      ov.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); cursor: pointer;';
+      var img = doc.createElement('img');
+      img.src = '/_mhx/img/pistage.png';
+      img.alt = 'Pistage : points cardinaux';
+      img.style.cssText = 'max-width: 90%; max-height: 90%; background: #fff; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.5);';
+      ov.appendChild(img);
+      var close = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); doc.removeEventListener('keydown', onKey); };
+      var onKey = function (ev) { if (ev.key === 'Escape') close(); };
+      ov.addEventListener('click', close);
+      doc.addEventListener('keydown', onKey);
+      doc.body.appendChild(ov);
+    });
+    var target = null, best = 1e9;
+    menu.querySelectorAll('*').forEach(function (el) {
+      var own = Array.prototype.filter.call(el.childNodes, function (n) { return n.nodeType === 3; }).map(function (n) { return n.nodeValue; }).join('');
+      if (/\bDLA\b/.test(own) && el.querySelectorAll('*').length < best) { best = el.querySelectorAll('*').length; target = el; }
+    });
+    if (target) {
+      while (target.parentNode && target.parentNode !== menu) target = target.parentNode;
+      menu.insertBefore(a, target);
+      menu.insertBefore(document.createElement('br'), target);
+    } else {
+      var it = menu.querySelector('a.interface-it');
+      var ref = it ? (it.nextSibling && it.nextSibling.tagName === 'BR' ? it.nextSibling : it) : null;
+      if (ref) { ref.parentNode.insertBefore(a, ref.nextSibling); a.parentNode.insertBefore(document.createElement('br'), a.nextSibling); }
+      else menu.appendChild(a);
+    }
+  }
+
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
   // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
   var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
@@ -868,7 +914,7 @@
     }
   }
 
-  function init() { addMonsterPv(); colorVueGowaps(); addTrollEtat(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); colorVueGowaps(); addTrollEtat(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
