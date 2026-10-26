@@ -1319,39 +1319,56 @@
   // Aggro : derniere personne frappee par un monstre. Page du monstre : lue dans ses evenements, affichee et envoyee
   // au serveur MH (table mh_aggro) ; page Ma vue : colonne « Aggro » entre PV et Ref., lue sur le serveur.
   var AGGRO_URL = 'https://mh.percolouco.com/notif/aggro.php';
-  function addMonsterAggro() {
-    if (!/\/MonsterView\.php$/.test(location.pathname)) return;
+  // Derniere cible visee d'apres les evenements d'une page de monstre (document deja charge ou recupere en arriere-plan).
+  // Renvoie null si le tableau d'evenements est absent, {vide:true} s'il ne contient aucun coup du monstre.
+  function aggroLast(doc) {
+    var rows = doc.querySelectorAll('#events tbody tr');
+    if (!doc.getElementById('events')) return null;
     var last = null;
-    document.querySelectorAll('#events tbody tr').forEach(function (tr) {
+    rows.forEach(function (tr) {
       if (last) return; // evenements du plus recent au plus ancien : le premier trouve est le dernier coup
       var c = tr.cells;
       if (!c || c.length < 3) return;
       var d = /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/.exec(c[0].textContent);
       var m = /^\s*(?:un|une)\s.*?\(\s*(\d+)\s*\)\s+a (?:frapp\u00e9|tent\u00e9 de frapper)\s+(.+?)\s*\(\s*(\d+)\s*\)/i.exec(c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, ' '));
-      if (d && m) m = [0, d[1], m[1], m[2], m[3]]; else m = null;
-      if (m) last = { date: m[1], monstre: m[2], nom: m[3], cible: m[4] };
+      if (d && m) last = { date: d[1], monstre: m[1], nom: m[2], cible: m[3] };
     });
-    if (!last) return;
-    var box = document.createElement('div');
-    box.className = 'mhx-monstre';
-    box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible vis\u00e9e :</b> ';
-    box.appendChild(document.createTextNode(last.nom + ' (' + last.cible + ') le ' + last.date));
-    var form = document.querySelector('form[action=""]');
-    if (form && form.parentNode) form.parentNode.insertBefore(box, form);
-    else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+    return last || { vide: true };
+  }
+  function aggroSend(me, monstre, last) {
+    var corps = 'troll=' + me + '&monstre=' + monstre;
+    if (last && !last.vide) corps += '&cible=' + last.cible + '&nom=' + encodeURIComponent(last.nom) + '&date=' + encodeURIComponent(last.date);
+    mhdPost(AGGRO_URL, corps, function () {});
+  }
+  function aggroTroll() {
     var me = (document.body && document.body.getAttribute('data-idtroll')) || currentTrollId();
-    try { // page ouverte hors du jeu (pas de cadre) : troll m\u00e9moris\u00e9 lors d'une visite pr\u00e9c\u00e9dente
+    try { // page ouverte hors du jeu (pas de cadre) : troll mémorisé lors d'une visite précédente
       if (/^\d+$/.test(me || '')) localStorage.setItem('mhx-troll', me);
       else me = localStorage.getItem('mhx-troll');
     } catch (e) { /* stockage indisponible */ }
-    if (/^\d+$/.test(me || '')) {
-      mhdPost(AGGRO_URL, 'troll=' + me + '&monstre=' + last.monstre + '&cible=' + last.cible + '&nom=' + encodeURIComponent(last.nom) + '&date=' + encodeURIComponent(last.date), function () {});
+    return /^\d+$/.test(me || '') ? me : null;
+  }
+  function addMonsterAggro() {
+    if (!/\/MonsterView\.php$/.test(location.pathname)) return;
+    var last = aggroLast(document);
+    if (!last) return;
+    var id = last.monstre || (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
+    if (!last.vide) {
+      var box = document.createElement('div');
+      box.className = 'mhx-monstre';
+      box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible vis\u00e9e :</b> ';
+      box.appendChild(document.createTextNode(last.nom + ' (' + last.cible + ') le ' + last.date));
+      var form = document.querySelector('form[action=""]');
+      if (form && form.parentNode) form.parentNode.insertBefore(box, form);
+      else if (document.body) document.body.insertBefore(box, document.body.firstChild);
     }
+    var me = aggroTroll();
+    if (me && id) aggroSend(me, id, last);
   }
 
   function addAggroCol() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var aggro = null;
+    var aggro = null, queue = null, running = false;
     var ensure = function () {
       var hr = document.querySelector('#VUE_monstres thead tr');
       if (!hr) return;
@@ -1386,7 +1403,44 @@
       });
     };
     var load = function () {
-      fetch(AGGRO_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (l) { if (l) { aggro = l; ensure(); paint(); } }, function () {});
+      fetch(AGGRO_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (l) { if (l) { aggro = l; ensure(); paint(); if (!queue) buildQueue(); } }, function () {});
+    };
+    // Verification en arriere-plan (lecture seule, une page a la fois, 1 a 10 s entre deux) des monstres a distance 0-2, hors
+    // gowaps et familiers : d'abord ceux sans info, puis ceux dont le dernier check a plus de 6 h. Rien n'est affiche a l'ecran.
+    var buildQueue = function () {
+      var me = aggroTroll();
+      if (!me || !aggro) return;
+      var fresh = [], old = [], seen = {};
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre'), dist = tr.querySelector('td.dist');
+        if (!ref || !nom || !dist || /^\s*(?:Gowap Apprivois|Familier)/i.test(nom.textContent)) return;
+        var d = parseInt(dist.textContent, 10), id = ref.textContent.trim();
+        if (isNaN(d) || d > 2 || seen[id]) return;
+        seen[id] = true;
+        var a = aggro[id];
+        if (!a) fresh.push(id);
+        else if (a.age > 6 * 3600) old.push(id);
+      });
+      queue = fresh.concat(old);
+      step(me);
+    };
+    var step = function (me) {
+      if (running || !queue || !queue.length) return;
+      running = true;
+      var id = queue.shift();
+      fetch('/mountyhall/View/MonsterView.php?ai_IDPJ=' + id, { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (buf) {
+          if (!buf) return;
+          var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(buf), 'text/html');
+          var last = aggroLast(doc);
+          if (!last) return; // page inattendue (session expiree, erreur...) : rien n'est enregistre
+          aggroSend(me, id, last);
+          aggro[id] = last.vide ? { cible: 0, nom: '', date: null, age: 0 } : { cible: parseInt(last.cible, 10), nom: last.nom, date: last.date, age: 0 };
+          paint();
+        })
+        .catch(function () { /* ignore */ })
+        .then(function () { running = false; setTimeout(function () { step(me); }, 1000 + Math.random() * 9000); });
     };
     ensure();
     load();
