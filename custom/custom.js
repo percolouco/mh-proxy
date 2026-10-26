@@ -20,7 +20,7 @@
     a.parentNode.insertBefore(document.createElement('br'), a.nextSibling);
   }
 
-  // Menu : liens vers les 4 ecuyers (nouvel onglet), en haut du menu.
+  // Menu : liens vers les 4 ecuyers (nouvel onglet), sous l'image de pistage, en bas de #favoris.
   function addEcuyers() {
     if (!/\/Play_menu\.php$/.test(location.pathname) || document.getElementById('mhx-ecuyers')) return;
     var liens = [['Retak', 'retak'], ['Coucouze', 'coucouze'], ['Roxxor', 'roxxor'], ['Xouz', 'xouz']];
@@ -34,7 +34,9 @@
       a.textContent = l[0];
       d.appendChild(a);
     });
-    document.body.insertBefore(d, document.body.firstChild);
+    var fav = document.getElementById('favoris');
+    if (!fav) return;
+    fav.appendChild(d);
   }
 
   // Menu : image des points cardinaux (pistage) tout en bas de la div #favoris.
