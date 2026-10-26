@@ -63,4 +63,4 @@ tr.mhx-horsvue > td { opacity: 0.7; font-style: italic; }
 tr.mhx-gw > td { background: var(--mhx-gw) !important; background-image: none !important; }
 
 /* Menu : image des points cardinaux au début de #favoris */
-#mhx-pistage { display: block; width: 100%; max-width: 200px; height: auto; margin: 4px auto; }
+#mhx-pistage { display: block; width: 100%; max-width: 200px; height: auto; margin: auto 14px; }
