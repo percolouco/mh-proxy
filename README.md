@@ -123,3 +123,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.30.1 | 2026-10-26 | Aggro : colonne bien placée entre PV et Réf. (attend la colonne PV) ; vérifié en réel (Voir le Monde Souterrain) |
 | 0.30.2 | 2026-10-26 | Aggro : la vérification en arrière-plan lit les événements dans les données de la page (le tableau est rempli par JavaScript, donc vide dans la page récupérée) ; corrige les faux « aucun coup » |
 | 0.31.0 | 2026-10-26 | Trésors de Ma vue envoyés au serveur (par troll, remplacés à chaque affichage) et réaffichés sur Équipement > Suivants > Ordres, au-dessus de la carte du trajet : recherche par nom, filtres Parchemin/Composant/Gigots, piles, clic = copie des coordonnées |
+| 0.31.1 | 2026-10-26 | Page Ordres : 2e bloc « même affichage que Ma vue » (Dist., Actions avec icône, Réf., Nom, X, Y, N, tri au clic sur l’en-tête) sous le bloc de recherche |
