@@ -151,6 +151,33 @@
     [1500, 4000, 8000].forEach(function (d) { setTimeout(load, d); });
   }
 
+  // Page Mon Profil : caractéristiques lues dans le tableau (ids att, att_p, att_m...) et envoyées au serveur MH
+  // pour mettre à jour le récap tactique (sans passer par l'API Scripts Publics). Seulement pour le troll connecté.
+  var NOTIF_PROFIL_URL = 'https://mh.percolouco.com/notif/profil_update.php';
+  function sendProfil() {
+    if (!/\/Play_profil\.php$/.test(location.pathname) || !document.body) return;
+    var id = document.body.getAttribute('data-idtroll') || currentTrollId();
+    if (!/^\d+$/.test(id || '')) return;
+    var num = function (key) {
+      var el = document.getElementById(key);
+      if (!el) return null;
+      var t = el.textContent.replace(/[\s\u00a0%]/g, '').replace(/^\+/, '');
+      if (t === '') return 0; // case vide = pas de bonus
+      return /^-?\d+$/.test(t) ? parseInt(t, 10) : null;
+    };
+    var data = {}, ok = true;
+    ['att', 'esq', 'deg', 'reg', 'arm', 'rm', 'mm'].forEach(function (k) {
+      var v = [num(k), num(k + '_p'), num(k + '_m')];
+      if (v.indexOf(null) >= 0) ok = false; else data[k] = v;
+    });
+    var vue = [num('vue_unit'), num('vue_p'), num('vue_m')];
+    if (vue.indexOf(null) >= 0) ok = false; else data.vue = vue;
+    var pv = [num('pv'), num('pv_tot')];
+    if (pv.indexOf(null) >= 0) ok = false; else data.pv = pv;
+    if (!ok) return; // page différente de celle attendue : on n'envoie rien
+    mhdPost(NOTIF_PROFIL_URL, 'troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
+  }
+
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
   // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
   var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
@@ -1045,7 +1072,7 @@
     }
   }
 
-  function init() { addMonsterPv(); colorVueGowaps(); addEffectIcons(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); colorVueGowaps(); addEffectIcons(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendProfil(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
