@@ -196,8 +196,56 @@
     var actifs = {}, excl = { actif: false, dist: 0 };
     try { actifs = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { actifs = {}; }
     try { var ex = JSON.parse(localStorage.getItem(KEY_EX) || '{}') || {}; excl = { actif: !!ex.actif, dist: Math.min(3, Math.max(0, parseInt(ex.dist, 10) || 0)) }; } catch (e) { /* r\u00e9glages par d\u00e9faut */ }
-    var bar = null, info = null;
+    var bar = null, info = null, pilesBox = null, pilesList = null;
+    var KEY_PILES = 'mhx-tresor-piles';
+    var piles = { actif: false, n: 5 };
+    try { var pp = JSON.parse(localStorage.getItem(KEY_PILES) || '{}') || {}; piles = { actif: !!pp.actif, n: [3, 5, 10, 20].indexOf(parseInt(pp.n, 10)) >= 0 ? parseInt(pp.n, 10) : 5 }; } catch (e) { /* r\u00e9glages par d\u00e9faut */ }
     var rows = function () { return document.querySelectorAll('#VUE_tresors tbody tr.mh_tdpage'); };
+    // Piles = trésors de même position (X / Y / N) parmi les lignes affichées, de la plus grosse à la plus petite ; seules les N premières sont listées.
+    var renderPiles = function () {
+      if (!pilesBox) return;
+      pilesBox.classList.toggle('mhx-piles-on', piles.actif);
+      rows().forEach(function (tr) { tr.classList.remove('mhx-pile-hl'); });
+      pilesList.textContent = '';
+      if (!piles.actif) return;
+      var groupes = {};
+      rows().forEach(function (tr) {
+        if (tr.classList.contains('mhx-tfiltre-cache')) return;
+        var p = pos(tr);
+        if (!p) return;
+        var k = p.x + ';' + p.y + ';' + p.n;
+        var g = groupes[k] || (groupes[k] = { p: p, trs: [], noms: {}, dist: null });
+        g.trs.push(tr);
+        var dc = tr.querySelector('td.dist');
+        if (dc && g.dist === null) g.dist = dc.textContent.trim();
+        var nom = (tr.cells[3] ? tr.cells[3].textContent : '').replace(/[\s\u00a0]+/g, ' ').trim();
+        nom = /centaines? de GG/i.test(nom) || /^\d+ .*GG/i.test(nom) ? 'GG' : nom;
+        g.noms[nom] = (g.noms[nom] || 0) + 1;
+      });
+      var liste = Object.keys(groupes).map(function (k) { return groupes[k]; }).sort(function (a, b) { return b.trs.length - a.trs.length; });
+      var tot = liste.reduce(function (t, g) { return t + g.trs.length; }, 0);
+      var top = liste.slice(0, piles.n);
+      var tete = document.createElement('div');
+      tete.className = 'mhx-piles-tete';
+      tete.textContent = top.length ? top.length + ' pile' + (top.length > 1 ? 's' : '') + ' sur ' + liste.length + ' (' + tot + ' tr\u00e9sors affich\u00e9s) \u2014 cliquer sur une ligne pour la rep\u00e9rer dans le tableau' : 'Aucun tr\u00e9sor affich\u00e9';
+      pilesList.appendChild(tete);
+      top.forEach(function (g, i) {
+        var compo = Object.keys(g.noms).sort(function (a, b) { return g.noms[b] - g.noms[a]; }).map(function (n) { return g.noms[n] + ' ' + n; }).join(', ');
+        var li = document.createElement('div');
+        li.className = 'mhx-pile';
+        li.textContent = (i + 1) + '. X = ' + g.p.x + ' | Y = ' + g.p.y + ' | N = ' + g.p.n + (g.dist !== null ? ' (dist. ' + g.dist + ')' : '') + ' \u2014 ' + g.trs.length + ' tr\u00e9sor' + (g.trs.length > 1 ? 's' : '') + ' : ' + compo;
+        li.addEventListener('click', function () {
+          var deja = li.classList.contains('mhx-pile-sel');
+          pilesList.querySelectorAll('.mhx-pile-sel').forEach(function (x) { x.classList.remove('mhx-pile-sel'); });
+          rows().forEach(function (tr) { tr.classList.remove('mhx-pile-hl'); });
+          if (deja) return;
+          li.classList.add('mhx-pile-sel');
+          g.trs.forEach(function (tr) { tr.classList.add('mhx-pile-hl'); });
+          g.trs[0].scrollIntoView({ block: 'center' });
+        });
+        pilesList.appendChild(li);
+      });
+    };
     var pos = function (tr) {
       var x = tr.querySelector('td.x'), y = tr.querySelector('td.y'), n = tr.querySelector('td.n');
       if (!x || !y || !n) return null;
@@ -242,9 +290,10 @@
         bar.querySelectorAll('button[data-excl]').forEach(function (b) { b.classList.toggle('mhx-actif', !!excl.actif); });
         if (info) info.textContent = (on.length || pz) ? vus + ' / ' + total : '';
       }
+      renderPiles();
     };
     var save = function () {
-      try { localStorage.setItem(KEY, JSON.stringify(actifs)); localStorage.setItem(KEY_EX, JSON.stringify(excl)); } catch (e) { /* stockage indisponible */ }
+      try { localStorage.setItem(KEY, JSON.stringify(actifs)); localStorage.setItem(KEY_EX, JSON.stringify(excl)); localStorage.setItem(KEY_PILES, JSON.stringify(piles)); } catch (e) { /* stockage indisponible */ }
     };
     var build = function () {
       var table = document.getElementById('VUE_tresors');
@@ -298,6 +347,41 @@
       var titre = document.querySelector('label[for="toggle_tresors"] > div');
       if (titre) { bar.classList.add('mhx-tfiltres-ligne'); titre.appendChild(bar); }
       else table.parentNode.insertBefore(bar, table);
+      // 2e ligne : liste des plus grosses piles (juste sous le titre Trésors, repliée avec le bloc)
+      pilesBox = document.createElement('div');
+      pilesBox.id = 'mhx-tpiles';
+      var bt = document.createElement('button');
+      bt.type = 'button';
+      bt.className = 'mh_form_submit mhx-tfiltre';
+      bt.textContent = 'Plus grosses piles';
+      bt.addEventListener('click', function (ev) { ev.preventDefault(); piles.actif = !piles.actif; bt.classList.toggle('mhx-actif', piles.actif); save(); renderPiles(); });
+      bt.classList.toggle('mhx-actif', piles.actif);
+      var lab = document.createElement('span');
+      lab.textContent = 'Afficher les';
+      var sp = document.createElement('select');
+      sp.className = 'mhx-tdist';
+      sp.title = 'Nombre de piles list\u00e9es';
+      [3, 5, 10, 20].forEach(function (n) {
+        var o = document.createElement('option');
+        o.value = String(n);
+        o.textContent = String(n);
+        if (n === piles.n) o.selected = true;
+        sp.appendChild(o);
+      });
+      sp.addEventListener('change', function () { piles.n = parseInt(sp.value, 10) || 5; save(); renderPiles(); });
+      var fin = document.createElement('span');
+      fin.textContent = 'piles (de la plus grosse \u00e0 la plus petite)';
+      var ligne = document.createElement('div');
+      ligne.className = 'mhx-piles-ligne';
+      [bt, lab, sp, fin].forEach(function (e) { ligne.appendChild(e); });
+      pilesList = document.createElement('div');
+      pilesList.className = 'mhx-piles-liste';
+      pilesBox.appendChild(ligne);
+      pilesBox.appendChild(pilesList);
+      // dans le contenu repliable du bloc (le CSS du jeu lie le contenu \u00e0 la case \u00ab input + label + contenu \u00bb : rien entre le titre et le contenu)
+      var contenu = document.querySelector('#toggle_tresors ~ .collapsible-content');
+      if (contenu) contenu.insertBefore(pilesBox, contenu.firstChild);
+      else table.parentNode.insertBefore(pilesBox, table);
       apply();
     };
     build();
