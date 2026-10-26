@@ -1321,19 +1321,37 @@
   var AGGRO_URL = 'https://mh.percolouco.com/notif/aggro.php';
   // Derniere cible visee d'apres les evenements d'une page de monstre (document deja charge ou recupere en arriere-plan).
   // Renvoie null si le tableau d'evenements est absent, {vide:true} s'il ne contient aucun coup du monstre.
-  function aggroLast(doc) {
-    var rows = doc.querySelectorAll('#events tbody tr');
-    if (!doc.getElementById('events')) return null;
+  function aggroLast(doc, raw) {
+    var evts = aggroEvents(doc, raw);
+    if (!evts) return null;
     var last = null;
-    rows.forEach(function (tr) {
+    evts.forEach(function (e) {
       if (last) return; // evenements du plus recent au plus ancien : le premier trouve est le dernier coup
-      var c = tr.cells;
-      if (!c || c.length < 3) return;
-      var d = /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/.exec(c[0].textContent);
-      var m = /^\s*(?:un|une)\s.*?\(\s*(\d+)\s*\)\s+a (?:frapp\u00e9|tent\u00e9 de frapper)\s+(.+?)\s*\(\s*(\d+)\s*\)/i.exec(c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, ' '));
-      if (d && m) last = { date: d[1], monstre: m[1], nom: m[2], cible: m[3] };
+      var m = /^\s*(?:un|une)\s.*?\(\s*(\d+)\s*\)\s+a (?:frapp\u00e9|tent\u00e9 de frapper)\s+(.+?)\s*\(\s*(\d+)\s*\)/i.exec(e.descr.replace(/[\s\u00a0]+/g, ' '));
+      if (m) last = { date: e.date, monstre: m[1], nom: m[2], cible: m[3] };
     });
     return last || { vide: true };
+  }
+  // Evenements d'une page de monstre : lignes du tableau (page affichee), ou, pour une page recuperee en arriere-plan
+  // (pas de JavaScript execute), donnees JSON placees dans le script de la page (loadRows("events", ...)).
+  function aggroEvents(doc, raw) {
+    var out = [];
+    doc.querySelectorAll('#events tbody tr').forEach(function (tr) {
+      var c = tr.cells, d = c && c.length >= 3 ? /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/.exec(c[0].textContent) : null;
+      if (d) out.push({ date: d[1], descr: c[c.length - 1].textContent });
+    });
+    if (out.length) return out;
+    var m = raw ? /\br\s*=\s*("(?:[^"\\]|\\.)*")\s*;\s*loadRows\(\s*"events"/.exec(raw) : null;
+    if (m) {
+      try {
+        JSON.parse(JSON.parse(m[1].replace(/\\\\|\\'/g, function (t) { return t === "\\'" ? "'" : t; }))).forEach(function (e) {
+          var d = /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/.exec(e.date || '');
+          if (d) out.push({ date: d[1], descr: new DOMParser().parseFromString(e.descr || '', 'text/html').body.textContent });
+        });
+        return out;
+      } catch (err) { return null; }
+    }
+    return doc.getElementById('events') && !raw ? out : null; // page affichee sans evenement : vide ; page recuperee sans donnees : inattendue
   }
   function aggroSend(me, monstre, last) {
     var corps = 'troll=' + me + '&monstre=' + monstre;
@@ -1430,8 +1448,9 @@
         .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
         .then(function (buf) {
           if (!buf) return;
-          var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(buf), 'text/html');
-          var last = aggroLast(doc);
+          var raw = new TextDecoder('iso-8859-1').decode(buf);
+          var doc = new DOMParser().parseFromString(raw, 'text/html');
+          var last = aggroLast(doc, raw);
           if (!last) return; // page inattendue (session expiree, erreur...) : rien n'est enregistre
           aggroSend(me, id, last);
           aggro[id] = last.vide ? { cible: 0, nom: '', date: null, age: 0 } : { cible: parseInt(last.cible, 10), nom: last.nom, date: last.date, age: 0 };
