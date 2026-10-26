@@ -89,3 +89,10 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 #mhx-tfiltres .mhx-tinfo { font-size: 12px; margin-left: 4px; }
 tr.mhx-tfiltre-cache { display: none !important; }
 #mhx-tfiltres.mhx-tfiltres-ligne { display: inline-flex; margin: 0 0 0 5px; vertical-align: middle; }
+
+/* Page Ma vue : interrupteur ON / OFF des améliorations du script */
+#mhx-vueswitch { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 0 8px; font: 12px "Trebuchet MS", Arial, sans-serif; color: #333; }
+.mhx-switch { position: relative; width: 44px; height: 24px; padding: 0; border: 1px solid #3a0f0f; border-radius: 12px; background: #8a8a8a; cursor: pointer; transition: background .2s; }
+.mhx-switch > span { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .2s; }
+.mhx-switch.mhx-on { background: #6b1f1f; }
+.mhx-switch.mhx-on > span { left: 22px; }
