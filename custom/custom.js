@@ -1781,25 +1781,26 @@
 
   function addAggroCol() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var aggro = null, queue = null, running = false;
+    var aggro = null, queue = null, running = false, t0 = Date.now();
     var ensure = function () {
       var hr = document.querySelector('#VUE_monstres thead tr');
       if (!hr) return;
-      var hRef = hr.querySelector('.mhx-pvh'); // on attend la colonne PV (ajout\u00e9e par addMonsterPv) pour se placer juste apr\u00e8s
-      if (hRef && !hr.querySelector('.mhx-aggroh')) { // juste apr\u00e8s PV, donc avant « R\u00e9f. » (apr\u00e8s PV, ajout\u00e9 par addMonsterPv)
+      var tard = Date.now() - t0 > 6000; // si la colonne PV n'apparait pas (colonne Niv. du jeu absente...), on se place avant R\u00e9f. sans l'attendre
+      var hRef = hr.querySelector('.mhx-pvh') || (tard ? hr.querySelector('.ref') : null);
+      if (hRef && !hr.querySelector('.mhx-aggroh')) { // juste apr\u00e8s PV (ou avant R\u00e9f.), donc avant « R\u00e9f. » (apr\u00e8s PV, ajout\u00e9 par addMonsterPv)
         var h = document.createElement(hRef.tagName.toLowerCase());
         h.className = 'mhx-aggroh';
         h.textContent = 'Aggro';
         h.style.cssText = 'width: 80px; display: table-cell;';
-        hRef.parentNode.insertBefore(h, hRef.nextSibling);
+        hRef.parentNode.insertBefore(h, hRef.classList.contains('ref') ? hRef : hRef.nextSibling);
       }
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
-        var ref = tr.querySelector('td.mhx-pvcol');
+        var ref = tr.querySelector('td.mhx-pvcol') || (tard ? tr.querySelector('td.ref') : null);
         if (!ref || tr.querySelector('td.mhx-aggrocol')) return;
         var td = document.createElement('td');
         td.className = 'mhx-aggrocol';
         td.style.cssText = 'width: 80px; display: table-cell;';
-        ref.parentNode.insertBefore(td, ref.nextSibling);
+        ref.parentNode.insertBefore(td, ref.classList.contains('ref') ? ref : ref.nextSibling);
       });
     };
     var paint = function () {

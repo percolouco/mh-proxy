@@ -134,3 +134,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.36.0 | 2026-10-26 | Page Ordres : bouton « Dans la vue du suivant (≤ N) » dans le bloc Trésors, limite la liste aux trésors à portée de vue du suivant |
 | 0.37.0 | 2026-10-26 | Trésors : la vue enregistrée n’est plus écrasée. Les trésors sont fusionnés (conservés 24 h) ; un trésor n’est retiré que s’il a disparu dans la zone couverte par la vue envoyée, donc une petite vue ne détruit pas une grande ; envoi seulement quand le tableau est stable ; ancienneté affichée sur la page Ordres |
 | 0.37.1 | 2026-10-26 | Page Ordres : « Dans la vue du suivant » et « Aller chercher » tiennent compte de la portée verticale = moitié de la Vue (6 -> N ±3, 5 -> N ±2) |
+| 0.37.2 | 2026-10-26 | Aggro : la colonne ne dépend plus de la colonne PV (elle-même liée à la colonne Niv. ajoutée par MZ) : si PV n’apparaît pas au bout de 6 s, Aggro se place avant Réf. |
