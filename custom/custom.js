@@ -182,7 +182,7 @@
   }
 
   // Page Ma vue, partie Trésors : boutons Parchemin / Composant / Gigots de Gob, additionnables (un trésor est gardé s'il
-  // correspond à l'un des boutons actifs ; aucun bouton = tout) ; plus deux boutons « Sans gowap » / « Sans troll » qui masquent
+  // correspond à l'un des boutons actifs ; aucun bouton = tout) ; plus un bouton « Personne sur la case » qui masquent
   // les trésors ayant un gowap apprivoisé (ou un troll, hors le troll connecté) à moins de N cases (même niveau N), N réglable de 0 à 3.
   // Affichage seulement, rien n'est envoyé au jeu.
   var TRESOR_FILTRES = [
@@ -192,10 +192,10 @@
   ];
   function addTresorFilters() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var KEY = 'mhx-tresor-filtres', KEY_EX = 'mhx-tresor-exclusion';
-    var actifs = {}, excl = { gowap: false, troll: false, dist: 0 };
+    var KEY = 'mhx-tresor-filtres', KEY_EX = 'mhx-tresor-personne';
+    var actifs = {}, excl = { actif: false, dist: 0 };
     try { actifs = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { actifs = {}; }
-    try { var ex = JSON.parse(localStorage.getItem(KEY_EX) || '{}') || {}; excl = { gowap: !!ex.gowap, troll: !!ex.troll, dist: Math.min(3, Math.max(0, parseInt(ex.dist, 10) || 0)) }; } catch (e) { /* r\u00e9glages par d\u00e9faut */ }
+    try { var ex = JSON.parse(localStorage.getItem(KEY_EX) || '{}') || {}; excl = { actif: !!ex.actif, dist: Math.min(3, Math.max(0, parseInt(ex.dist, 10) || 0)) }; } catch (e) { /* r\u00e9glages par d\u00e9faut */ }
     var bar = null, info = null;
     var rows = function () { return document.querySelectorAll('#VUE_tresors tbody tr.mh_tdpage'); };
     var pos = function (tr) {
@@ -223,7 +223,7 @@
     };
     var apply = function () {
       var on = TRESOR_FILTRES.filter(function (f) { return actifs[f.cle]; });
-      var pz = (excl.gowap || excl.troll) ? positions() : null;
+      var pz = excl.actif ? positions() : null;
       var total = 0, vus = 0;
       rows().forEach(function (tr) {
         var cell = tr.cells[3];
@@ -231,7 +231,7 @@
         var garde = !on.length || on.some(function (f) { return f.re.test(nom); });
         if (garde && pz) {
           var p = pos(tr);
-          if (p && ((excl.gowap && proche(p, pz.gowap)) || (excl.troll && proche(p, pz.troll)))) garde = false;
+          if (p && (proche(p, pz.gowap) || proche(p, pz.troll))) garde = false;
         }
         tr.classList.toggle('mhx-tfiltre-cache', !garde);
         total++;
@@ -239,7 +239,7 @@
       });
       if (bar) {
         bar.querySelectorAll('button[data-cle]').forEach(function (b) { b.classList.toggle('mhx-actif', !!actifs[b.getAttribute('data-cle')]); });
-        bar.querySelectorAll('button[data-excl]').forEach(function (b) { b.classList.toggle('mhx-actif', !!excl[b.getAttribute('data-excl')]); });
+        bar.querySelectorAll('button[data-excl]').forEach(function (b) { b.classList.toggle('mhx-actif', !!excl.actif); });
         if (info) info.textContent = (on.length || pz) ? vus + ' / ' + total : '';
       }
     };
@@ -265,21 +265,19 @@
         });
         bar.appendChild(b);
       });
-      [['gowap', 'Sans gowap'], ['troll', 'Sans troll']].forEach(function (e) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'mh_form_submit mhx-tfiltre';
-        b.setAttribute('data-excl', e[0]);
-        b.title = 'Masque les tr\u00e9sors ayant un ' + (e[0] === 'gowap' ? 'gowap apprivois\u00e9' : 'troll') + ' \u00e0 la distance r\u00e9gl\u00e9e';
-        b.textContent = e[1];
-        b.addEventListener('click', function (ev) {
-          ev.preventDefault();
-          excl[e[0]] = !excl[e[0]];
-          save();
-          apply();
-        });
-        bar.appendChild(b);
+      var bp = document.createElement('button');
+      bp.type = 'button';
+      bp.className = 'mh_form_submit mhx-tfiltre';
+      bp.setAttribute('data-excl', 'personne');
+      bp.title = 'Masque les tr\u00e9sors ayant un gowap apprivois\u00e9 ou un troll \u00e0 la distance r\u00e9gl\u00e9e';
+      bp.textContent = 'Personne sur la case';
+      bp.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        excl.actif = !excl.actif;
+        save();
+        apply();
       });
+      bar.appendChild(bp);
       var sel = document.createElement('select');
       sel.className = 'mhx-tdist';
       sel.title = 'Distance du gowap / troll au tr\u00e9sor (m\u00eame niveau) pour l\'exclusion';
