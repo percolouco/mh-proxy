@@ -91,7 +91,8 @@ tr.mhx-tfiltre-cache { display: none !important; }
 #mhx-tfiltres.mhx-tfiltres-ligne { display: inline-flex; margin: 0 0 0 5px; vertical-align: middle; }
 
 /* Page Ma vue : interrupteur ON / OFF des améliorations du script */
-#mhx-vueswitch, #mhx-vueblocs { list-style: none; display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+#mhx-vueswitch { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; margin-top: 4px; }
+#mhx-vueswitch .mhx-vueopt { display: inline-flex; align-items: center; gap: 8px; }
 .mhx-switch { position: relative; width: 30px; height: 16px; padding: 0; border: 1px solid #3a0f0f; border-radius: 8px; background: #8a8a8a; cursor: pointer; transition: background .2s; }
 .mhx-switch > span { position: absolute; top: 1px; left: 1px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .2s; }
 .mhx-switch.mhx-on { background: #6b1f1f; }
