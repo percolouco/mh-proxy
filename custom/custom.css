@@ -58,3 +58,6 @@ body.mhx-pv-lecture [id^="popupCDM"] { visibility: hidden !important; }
 
 /* Page Ma vue : trolls ajoutés hors de la vue (données du serveur MH) : légèrement estompés, nom en italique */
 tr.mhx-horsvue > td { opacity: 0.7; font-style: italic; }
+
+/* Page Ma vue : gowaps de la liste commune colorés (couleur choisie sur la page Suivants) */
+tr.mhx-gw > td { background: var(--mhx-gw) !important; background-image: none !important; }

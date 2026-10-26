@@ -71,6 +71,25 @@
     });
   }
 
+  // Page Ma vue : les gowaps de la liste commune sont colorés (même couleur que sur la page Suivants), reconnus par leur référence.
+  function colorVueGowaps() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    perksCall('', function (list) {
+      if (!list) return;
+      var paint = function () {
+        document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+          var ref = tr.querySelector('td.ref');
+          var c = ref && list[ref.textContent.trim()];
+          if (!c || !PERK_COLORS[c]) return;
+          tr.classList.add('mhx-gw'); // la couleur s'applique par le CSS, donc aussi aux colonnes ajout\u00e9es apr\u00e8s (PV)
+          tr.style.setProperty('--mhx-gw', PERK_COLORS[c]);
+        });
+      };
+      paint();
+      [1500, 4000, 8000].forEach(function (d) { setTimeout(paint, d); }); // le tableau est retravaillé après le chargement
+    });
+  }
+
   // Encart en bas de la page Suivants : liste commune, couleur modifiable, ajout / retrait d'un gowap
   function addGowapPanel(list) {
     var box = document.getElementById('mhx-gowaps');
@@ -849,7 +868,7 @@
     }
   }
 
-  function init() { addMonsterPv(); addTrollEtat(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); colorVueGowaps(); addTrollEtat(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
