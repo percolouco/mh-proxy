@@ -151,6 +151,34 @@
     [1500, 4000, 8000].forEach(function (d) { setTimeout(load, d); });
   }
 
+  // Page de connexion (TurnStart.php) : « Vos Bonus et Malus en cours » et « Pas encore actifs » -> serveur MH
+  // (table mh_bonus_malus). La liste envoyée remplace la précédente : pas de doublon si on se reconnecte.
+  var NOTIF_BM_URL = 'https://mh.percolouco.com/notif/bonus_malus.php';
+  function sendBonusMalus() {
+    if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body) return;
+    var id = document.body.getAttribute('data-idtroll') || currentTrollId();
+    if (!/^\d+$/.test(id || '')) return;
+    // liste qui suit le titre : h3#BMEncours pour les effets actifs, titre « Pas encore actifs » pour les autres
+    var lire = function (titre) {
+      var out = [];
+      if (!titre) return out;
+      var ul = titre.nextElementSibling;
+      while (ul && ul.tagName !== 'UL' && ul.tagName !== 'H3' && ul.tagName !== 'H2') ul = ul.nextElementSibling;
+      if (!ul || ul.tagName !== 'UL') return out;
+      ul.querySelectorAll('li').forEach(function (li) {
+        var m = /^(.+?) \((.+)\) : (\d+) tours?\s*$/.exec(li.textContent.replace(/[\s\u00a0]+/g, ' ').trim());
+        if (m) out.push({ nom: m[1], effets: m[2], tours: parseInt(m[3], 10) });
+      });
+      return out;
+    };
+    var titreAttente = null;
+    document.querySelectorAll('h2, h3').forEach(function (h) { if (/Pas encore actifs/i.test(h.textContent)) titreAttente = h; });
+    var titreActifs = document.getElementById('BMEncours');
+    if (!titreActifs && !titreAttente && !/Bonus et Malus|Bonus-Malus/i.test(document.body.textContent)) return; // page inattendue : rien envoyé
+    var data = { actifs: lire(titreActifs), attente: lire(titreAttente) };
+    mhdPost(NOTIF_BM_URL, 'troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
+  }
+
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
   // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
   var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
@@ -1045,7 +1073,7 @@
     }
   }
 
-  function init() { addMonsterPv(); colorVueGowaps(); addEffectIcons(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); colorVueGowaps(); addEffectIcons(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
