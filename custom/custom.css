@@ -108,3 +108,15 @@ tr.mhx-tfiltre-cache { display: none !important; }
 .mhx-kikinote { margin-top: 6px; font-size: 11px; font-style: italic; }
 #mhx-kiki { grid-column: 1 / -1; }
 #mhx-tfiltres .mhx-tdist { min-height: 26px; font-size: 12px; max-width: 110px; }
+
+/* Trésors : liste des plus grosses piles (2e ligne sous le titre) */
+#mhx-tpiles { margin: 2px 0 6px; font: 12px "Trebuchet MS", Arial, sans-serif; }
+#mhx-tpiles .mhx-piles-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#mhx-tpiles .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
+#mhx-tpiles .mhx-piles-liste { display: none; margin-top: 4px; }
+#mhx-tpiles.mhx-piles-on .mhx-piles-liste { display: block; }
+.mhx-piles-tete { font-style: italic; margin-bottom: 2px; }
+.mhx-pile { padding: 2px 6px; margin: 1px 0; border: 1px solid #a47e3c; border-radius: 3px; background: rgba(255,255,255,.35); cursor: pointer; }
+.mhx-pile:hover { background: rgba(255,215,0,.35); }
+.mhx-pile.mhx-pile-sel { background: #f3d25c; font-weight: bold; }
+tr.mhx-pile-hl > td { background: #f3d25c !important; }
