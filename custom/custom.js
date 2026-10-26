@@ -1537,7 +1537,7 @@
 
   // Second bloc de la page Ordres : meme presentation que la partie Tresors de Ma vue (table.vue du jeu : colonnes Dist., Actions,
   // Ref., Nom, X, Y, N), avec « Plus grosses piles » et les filtres Parchemin / Composant / Gigots de Gob / Personne sur la case.
-  function addVueTable(parent, before, d) {
+  function addVueTable(parent, before, d, infoTxt, vieux) {
     ['/mountyhall/libs/vue.css?v=1.82', '/mountyhall/libs/footable-bootstrap.css?version=1.13'].forEach(function (href) {
       if (document.querySelector('link[href="' + href + '"]')) return;
       var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
@@ -1548,6 +1548,7 @@
     titre.className = 'mh_tdtitre mhx-to2-titre';
     titre.innerHTML = '<h3>TR\u00c9SORS</h3>';
     box.appendChild(titre);
+    if (infoTxt) { var ligne = document.createElement('div'); ligne.className = 'mhx-to-info' + (vieux ? ' mhx-to-vieux' : ''); ligne.textContent = infoTxt; box.appendChild(ligne); }
     var occ = d.occ || { gowap: [], troll: [] };
     var actifs = {}, excl = { actif: false, dist: 0 }, pilesN = 5, pilesOn = false, sel = null, tri = { cle: 'dist', sens: 1 };
     var pilesBox = document.createElement('div'); pilesBox.id = 'mhx-tpiles';
@@ -1674,65 +1675,9 @@
         var h = Math.floor(d.age / 3600), min = Math.floor(d.age / 60) % 60;
         info.textContent = d.items.length + ' tr\u00e9sors, vue du ' + d.maj + ' (il y a ' + (h ? h + ' h ' : '') + min + ' min)' + (gp ? ' \u2014 distances depuis le suivant (X=' + gp.x + ' Y=' + gp.y + ' N=' + gp.n + ')' : '');
         if (d.age > 86400) { info.className += ' mhx-to-vieux'; info.textContent += ' \u2014 vue ancienne, rouvre \u00ab Ma vue \u00bb'; }
-        var actifs = {}, q = '', pilesN = 0;
-        var bar = document.createElement('div'), tab = document.createElement('div');
-        bar.className = 'mhx-to-bar'; tab.className = 'mhx-to-tab';
-        var search = document.createElement('input');
-        search.type = 'text'; search.placeholder = 'Rechercher un nom\u2026';
-        search.addEventListener('input', function () { q = search.value.trim().toLowerCase(); draw(); });
-        bar.appendChild(search);
-        TRESOR_ORDRES_FILTRES.forEach(function (f, i) {
-          var b = document.createElement('input');
-          b.type = 'button'; b.value = f[0]; b.className = 'mh_form_submit mhx-tfiltre';
-          b.addEventListener('click', function () { actifs[i] = !actifs[i]; b.classList.toggle('mhx-actif', !!actifs[i]); draw(); });
-          bar.appendChild(b);
-        });
-        var sel = document.createElement('select');
-        [['0', 'Piles : toutes'], ['3', 'Plus grosses piles : 3'], ['5', 'Plus grosses piles : 5'], ['10', 'Plus grosses piles : 10'], ['20', 'Plus grosses piles : 20']].forEach(function (o) {
-          var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op);
-        });
-        sel.addEventListener('change', function () { pilesN = parseInt(sel.value, 10); draw(); });
-        bar.appendChild(sel);
-        box.appendChild(bar); box.appendChild(tab);
-        addVueTable(box.parentNode, box.nextSibling, d);
-        var draw = function () {
-          var any = Object.keys(actifs).some(function (k) { return actifs[k]; });
-          var items = d.items.filter(function (t) {
-            if (q && t.nom.toLowerCase().indexOf(q) < 0) return false;
-            if (!any) return true;
-            return TRESOR_ORDRES_FILTRES.some(function (f, i) { return actifs[i] && f[1].test(t.nom); });
-          });
-          var piles = {};
-          items.forEach(function (t) { var k = t.x + ';' + t.y + ';' + t.n; (piles[k] = piles[k] || []).push(t); });
-          var groupes = Object.keys(piles).map(function (k) { return piles[k]; });
-          if (pilesN) groupes = groupes.sort(function (a, b) { return b.length - a.length; }).slice(0, pilesN);
-          else groupes = groupes.sort(function (a, b) { return a[0].dist - b[0].dist; });
-          tab.textContent = '';
-          var t = document.createElement('table');
-          t.className = 'mh_tdborder';
-          var hd = t.createTHead().insertRow();
-          hd.className = 'mh_tdtitre';
-          ['Dist.', 'Tr\u00e9sors', 'X', 'Y', 'N'].forEach(function (x) { var c = document.createElement('td'); c.textContent = x; hd.appendChild(c); });
-          var tbd = t.createTBody();
-          groupes.slice(0, 300).forEach(function (g) {
-            var noms = {};
-            g.forEach(function (it) { var nm = /centaines? de GG/i.test(it.nom) || /^\d+ .*GG/i.test(it.nom) ? 'GG' : it.nom; noms[nm] = (noms[nm] || 0) + 1; });
-            var compo = Object.keys(noms).sort(function (a, b) { return noms[b] - noms[a]; }).map(function (nm) { return noms[nm] + ' ' + nm; }).join(', ');
-            var tr = tbd.insertRow();
-            tr.className = 'mh_tdpage mhx-to-ligne';
-            tr.title = 'Cliquer : pr\u00e9-remplit une \u00e9tape \u00ab Se d\u00e9placer vers \u00bb (position copi\u00e9e aussi)';
-            [g[0].dist, g.length + ' : ' + compo, g[0].x, g[0].y, g[0].n].forEach(function (v) { tr.insertCell().textContent = v; });
-            tr.addEventListener('click', function () {
-              var pos = 'X=' + g[0].x + ' | Y=' + g[0].y + ' | N=' + g[0].n;
-              try { navigator.clipboard.writeText(pos); } catch (e) { /* presse-papiers indisponible */ }
-              if (allerChercher(g[0], function (t) { info.textContent = t; })) return;
-              info.textContent = (prefillDeplacement(g[0].x, g[0].y, g[0].n) ? '\u00c9tape pr\u00e9-remplie (' : 'Position copi\u00e9e (') + pos + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame';
-            });
-          });
-          if (!groupes.length) { var vide = tbd.insertRow().insertCell(); vide.colSpan = 5; vide.textContent = 'Aucun tr\u00e9sor.'; }
-          tab.appendChild(t);
-        };
-        draw();
+        // seul le bloc « meme affichage que Ma vue » est conserve ; la ligne d'information (date de la vue) passe dedans
+        addVueTable(box.parentNode, box, d, info.textContent, d.age > 86400);
+        box.parentNode.removeChild(box);
       }, function () { box.querySelector('.mhx-to-info').textContent = 'Serveur MH injoignable.'; });
     })();
   }
