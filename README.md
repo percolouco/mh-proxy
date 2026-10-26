@@ -117,3 +117,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.26.1 | 2026-10-26 | Filtres Trésors : « Sans gowap » et « Sans troll » fusionnés en un seul bouton « Personne sur la case » |
 | 0.27.0 | 2026-10-26 | Trésors : 2e ligne « Plus grosses piles » (liste des N plus grosses piles de la plus grosse à la plus petite, N = 3 / 5 / 10 / 20, clic pour repérer la pile dans le tableau) |
 | 0.28.0 | 2026-10-26 | Menu : liens vers les 4 écuyers (Retak, Coucouze, Roxxor, Xouz) sous l'image de pistage, ouverts dans un nouvel onglet |
+| 0.29.0 | 2026-10-26 | Aggro : page du monstre = encart « dernière cible frappée » (envoyée au serveur MH) ; Ma vue = colonne « Aggro » entre PV et Réf. des monstres |

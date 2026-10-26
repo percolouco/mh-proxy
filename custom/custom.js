@@ -1316,6 +1316,80 @@
     })();
   }
 
+  // Aggro : derniere personne frappee par un monstre. Page du monstre : lue dans ses evenements, affichee et envoyee
+  // au serveur MH (table mh_aggro) ; page Ma vue : colonne « Aggro » entre PV et Ref., lue sur le serveur.
+  var AGGRO_URL = 'https://mh.percolouco.com/notif/aggro.php';
+  function addMonsterAggro() {
+    if (!/\/MonsterView\.php$/.test(location.pathname)) return;
+    var last = null;
+    document.querySelectorAll('#events tbody tr').forEach(function (tr) {
+      if (last) return; // evenements du plus recent au plus ancien : le premier trouve est le dernier coup
+      var c = tr.cells;
+      if (!c || c.length < 3) return;
+      var d = /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/.exec(c[0].textContent);
+      var m = /^\s*(?:un|une)\s.*?\(\s*(\d+)\s*\)\s+a frappé\s+(.+?)\s*\(\s*(\d+)\s*\)/i.exec(c[c.length - 1].textContent.replace(/[\s ]+/g, ' '));
+      if (d && m) m = [0, d[1], m[1], m[2], m[3]]; else m = null;
+      if (m) last = { date: m[1], monstre: m[2], nom: m[3], cible: m[4] };
+    });
+    if (!last) return;
+    var box = document.createElement('div');
+    box.className = 'mhx-monstre';
+    box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible frapp\u00e9e :</b> ';
+    box.appendChild(document.createTextNode(last.nom + ' (' + last.cible + ') le ' + last.date));
+    var form = document.querySelector('form[action=""]');
+    if (form && form.parentNode) form.parentNode.insertBefore(box, form);
+    else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+    var me = (document.body && document.body.getAttribute('data-idtroll')) || currentTrollId();
+    if (/^\d+$/.test(me || '')) {
+      mhdPost(AGGRO_URL, 'troll=' + me + '&monstre=' + last.monstre + '&cible=' + last.cible + '&nom=' + encodeURIComponent(last.nom) + '&date=' + encodeURIComponent(last.date), function () {});
+    }
+  }
+
+  function addAggroCol() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var aggro = null;
+    var ensure = function () {
+      var hr = document.querySelector('#VUE_monstres thead tr');
+      if (!hr) return;
+      if (!hr.querySelector('.mhx-aggroh')) {
+        var ref = hr.querySelector('.mhx-pvh') || hr.querySelector('td:nth-child(3), th:nth-child(3)');
+        if (ref && !ref.classList.contains('mhx-aggroh')) {
+          var h = document.createElement(ref.tagName.toLowerCase());
+          h.className = 'mhx-aggroh';
+          h.textContent = 'Aggro';
+          h.style.cssText = 'width: 80px; display: table-cell;';
+          ref.parentNode.insertBefore(h, ref.nextSibling);
+        }
+      }
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        if (tr.cells.length < 6 || tr.querySelector('td.mhx-aggrocol')) return;
+        var after = tr.querySelector('td.mhx-pvcol') || tr.cells[2];
+        var td = document.createElement('td');
+        td.className = 'mhx-aggrocol';
+        td.style.cssText = 'width: 80px; display: table-cell;';
+        after.parentNode.insertBefore(td, after.nextSibling);
+      });
+    };
+    var paint = function () {
+      if (!aggro) return;
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var td = tr.querySelector('td.mhx-aggrocol'), ref = tr.querySelector('td.ref');
+        if (!td || !ref) return;
+        var a = aggro[ref.textContent.trim()];
+        var txt = a ? a.nom : '';
+        if (td.textContent !== txt) td.textContent = txt;
+        td.title = a ? 'Derni\u00e8re cible frapp\u00e9e (' + a.cible + ') le ' + a.date : '';
+      });
+    };
+    var load = function () {
+      fetch(AGGRO_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (l) { if (l) { aggro = l; ensure(); paint(); } }, function () {});
+    };
+    ensure();
+    load();
+    setInterval(function () { ensure(); paint(); }, 2000);
+    setInterval(load, 120000);
+  }
+
   // Page Ma vue : deux colonnes pour les trolls, PA (après Actions) et PV (avant Réf.), lues dans le récap tactique du
   // serveur MH (mêmes valeurs, mêmes couleurs). Cellule vide quand le serveur ne connaît pas le troll.
   var ETAT_URL = 'https://mh.percolouco.com/notif/trolls_etat.php';
@@ -1478,7 +1552,7 @@
     }
   }
 
-  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
