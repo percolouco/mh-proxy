@@ -1350,6 +1350,40 @@
     })();
   }
 
+  // Page Ordres : position du suivant (« Depart X = .., Y = .., N = .. » dans la carte du trajet) et pre-remplissage d'une etape
+  // « Se deplacer vers » avec la position d'un tresor. Rien n'est envoye : l'ordre reste a valider par le joueur.
+  function gowapPos() {
+    var dep = document.getElementById('etape_depart');
+    var m = dep ? /X\s*=\s*(-?\d+)\D+Y\s*=\s*(-?\d+)\D+N\s*=\s*(-?\d+)/.exec(dep.textContent) : null;
+    return m ? { x: parseInt(m[1], 10), y: parseInt(m[2], 10), n: parseInt(m[3], 10) } : null;
+  }
+  function prefillDeplacement(x, y, n) {
+    var ordre = document.querySelector('select[name="gus_ordre"]');
+    if (ordre) { ordre.value = '1'; ordre.dispatchEvent(new Event('change', { bubbles: true })); }
+    if (!('a_modifier' in window)) window.a_modifier = ''; // le script du trajet l'affecte sans la declarer (mode strict) : sans cela ses ecouteurs plantent
+    var vide = null;
+    document.querySelectorAll('#liste_etapes input[id^="etape_"][id$="_x"]').forEach(function (ix) {
+      var base = ix.id.slice(0, -2), iy = document.getElementById(base + '_y'), inn = document.getElementById(base + '_n');
+      if (!vide && !ix.value && iy && inn && !iy.value && !inn.value) vide = [ix, iy, inn];
+    });
+    if (!vide) {
+      var aj = document.getElementById('aj_etape');
+      if (aj) aj.click(); // bouton du jeu : ajoute une ligne d'etape, aucune requete
+      var xs = document.querySelectorAll('#liste_etapes input[id^="etape_"][id$="_x"]'), last = xs[xs.length - 1];
+      if (last) { var b2 = last.id.slice(0, -2); vide = [last, document.getElementById(b2 + '_y'), document.getElementById(b2 + '_n')]; }
+    }
+    if (!vide || !vide[1] || !vide[2]) return false;
+    [x, y, n].forEach(function (v, i) {
+      vide[i].value = String(v);
+      ['input', 'keyup', 'change', 'blur'].forEach(function (ev) { vide[i].dispatchEvent(new Event(ev, { bubbles: true })); });
+    });
+    var carte = document.getElementById('carte_trajet');
+    if (carte && carte.scrollIntoView) carte.scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+  // distance au suivant (meme calcul que la colonne Dist. de Ma vue : plus grand ecart sur X, Y ou N)
+  function distGowap(it, g) { return Math.max(Math.abs(it.x - g.x), Math.abs(it.y - g.y), Math.abs(it.n - g.n)); }
+
   // Second bloc de la page Ordres : meme presentation que la partie Tresors de Ma vue (table.vue du jeu : colonnes Dist., Actions,
   // Ref., Nom, X, Y, N), avec « Plus grosses piles » et les filtres Parchemin / Composant / Gigots de Gob / Personne sur la case.
   function addVueTable(parent, before, d) {
@@ -1404,6 +1438,9 @@
       }).forEach(function (it) {
         var tr = tb.insertRow();
         tr.className = 'mh_tdpage' + (sel && sel === it.x + ';' + it.y + ';' + it.n ? ' mhx-pile-hl' : '');
+        tr.style.cursor = 'pointer';
+        tr.title = 'Cliquer : pr\u00e9-remplit une \u00e9tape \u00ab Se d\u00e9placer vers \u00bb avec la position de ce tr\u00e9sor';
+        tr.addEventListener('click', function () { if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
         cols.forEach(function (c) {
           var td = tr.insertCell();
           if (c[0]) td.className = c[0];
@@ -1481,8 +1518,10 @@
       fetch(TRESORS_URL + '?troll=' + me, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
         var info = box.querySelector('.mhx-to-info');
         if (!d || !d.maj) { info.textContent = 'Aucune vue enregistr\u00e9e : ouvre \u00ab Ma vue \u00bb une fois pour alimenter cette liste.'; return; }
+        var gp = gowapPos();
+        if (gp) d.items.forEach(function (it) { it.dist = distGowap(it, gp); }); // Dist. = distance au suivant
         var h = Math.floor(d.age / 3600), min = Math.floor(d.age / 60) % 60;
-        info.textContent = d.items.length + ' tr\u00e9sors, vue du ' + d.maj + ' (il y a ' + (h ? h + ' h ' : '') + min + ' min)';
+        info.textContent = d.items.length + ' tr\u00e9sors, vue du ' + d.maj + ' (il y a ' + (h ? h + ' h ' : '') + min + ' min)' + (gp ? ' \u2014 distances depuis le suivant (X=' + gp.x + ' Y=' + gp.y + ' N=' + gp.n + ')' : '');
         if (d.age > 86400) { info.className += ' mhx-to-vieux'; info.textContent += ' \u2014 vue ancienne, rouvre \u00ab Ma vue \u00bb'; }
         var actifs = {}, q = '', pilesN = 0;
         var bar = document.createElement('div'), tab = document.createElement('div');
@@ -1530,12 +1569,12 @@
             var compo = Object.keys(noms).sort(function (a, b) { return noms[b] - noms[a]; }).map(function (nm) { return noms[nm] + ' ' + nm; }).join(', ');
             var tr = tbd.insertRow();
             tr.className = 'mh_tdpage mhx-to-ligne';
-            tr.title = 'Cliquer pour copier X | Y | N';
+            tr.title = 'Cliquer : pr\u00e9-remplit une \u00e9tape \u00ab Se d\u00e9placer vers \u00bb (position copi\u00e9e aussi)';
             [g[0].dist, g.length + ' : ' + compo, g[0].x, g[0].y, g[0].n].forEach(function (v) { tr.insertCell().textContent = v; });
             tr.addEventListener('click', function () {
               var pos = 'X=' + g[0].x + ' | Y=' + g[0].y + ' | N=' + g[0].n;
               try { navigator.clipboard.writeText(pos); } catch (e) { /* presse-papiers indisponible */ }
-              info.textContent = 'Position copi\u00e9e : ' + pos;
+              info.textContent = (prefillDeplacement(g[0].x, g[0].y, g[0].n) ? '\u00c9tape pr\u00e9-remplie (' : 'Position copi\u00e9e (') + pos + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame';
             });
           });
           if (!groupes.length) { var vide = tbd.insertRow().insertCell(); vide.colSpan = 5; vide.textContent = 'Aucun tr\u00e9sor.'; }
