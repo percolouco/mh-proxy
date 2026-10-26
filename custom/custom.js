@@ -1447,7 +1447,7 @@
     var id = gowapId(), vue = id ? gowapVueGet(id) : null;
     var ordre = document.querySelector('select[name="gus_ordre"]'), btn = document.querySelector('button[name="gus_add"]');
     if (!vue || !ordre || !btn || !ordre.querySelector('option[value="8"]') || it.dist > vue.v + vue.b) return false;
-    try { localStorage.setItem(AC_KEY, JSON.stringify({ ref: String(it.ref), gowap: id, t: Date.now() })); } catch (e) { return false; }
+    try { localStorage.setItem(AC_KEY, JSON.stringify({ ref: String(it.ref), gowap: id, t: Date.now(), ret: location.href })); } catch (e) { return false; }
     ordre.value = '8';
     btn.click();
     return true;
@@ -1473,7 +1473,20 @@
     document.querySelectorAll('button, input[type="submit"]').forEach(function (b) { if (!action && /^\s*Action\s*$/i.test(b.textContent || b.value || '')) action = b; });
     if (!action) { note('Bouton \u00ab Action \u00bb introuvable : tr\u00e9sor s\u00e9lectionn\u00e9, \u00e0 valider \u00e0 la main.', true); return; }
     note('Tr\u00e9sor ' + req.ref + ' s\u00e9lectionn\u00e9, envoi\u2026', false);
-    action.click();
+    // Le bouton du jeu enverrait le resultat dans le cadre Contenu et ferait disparaitre la page Ordres : on poste le meme formulaire
+    // en arriere-plan, puis on recharge la page Ordres pour qu'elle affiche le nouvel ordre (et nos blocs Tresors).
+    var form = action.form || document.getElementById('ActionForm');
+    var retour = function (ok) {
+      var cible = null;
+      try { cible = window.opener && !window.opener.closed ? window.opener : null; } catch (e) { cible = null; }
+      try { if (!cible && window.parent !== window && window.parent.frames['Contenu']) cible = window.parent.frames['Contenu']; } catch (e) { cible = null; }
+      if (cible && req.ret) { try { cible.location.href = req.ret; } catch (e) { cible = null; } }
+      note(ok ? 'Ordre \u00ab Aller chercher \u00bb enregistr\u00e9 pour le tr\u00e9sor ' + req.ref + '.' : '\u00c9chec de l\u2019envoi : rien n\u2019est enregistr\u00e9 (v\u00e9rifie les ordres).', !ok);
+      if (ok && cible && window.opener) setTimeout(function () { window.close(); }, 1200);
+    };
+    if (!form) { action.click(); return; }
+    fetch(form.action, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: new URLSearchParams(new FormData(form)).toString(), referrerPolicy: 'no-referrer' })
+      .then(function (r) { retour(r.ok); }, function () { retour(false); });
   }
 
   // Second bloc de la page Ordres : meme presentation que la partie Tresors de Ma vue (table.vue du jeu : colonnes Dist., Actions,
