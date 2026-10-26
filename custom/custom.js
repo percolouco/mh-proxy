@@ -32,6 +32,60 @@
     fav.insertBefore(img, fav.firstChild);
   }
 
+  // Page Ma vue : clic sur la colonne PV d'un troll -> popup « envoyer une demande de sacro » -> confirmer -> message dans le groupe WhatsApp.
+  // Rien n'est envoyé au jeu ; le message part seulement après le clic sur « Confirmer ».
+  var NOTIF_SACRO_URL = 'https://mh.percolouco.com/notif/sacro_whatsapp.php';
+  function addSacroClick() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    document.addEventListener('click', function (e) {
+      var td = e.target.closest && e.target.closest('td.mhx-pvcol2');
+      if (!td || !td.firstChild || document.getElementById('mhx-sacro-pop')) return;
+      var tr = td.parentNode, ref = tr.querySelector('td.ref');
+      var m = /(\d+)\s*\/\s*(\d+)/.exec(td.textContent);
+      if (!ref || !m) return;
+      var cible = ref.textContent.trim();
+      var nomCell = ref.nextElementSibling;
+      var nom = nomCell ? nomCell.textContent.replace(/\s+/g, ' ').trim() : '';
+      var ov = document.createElement('div');
+      ov.id = 'mhx-sacro-pop';
+      ov.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.5);';
+      var box = document.createElement('div');
+      box.style.cssText = 'background: #fff; border: 2px solid #6b1f1f; border-radius: 6px; padding: 16px 20px; max-width: 340px; font: 14px Arial, sans-serif; color: #222; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.5);';
+      var t = document.createElement('div');
+      t.style.cssText = 'font-weight: bold; margin-bottom: 6px;';
+      t.textContent = 'Envoyer une demande de sacro ?';
+      var d = document.createElement('div');
+      d.style.cssText = 'margin-bottom: 12px;';
+      d.textContent = (nom || 'Troll') + ' (' + cible + ') \u2014 ' + m[1] + '/' + m[2] + ' PV';
+      var st = document.createElement('div');
+      st.style.cssText = 'min-height: 18px; margin-bottom: 8px; font-size: 12px;';
+      var mk = function (label, bg) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = label;
+        b.style.cssText = 'margin: 0 6px; padding: 6px 16px; border: 0; border-radius: 4px; color: #fff; font: bold 13px Arial, sans-serif; cursor: pointer; background: ' + bg + ';';
+        return b;
+      };
+      var ok = mk('Confirmer', '#6b1f1f'), no = mk('Annuler', '#777');
+      var close = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
+      no.addEventListener('click', close);
+      ov.addEventListener('click', function (ev) { if (ev.target === ov) close(); });
+      ok.addEventListener('click', function () {
+        var troll = currentTrollId();
+        if (!troll) { st.textContent = 'Troll connect\u00e9 introuvable.'; return; }
+        ok.disabled = true;
+        st.textContent = 'Envoi...';
+        mhdPost(NOTIF_SACRO_URL, 'troll=' + troll + '&cible=' + encodeURIComponent(cible) + '&pv=' + m[1] + '&pvmax=' + m[2] + '&nom=' + encodeURIComponent(nom), function (done) {
+          st.textContent = done ? 'Demande envoy\u00e9e sur WhatsApp.' : 'Envoi impossible.';
+          if (done) setTimeout(close, 1200); else ok.disabled = false;
+        });
+      });
+      box.appendChild(t); box.appendChild(d); box.appendChild(st); box.appendChild(ok); box.appendChild(no);
+      ov.appendChild(box);
+      document.body.appendChild(ov);
+    });
+  }
+
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
   // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
   var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
@@ -880,7 +934,7 @@
     }
   }
 
-  function init() { addMonsterPv(); colorVueGowaps(); addTrollEtat(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); colorVueGowaps(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
