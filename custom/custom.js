@@ -349,6 +349,77 @@
     }
   }
 
+  // Kiki Meter : chaque essai de sortilège / compétence (page de résultat) est compté sur le serveur MH : essais, réussis / ratés,
+  // effets réduits, dégât max. Un résultat est un essai s'il porte le titre « Sortilège : X » ou « Compétence : X » et le jet d'utilisation
+  // (« jet de N sur N % ») ; réussi s'il contient « Vous avez RÉUSSI à utiliser », sinon raté.
+  var NOTIF_KIKI_URL = 'https://mh.percolouco.com/notif/kiki.php';
+  function sendKiki() {
+    if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
+    var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
+    var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt);
+    if (!tt || !/jet de \d+ sur \d+ ?%/.test(txt)) return;
+    var troll = currentTrollId();
+    if (!troll) return;
+    var degats = 0;
+    (txt.match(/inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/g) || []).forEach(function (x) { degats = Math.max(degats, parseInt(x.replace(/\D/g, ''), 10)); });
+    var cible = /(?:attaqu\u00e9|lanc\u00e9|saisir) (?:une|un|la|le|l\u2019|l')?\s?(.+?) \(\d+\)/.exec(txt);
+    var data = {
+      nom: tt[1], reussi: /Vous avez R\u00c9USSI \u00e0 utiliser/.test(txt), reduit: /EFFET R[E\u00c9]DUIT/.test(txt), degats: degats, cible: cible ? cible[1] : '',
+      sig: (txt.match(/(?:jet de|Jet de R\u00e9sistance :?|Jet d'Attaque est de :?) ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|')
+    };
+    mhdPost(NOTIF_KIKI_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
+  }
+
+  // Page Mon Profil : bloc « Kiki Meter » (tableau des 5 trolls, meilleur en vert, pire en rouge sur chaque ligne).
+  function addKikiMeter() {
+    if (!/\/Play_profil\.php$/.test(location.pathname) || document.getElementById('mhx-kiki')) return;
+    var apres = document.getElementById('carac') || document.querySelector('.collapsible-wrap');
+    if (!apres || !apres.parentNode) return;
+    fetch(NOTIF_KIKI_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.trolls || document.getElementById('mhx-kiki')) return;
+      var T = j.trolls;
+      var pct = function (n, d) { return d > 0 ? n / d * 100 : null; };
+      var lignes = [
+        { nom: 'Essais', val: function (t) { return t.essais || null; }, txt: function (t) { return String(t.essais); }, mode: null },
+        { nom: 'Rat\u00e9s / essai', val: function (t) { return pct(t.rates, t.essais); }, txt: function (t) { return t.essais ? t.rates + ' / ' + t.essais + ' (' + Math.round(pct(t.rates, t.essais)) + ' %)' : '-'; }, mode: 'bas' },
+        { nom: 'R\u00e9duits / essai', val: function (t) { return pct(t.reduits, t.essais); }, txt: function (t) { return t.essais ? t.reduits + ' / ' + t.essais + ' (' + Math.round(pct(t.reduits, t.essais)) + ' %)' : '-'; }, mode: 'bas' },
+        { nom: 'D\u00e9g\u00e2t max', val: function (t) { return t.degat_max || null; }, txt: function (t) { return t.degat_max ? String(t.degat_max) : '-'; }, tip: function (t) { return t.degat_max ? t.degat_max_sort + (t.degat_max_nom ? ' sur ' + t.degat_max_nom : '') : ''; }, mode: 'haut' }
+      ];
+      var wrap = document.createElement('div');
+      wrap.id = 'mhx-kiki';
+      wrap.className = 'mh_tdpage collapsible-wrap';
+      wrap.innerHTML = '<input id="kikimeter" class="toggle" type="checkbox" checked><label for="kikimeter" class="lbl-toggle mh_tdtitre"><h3>Kiki Meter</h3></label>' +
+        '<div class="collapsible-content"><div class="collapsible-content-inner"><table class="mhx-kikitab"><thead></thead><tbody></tbody></table>' +
+        '<div class="mhx-kikinote">Sortil\u00e8ges et comp\u00e9tences compt\u00e9s depuis la mise en place du compteur. Vert : le meilleur, rouge : le moins bon.</div></div></div>';
+      var th = wrap.querySelector('thead'), tb = wrap.querySelector('tbody');
+      var htr = document.createElement('tr');
+      htr.appendChild(document.createElement('th'));
+      T.forEach(function (t) { var h = document.createElement('th'); h.textContent = t.nom; htr.appendChild(h); });
+      th.appendChild(htr);
+      lignes.forEach(function (l) {
+        var tr = document.createElement('tr');
+        var c0 = document.createElement('th');
+        c0.textContent = l.nom;
+        tr.appendChild(c0);
+        var vals = T.map(l.val).filter(function (v) { return v !== null; });
+        var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+        T.forEach(function (t) {
+          var td = document.createElement('td');
+          td.textContent = l.txt(t);
+          if (l.tip) { var tip = l.tip(t); if (tip) td.title = tip; }
+          var v = l.val(t);
+          if (l.mode && v !== null && vals.length >= 2 && mn !== mx) {
+            var meilleur = l.mode === 'haut' ? mx : mn, pire = l.mode === 'haut' ? mn : mx;
+            if (v === meilleur) td.className = 'mhx-kiki-vert'; else if (v === pire) td.className = 'mhx-kiki-rouge';
+          }
+          tr.appendChild(td);
+        });
+        tb.appendChild(tr);
+      });
+      apres.parentNode.appendChild(wrap); // tout en bas de la grille du profil, sur toute la largeur
+    }, function () {});
+  }
+
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
   // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
   var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
@@ -1243,7 +1314,7 @@
     }
   }
 
-  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
