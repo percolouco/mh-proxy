@@ -146,3 +146,5 @@ tr.mhx-pile-hl > td { background: #f3d25c !important; }
 #mhx-tresors-ordres2 .mhx-to2-titre { padding: 2px 6px; margin-bottom: 4px; }
 #mhx-tresors-ordres2 .mhx-to2-titre h3 { margin: 0; font-size: 1.1em; }
 #mhx-tresors-ordres2 .horizontal-scroll { max-height: 420px; overflow-y: auto; }
+
+.mhx-gvue { font-weight: normal; font-size: .85em; cursor: help; }
