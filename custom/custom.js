@@ -1446,6 +1446,10 @@
     return true;
   }
   // distance au suivant (meme calcul que la colonne Dist. de Ma vue : plus grand ecart sur X, Y ou N)
+  // portee de vue d'un suivant : horizontalement (X, Y) la valeur de sa Vue, verticalement (N) la moitie arrondie a l'inferieur (6 -> 3, 5 -> 2)
+  function dansVueSuivant(it, g, portee) {
+    return Math.max(Math.abs(it.x - g.x), Math.abs(it.y - g.y)) <= portee && Math.abs(it.n - g.n) <= Math.floor(portee / 2);
+  }
   function distGowap(it, g) { return Math.max(Math.abs(it.x - g.x), Math.abs(it.y - g.y), Math.abs(it.n - g.n)); }
 
   // « Aller chercher » : sur la page Ordres, un clic sur un tresor situe dans la portee de vue du suivant (Dist. <= Vue) choisit l'ordre
@@ -1456,7 +1460,7 @@
   function allerChercher(it, say) {
     var id = gowapId(), vue = id ? gowapVueGet(id) : null;
     var ordre = document.querySelector('select[name="gus_ordre"]');
-    if (!vue || !ordre || !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]') || it.dist > vue.v + vue.b) return false;
+    if (!vue || !ordre || !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]') || (gowapPos() ? !dansVueSuivant(it, gowapPos(), vue.v + vue.b) : it.dist > vue.v + vue.b)) return false;
     if (acBusy) { say('Un envoi est d\u00e9j\u00e0 en cours, patiente quelques secondes.'); return true; }
     acBusy = true;
     sequenceAllerChercher(it, id, say).then(function (txt) { say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
@@ -1585,12 +1589,12 @@
     var majPortee = function () { // la portee peut n'etre memorisee qu'apres l'ouverture de la page (lecture du Profil en arriere-plan)
       var gv = gowapVueGet(gowapId());
       portee = gv ? gv.v + gv.b : null;
-      if (bv) bv.textContent = portee === null ? 'Dans la vue du suivant (vue inconnue)' : 'Dans la vue du suivant (\u2264 ' + portee + ')';
+      if (bv) bv.textContent = portee === null ? 'Dans la vue du suivant (vue inconnue)' : 'Dans la vue du suivant (\u2264 ' + portee + ', N \u00b1 ' + Math.floor(portee / 2) + ')';
     };
     var visibles = function () {
       var on = TRESOR_ORDRES_FILTRES.filter(function (f, i) { return actifs[i]; });
       return d.items.filter(function (it) {
-        if (limiteVue && portee !== null && it.dist > portee) return false;
+        if (limiteVue && portee !== null) { var gp2 = gowapPos(); if (gp2 ? !dansVueSuivant(it, gp2, portee) : it.dist > portee) return false; }
         if (on.length && !on.some(function (f) { return f[1].test(it.nom); })) return false;
         if (excl.actif && (proche(it, occ.gowap || []) || proche(it, occ.troll || []))) return false;
         return true;
@@ -1663,7 +1667,7 @@
     ['m\u00eame case', '\u2264 1 case', '\u2264 2 cases', '\u2264 3 cases'].forEach(function (t, i) { var o = document.createElement('option'); o.value = i; o.textContent = t; sd.appendChild(o); });
     sd.addEventListener('change', function () { excl.dist = parseInt(sd.value, 10) || 0; draw(); });
     bv = document.createElement('button'); bv.type = 'button'; bv.className = 'mh_form_submit mhx-tfiltre';
-    bv.title = 'Masque les tr\u00e9sors situ\u00e9s au-del\u00e0 de la port\u00e9e de vue du suivant';
+    bv.title = 'Masque les tr\u00e9sors hors de la vue du suivant : X et Y jusqu\u2019\u00e0 sa Vue, N jusqu\u2019\u00e0 la moiti\u00e9 de sa Vue (6 -> 3, 5 -> 2)';
     bv.addEventListener('click', function () { majPortee(); limiteVue = !limiteVue; bv.classList.toggle('mhx-actif', limiteVue); draw(); });
     bar.insertBefore(bv, bar.firstChild);
     majPortee();
