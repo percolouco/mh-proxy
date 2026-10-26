@@ -1327,14 +1327,14 @@
       var c = tr.cells;
       if (!c || c.length < 3) return;
       var d = /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/.exec(c[0].textContent);
-      var m = /^\s*(?:un|une)\s.*?\(\s*(\d+)\s*\)\s+a frappé\s+(.+?)\s*\(\s*(\d+)\s*\)/i.exec(c[c.length - 1].textContent.replace(/[\s ]+/g, ' '));
+      var m = /^\s*(?:un|une)\s.*?\(\s*(\d+)\s*\)\s+a (?:frapp\u00e9|tent\u00e9 de frapper)\s+(.+?)\s*\(\s*(\d+)\s*\)/i.exec(c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, ' '));
       if (d && m) m = [0, d[1], m[1], m[2], m[3]]; else m = null;
       if (m) last = { date: m[1], monstre: m[2], nom: m[3], cible: m[4] };
     });
     if (!last) return;
     var box = document.createElement('div');
     box.className = 'mhx-monstre';
-    box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible frapp\u00e9e :</b> ';
+    box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible vis\u00e9e :</b> ';
     box.appendChild(document.createTextNode(last.nom + ' (' + last.cible + ') le ' + last.date));
     var form = document.querySelector('form[action=""]');
     if (form && form.parentNode) form.parentNode.insertBefore(box, form);
