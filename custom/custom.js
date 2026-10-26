@@ -244,7 +244,10 @@
       info = document.createElement('span');
       info.className = 'mhx-tinfo';
       bar.appendChild(info);
-      table.parentNode.insertBefore(bar, table);
+      // m\u00eame ligne que les boutons Filtre / Copier du titre Tr\u00e9sors ; sinon juste au-dessus du tableau
+      var titre = document.querySelector('label[for="toggle_tresors"] > div');
+      if (titre) { bar.classList.add('mhx-tfiltres-ligne'); titre.appendChild(bar); }
+      else table.parentNode.insertBefore(bar, table);
       apply();
     };
     build();
