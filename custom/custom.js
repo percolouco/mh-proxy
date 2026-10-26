@@ -29,7 +29,7 @@
     img.id = 'mhx-pistage';
     img.src = '/_mhx/img/pistage.png';
     img.alt = 'Pistage : points cardinaux';
-    fav.insertBefore(img, fav.firstChild);
+    fav.appendChild(img);
   }
 
   // Page Ma vue : clic sur la colonne PV d'un troll -> popup « envoyer une demande de sacro » -> confirmer -> message dans le groupe WhatsApp.
