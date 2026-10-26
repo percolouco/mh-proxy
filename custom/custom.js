@@ -1439,6 +1439,43 @@
   // distance au suivant (meme calcul que la colonne Dist. de Ma vue : plus grand ecart sur X, Y ou N)
   function distGowap(it, g) { return Math.max(Math.abs(it.x - g.x), Math.abs(it.y - g.y), Math.abs(it.n - g.n)); }
 
+  // « Aller chercher » : sur la page Ordres, un clic sur un tresor situe dans la portee de vue du suivant (Dist. <= Vue) choisit l'ordre
+  // « Aller chercher ... » et ouvre l'ecran de choix (fenetre « Action » du jeu) ; la-bas, le tresor est selectionne dans la liste et le
+  // bouton « Action » est clique (sans PA, a la demande de Perco). La demande est transmise par localStorage et expire apres 2 minutes.
+  var AC_KEY = 'mhx-aller-chercher';
+  function allerChercher(it) {
+    var id = gowapId(), vue = id ? gowapVueGet(id) : null;
+    var ordre = document.querySelector('select[name="gus_ordre"]'), btn = document.querySelector('button[name="gus_add"]');
+    if (!vue || !ordre || !btn || !ordre.querySelector('option[value="8"]') || it.dist > vue.v + vue.b) return false;
+    try { localStorage.setItem(AC_KEY, JSON.stringify({ ref: String(it.ref), gowap: id, t: Date.now() })); } catch (e) { return false; }
+    ordre.value = '8';
+    btn.click();
+    return true;
+  }
+  function addAllerChercherPopup() {
+    if (!/\/Play_a_Action\.php$/.test(location.pathname)) return;
+    var sel = document.querySelector('select[name="id_tresor"]');
+    if (!sel) return;
+    var req = null;
+    try { req = JSON.parse(localStorage.getItem(AC_KEY) || 'null'); localStorage.removeItem(AC_KEY); } catch (e) { req = null; }
+    var note = function (txt, err) {
+      var d = document.createElement('div');
+      d.className = 'mhx-monstre';
+      d.style.color = err ? '#b00020' : '#2e7d32';
+      d.textContent = txt;
+      sel.parentNode.insertBefore(d, sel);
+    };
+    if (!req || Date.now() - req.t > 120000 || req.gowap !== gowapId()) return; // pas de demande en attente : on ne touche a rien
+    var opt = sel.querySelector('option[value="' + req.ref + '"]');
+    if (!opt) { note('Le tr\u00e9sor ' + req.ref + ' n\u2019est pas dans la liste de ce suivant : rien n\u2019est envoy\u00e9.', true); return; }
+    sel.value = req.ref;
+    var action = null;
+    document.querySelectorAll('button, input[type="submit"]').forEach(function (b) { if (!action && /^\s*Action\s*$/i.test(b.textContent || b.value || '')) action = b; });
+    if (!action) { note('Bouton \u00ab Action \u00bb introuvable : tr\u00e9sor s\u00e9lectionn\u00e9, \u00e0 valider \u00e0 la main.', true); return; }
+    note('Tr\u00e9sor ' + req.ref + ' s\u00e9lectionn\u00e9, envoi\u2026', false);
+    action.click();
+  }
+
   // Second bloc de la page Ordres : meme presentation que la partie Tresors de Ma vue (table.vue du jeu : colonnes Dist., Actions,
   // Ref., Nom, X, Y, N), avec « Plus grosses piles » et les filtres Parchemin / Composant / Gigots de Gob / Personne sur la case.
   function addVueTable(parent, before, d) {
@@ -1494,8 +1531,8 @@
         var tr = tb.insertRow();
         tr.className = 'mh_tdpage' + (sel && sel === it.x + ';' + it.y + ';' + it.n ? ' mhx-pile-hl' : '');
         tr.style.cursor = 'pointer';
-        tr.title = 'Cliquer : pr\u00e9-remplit une \u00e9tape \u00ab Se d\u00e9placer vers \u00bb avec la position de ce tr\u00e9sor';
-        tr.addEventListener('click', function () { if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
+        tr.title = 'Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00e9tape \u00ab Se d\u00e9placer vers \u00bb pr\u00e9-remplie';
+        tr.addEventListener('click', function () { if (allerChercher(it)) { info.textContent = 'Ordre \u00ab Aller chercher \u00bb envoy\u00e9 pour ' + it.nom + ' (' + it.ref + ')'; return; } if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
         cols.forEach(function (c) {
           var td = tr.insertCell();
           if (c[0]) td.className = c[0];
@@ -1629,6 +1666,7 @@
             tr.addEventListener('click', function () {
               var pos = 'X=' + g[0].x + ' | Y=' + g[0].y + ' | N=' + g[0].n;
               try { navigator.clipboard.writeText(pos); } catch (e) { /* presse-papiers indisponible */ }
+              if (allerChercher(g[0])) { info.textContent = 'Ordre \u00ab Aller chercher \u00bb envoy\u00e9 pour ' + g[0].nom + ' (' + g[0].ref + ')'; return; }
               info.textContent = (prefillDeplacement(g[0].x, g[0].y, g[0].n) ? '\u00c9tape pr\u00e9-remplie (' : 'Position copi\u00e9e (') + pos + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame';
             });
           });
@@ -1951,7 +1989,7 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
