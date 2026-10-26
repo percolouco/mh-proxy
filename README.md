@@ -110,3 +110,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.22.2 | 2026-10-26 | Filtres Trésors : bouton « Tout » retiré |
 | 0.23.0 | 2026-10-26 | Ma vue : interrupteur ON / OFF de toutes les améliorations du script, mémorisé par troll (navigateur) |
 | 0.23.1 | 2026-10-26 | Interrupteur de Ma vue : réglage stocké par troll sur le serveur MH (`notif/prefs_vue.php`), bouton déplacé dans l'encart d'informations sous le titre |
+| 0.24.0 | 2026-10-26 | Ma vue : interrupteurs plus fins (16 px) ; option « Blocs ouverts à l'ouverture » (Monstres, Trôlls, Trésors... ouverts ou fermés), mémorisée par troll sur le serveur |

@@ -243,62 +243,105 @@
     [800, 2000, 5000, 9000].forEach(function (d) { setTimeout(function () { build(); apply(); }, d); }); // le tableau est retravaillé après le chargement
   }
 
-  // Page Ma vue : interrupteur ON / OFF des améliorations du script (PV, PA, DLA, couleurs, pictos, filtres, sacro).
-  // Réglage mémorisé par troll sur le serveur MH (notif/prefs_vue.php), avec une copie dans le navigateur pour décider
-  // tout de suite au chargement ; si le serveur dit autre chose, la copie est corrigée et la page rechargée une fois. Par défaut : ON.
+  // Page Ma vue : réglages par troll, enregistrés sur le serveur MH (notif/prefs_vue.php) avec une copie dans le navigateur
+  // pour décider tout de suite au chargement ; si le serveur dit autre chose, la copie est corrigée et la page rechargée une fois.
+  //  - interrupteur ON / OFF de toutes les améliorations du script (PV, PA, DLA, couleurs, pictos, filtres, sacro) ; défaut ON ;
+  //  - blocs Monstres / Trôlls / Trésors... ouverts ou fermés à l'ouverture de la page ; défaut ouverts (comportement du jeu).
   var PREFS_VUE_URL = 'https://mh.percolouco.com/notif/prefs_vue.php';
+  var VUE_RE = /\/Play_vue2\.php$/;
   function vueTrollId() {
     var id = document.body && document.body.getAttribute('data-idtroll');
     return /^\d+$/.test(id || '') ? id : null;
   }
-  function vueSwitchKey() { return 'mhx-vue-on-' + (vueTrollId() || 'inconnu'); }
-  function vueEnabled() {
-    if (!/\/Play_vue2\.php$/.test(location.pathname)) return true;
-    try { return localStorage.getItem(vueSwitchKey()) !== '0'; } catch (e) { return true; }
+  function vueLocal(nom) {
+    try { return localStorage.getItem('mhx-vue-' + nom + '-' + (vueTrollId() || 'inconnu')); } catch (e) { return null; }
+  }
+  function vueSetLocal(nom, val) {
+    try { localStorage.setItem('mhx-vue-' + nom + '-' + (vueTrollId() || 'inconnu'), val); } catch (e) { /* stockage indisponible */ }
+  }
+  function vueEnabled() { return !VUE_RE.test(location.pathname) || vueLocal('on') !== '0'; }
+  function vueBlocsOuverts() { return vueLocal('blocs') !== '0'; }
+  function vueSave(corps, done) {
+    var id = vueTrollId();
+    if (!id) { done(); return; }
+    fetch(PREFS_VUE_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'troll=' + id + '&' + corps })
+      .then(done, done);
   }
   function syncVuePref() {
     var id = vueTrollId();
-    if (!/\/Play_vue2\.php$/.test(location.pathname) || !id) return;
+    if (!VUE_RE.test(location.pathname) || !id) return;
     fetch(PREFS_VUE_URL + '?troll=' + id, { referrerPolicy: 'no-referrer' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        if (!j || typeof j.vue_on !== 'boolean' || j.vue_on === vueEnabled()) return;
-        try { localStorage.setItem(vueSwitchKey(), j.vue_on ? '1' : '0'); } catch (e) { return; }
-        location.reload();
+        if (!j) return;
+        var change = false;
+        if (typeof j.vue_on === 'boolean' && j.vue_on !== vueEnabled()) { vueSetLocal('on', j.vue_on ? '1' : '0'); change = true; }
+        if (typeof j.blocs === 'boolean' && j.blocs !== vueBlocsOuverts()) { vueSetLocal('blocs', j.blocs ? '1' : '0'); change = true; }
+        if (change) location.reload();
       }, function () {});
   }
-  function addVueSwitch() {
-    if (!/\/Play_vue2\.php$/.test(location.pathname) || document.getElementById('mhx-vueswitch')) return;
-    var on = vueEnabled();
-    var li = document.createElement('li');
-    li.id = 'mhx-vueswitch';
-    var lab = document.createElement('span');
-    lab.className = 'mhx-switch-label';
-    lab.textContent = 'Am\u00e9liorations du script : ' + (on ? 'ON' : 'OFF');
+  // blocs repliables du jeu : une case à cocher input.toggle#toggle_xxx par bloc (cochée = ouvert)
+  function setBlocs(ouverts) {
+    document.querySelectorAll('.collapsible-wrap > input.toggle[id^="toggle_"]').forEach(function (c) { c.checked = ouverts; });
+  }
+  function applyBlocs() {
+    if (!VUE_RE.test(location.pathname) || vueBlocsOuverts()) return; // ouverts : on laisse la page telle que le jeu l'affiche
+    var touche = false;
+    document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.collapsible-wrap > label, .collapsible-wrap > input.toggle')) touche = true; }, true);
+    setBlocs(false);
+    setTimeout(function () { if (!touche) setBlocs(false); }, 1500); // la page est retravaillée après le chargement
+  }
+  function mkSwitch(on, titreOn, titreOff, clic) {
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'mhx-switch' + (on ? ' mhx-on' : '');
     b.setAttribute('role', 'switch');
     b.setAttribute('aria-checked', on ? 'true' : 'false');
-    b.title = on ? 'Am\u00e9liorations activ\u00e9es : cliquer pour les d\u00e9sactiver' : 'Am\u00e9liorations d\u00e9sactiv\u00e9es : cliquer pour les activer';
+    b.title = on ? titreOn : titreOff;
     b.appendChild(document.createElement('span'));
-    b.addEventListener('click', function () {
-      var id = vueTrollId(), val = on ? '0' : '1';
-      try { localStorage.setItem(vueSwitchKey(), val); } catch (e) { /* stockage indisponible */ }
-      var done = function () { location.reload(); };
-      if (!id) { done(); return; }
-      b.disabled = true;
-      fetch(PREFS_VUE_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'troll=' + id + '&vue_on=' + val })
-        .then(done, done);
+    b.addEventListener('click', clic);
+    return b;
+  }
+  function addVueSwitch() {
+    if (!VUE_RE.test(location.pathname) || document.getElementById('mhx-vueswitch')) return;
+    var on = vueEnabled(), blocs = vueBlocsOuverts();
+    var mkLi = function (id, texte, bouton) {
+      var li = document.createElement('li');
+      li.id = id;
+      li.className = 'mhx-vueopt';
+      var lab = document.createElement('span');
+      lab.className = 'mhx-switch-label';
+      lab.textContent = texte;
+      li.appendChild(lab);
+      li.appendChild(bouton);
+      return li;
+    };
+    var sw = mkSwitch(on, 'Am\u00e9liorations activ\u00e9es : cliquer pour les d\u00e9sactiver', 'Am\u00e9liorations d\u00e9sactiv\u00e9es : cliquer pour les activer', function () {
+      var val = on ? '0' : '1';
+      vueSetLocal('on', val);
+      this.disabled = true;
+      vueSave('vue_on=' + val, function () { location.reload(); });
     });
-    li.appendChild(lab);
-    li.appendChild(b);
+    var li1 = mkLi('mhx-vueswitch', 'Am\u00e9liorations du script : ' + (on ? 'ON' : 'OFF'), sw);
+    var lab2 = null;
+    var sw2 = mkSwitch(blocs, 'Blocs ouverts \u00e0 l\'ouverture : cliquer pour les fermer', 'Blocs ferm\u00e9s \u00e0 l\'ouverture : cliquer pour les ouvrir', function () {
+      blocs = !blocs;
+      vueSetLocal('blocs', blocs ? '1' : '0');
+      this.classList.toggle('mhx-on', blocs);
+      this.setAttribute('aria-checked', blocs ? 'true' : 'false');
+      this.title = blocs ? 'Blocs ouverts \u00e0 l\'ouverture : cliquer pour les fermer' : 'Blocs ferm\u00e9s \u00e0 l\'ouverture : cliquer pour les ouvrir';
+      lab2.textContent = 'Blocs ouverts \u00e0 l\'ouverture : ' + (blocs ? 'OUI' : 'NON');
+      setBlocs(blocs); // appliqué tout de suite, sans recharger
+      vueSave('blocs=' + (blocs ? '1' : '0'), function () {});
+    });
+    var li2 = mkLi('mhx-vueblocs', 'Blocs ouverts \u00e0 l\'ouverture : ' + (blocs ? 'OUI' : 'NON'), sw2);
+    lab2 = li2.firstChild;
     // dans l'encart d'informations sous le titre (liste « Ma position actuelle... »), sinon sous le titre
     var ul = document.querySelector('#infoTab ul');
-    if (ul) ul.appendChild(li);
+    if (ul) { ul.appendChild(li1); ul.appendChild(li2); }
     else {
       var h = document.getElementById('MHTitreH2') || document.querySelector('h2');
-      if (h && h.parentNode) h.parentNode.insertBefore(li, h.nextSibling);
+      if (h && h.parentNode) { h.parentNode.insertBefore(li2, h.nextSibling); h.parentNode.insertBefore(li1, h.nextSibling); }
     }
   }
 
@@ -1196,7 +1239,7 @@
     }
   }
 
-  function init() { addVueSwitch(); syncVuePref(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
