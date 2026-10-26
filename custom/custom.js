@@ -1316,6 +1316,61 @@
     })();
   }
 
+  // Suivant (gowap) : portee de vue lue sur sa page Profil (ligne « Vue : 6 Cases +0 »), memorisee dans le navigateur,
+  // puis affichee entre parentheses a cote de son nom sur la page Ordres. Si elle manque, la page Profil est lue en arriere-plan.
+  var GVUE_KEY = 'mhx-gowap-vue';
+  function gowapId() { var m = /[?&]id_target=(\d+)/.exec(location.search); return m ? m[1] : null; }
+  function gowapVueRead(doc) {
+    var res = null;
+    doc.querySelectorAll('td').forEach(function (td) {
+      if (res || td.textContent.trim() !== 'Vue' || !td.nextElementSibling) return;
+      var m = /(\d+)\s*Cases?\s*([+-]\s*\d+)?/i.exec(td.nextElementSibling.textContent);
+      if (m) res = { v: parseInt(m[1], 10), b: m[2] ? parseInt(m[2].replace(/\s/g, ''), 10) : 0 };
+    });
+    return res;
+  }
+  function gowapVueStore(id, r) {
+    try {
+      var all = JSON.parse(localStorage.getItem(GVUE_KEY) || '{}') || {};
+      all[id] = { v: r.v, b: r.b, t: Date.now() };
+      localStorage.setItem(GVUE_KEY, JSON.stringify(all));
+    } catch (e) { /* stockage indisponible */ }
+  }
+  function gowapVueGet(id) {
+    try { return (JSON.parse(localStorage.getItem(GVUE_KEY) || '{}') || {})[id] || null; } catch (e) { return null; }
+  }
+  function addGowapVue() {
+    if (!/\/Play_a_Action\.php$/.test(location.pathname) || !/[?&]type=F\b/.test(location.search)) return;
+    var id = gowapId();
+    if (!id) return;
+    var sub = (/[?&]sub=(\w+)/.exec(location.search) || [])[1];
+    if (!sub) { // page Profil du suivant
+      var r = gowapVueRead(document);
+      if (r) gowapVueStore(id, r);
+      return;
+    }
+    if (sub !== 'ordres') return;
+    var show = function () {
+      var g = gowapVueGet(id), h3 = document.querySelector('.monstre-entete h3');
+      if (!g || !h3) return;
+      var sp = h3.querySelector('.mhx-gvue');
+      if (!sp) { sp = document.createElement('span'); sp.className = 'mhx-gvue'; h3.appendChild(sp); }
+      sp.textContent = ' (Vue : ' + (g.v + g.b) + ' case' + (g.v + g.b > 1 ? 's' : '') + ')';
+      sp.title = 'Port\u00e9e de vue du suivant : ' + g.v + (g.b ? ' ' + (g.b > 0 ? '+' : '') + g.b : '') + ' (lue sur sa page Profil)';
+    };
+    show();
+    var g0 = gowapVueGet(id);
+    if (!g0 || Date.now() - g0.t > 6 * 3600 * 1000) {
+      fetch('/mountyhall/MH_Play/Play_a_Action.php?type=F&id=-4&id_target=' + id, { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (buf) {
+          if (!buf) return;
+          var r = gowapVueRead(new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(buf), 'text/html'));
+          if (r) { gowapVueStore(id, r); show(); }
+        }).catch(function () { /* ignore */ });
+    }
+  }
+
   // Tresors : la liste vue sur Ma vue est envoyee au serveur MH (par troll, elle remplace la precedente) et reaffichee
   // sur la page Ordres d'un suivant (Equipement > Suivants > Ordres), au-dessus de la carte du trajet. Affichage seulement.
   var TRESORS_URL = 'https://mh.percolouco.com/notif/tresors_vue.php';
@@ -1896,7 +1951,7 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
