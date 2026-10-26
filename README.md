@@ -85,3 +85,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.12.3 | 2026-10-25 | Page Ma vue : trolls hors vue ajoutés en style léger (estompés, italique) |
 | 0.13.0 | 2026-10-25 | Compétence Baroufle (symphonie, effets, durée, lieu) envoyée dans le groupe WhatsApp |
 | 0.13.1 | 2026-10-26 | Attaque : monstre interposé pris en compte (dégâts sur le bon monstre, cible visée indiquée) et jet d'esquive affiché si > 0 |
+| 0.13.2 | 2026-10-26 | Sortilèges sans dégâts (Hypnotisme) envoyés dans le groupe WhatsApp (cible, effet, état) |

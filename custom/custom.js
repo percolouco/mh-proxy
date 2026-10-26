@@ -193,6 +193,17 @@
     var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt); // titre de l'\u00e9cran : \u00ab Sortil\u00e8ge : Vampirisme \u00bb
     return { type: 'attaque', nom: tt ? tt[1] : '', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets, monstres: [mon] };
   }
+  // Sortilège sans dégâts (Hypnotisme...) : cible influencée, effet et état de la cible.
+  function parseSortEffet(txt) {
+    var m = /Le Sortilège ([A-ZÀ-Ü' -]+?) a eu l'effet suivant : ?(?:une|un|la|le|l’|l')\s?(.+?) \((\d+)\) a été influencé/.exec(txt);
+    if (!m) return null;
+    var ef = /a donc un (EFFET [A-ZÉ]+)/.exec(txt);
+    var et = /La Cible est (.{1,60}?) jusqu'à sa prochaine Date Limite d'Action/.exec(txt);
+    var tt = /Sortilège : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt);
+    var jets = (txt.match(/(?:Jet de Résistance) ?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
+    var mon = { role: 'cible', nom: m[2], id: m[3], etat: et ? et[1] : '' };
+    return { type: 'attaque', nom: tt ? tt[1] : m[1].charAt(0) + m[1].slice(1).toLowerCase(), moyen: 'sortilège', effet: ef ? ef[1].toLowerCase().replace('reduit', 'réduit') : '', sig: jets + '|' + m[3], monstres: [mon] };
+  }
   // Compétence Baroufle : symphonie, effets, durée et lieu -> groupe WhatsApp.
   function parseBaroufle(txt) {
     var so = /Vous parvenez \u00e0 jouer (\d+) sons?/.exec(txt);
@@ -209,7 +220,7 @@
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
-    var res = parseLancer(txt) || parseAttaque(txt) || parseBaroufle(txt);
+    var res = parseLancer(txt) || parseAttaque(txt) || parseSortEffet(txt) || parseBaroufle(txt);
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
