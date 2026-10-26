@@ -94,3 +94,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.16.0 | 2026-10-26 | Ma vue : clic sur la colonne PV d'un troll -> popup de confirmation -> « Demande de sacro » dans le groupe WhatsApp (`notif/sacro_whatsapp.php`) |
 | 0.16.1 | 2026-10-26 | Popup sacro : design de l'interface MH (parchemin, bandeau, boutons du jeu) et bouton × pour fermer (adapté au mobile) |
 | 0.16.2 | 2026-10-26 | Popup sacro : sans numéro de troll |
+| 0.17.0 | 2026-10-26 | Ma vue : survol de « DLA à... » = temps restant + heure approximative du cumul d'après (DLA + durée du tour) |

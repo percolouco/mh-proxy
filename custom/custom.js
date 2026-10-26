@@ -905,6 +905,10 @@
           var mn = Math.floor(rest / 60), now = new Date();
           dt = (e.dla_estimee ? '~' : '') + (d.toDateString() === now.toDateString() ? '' : p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + ' ') + p2(d.getHours()) + 'h' + p2(d.getMinutes());
           tip = 'Dans ' + Math.floor(mn / 60) + 'h' + p2(mn % 60) + (e.dla_estimee ? ' (estimation)' : '');
+          if (e.duree_tour > 0) { // cumul d'après (approximatif) = prochaine DLA + une durée de tour
+            var c = new Date(Date.now() + (rest + e.duree_tour) * 1000);
+            tip += '\nCumul d\'apr\u00e8s : ~' + (c.toDateString() === now.toDateString() ? '' : p2(c.getDate()) + '/' + p2(c.getMonth() + 1) + ' ') + p2(c.getHours()) + 'h' + p2(c.getMinutes());
+          }
         }
         if (dl.textContent !== dt) dl.textContent = dt;
         if (dl.title !== tip) dl.title = tip;
