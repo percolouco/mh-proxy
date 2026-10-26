@@ -1332,11 +1332,58 @@
       var items = [];
       rows.forEach(function (tr) {
         var nomCell = tr.cells[3];
-        var it = { ref: txt(tr, 'td.ref'), nom: nomCell ? nomCell.textContent.replace(/[\s\u00a0]+/g, ' ').trim() : '', x: txt(tr, 'td.x'), y: txt(tr, 'td.y'), n: txt(tr, 'td.n'), dist: txt(tr, 'td.dist') };
+        var it = { ref: txt(tr, 'td.ref'), nom: nomCell ? nomCell.textContent.replace(/[\s\u00a0]+/g, ' ').trim() : '', x: txt(tr, 'td.x'), y: txt(tr, 'td.y'), n: txt(tr, 'td.n'), dist: txt(tr, 'td.dist'), icone: (tr.querySelector('td.actions img') || document.createElement('img')).getAttribute('src') || '' };
         if (/^\d+$/.test(it.ref) && it.nom) items.push(it);
       });
       mhdPost(TRESORS_URL, 'troll=' + me + '&data=' + encodeURIComponent(JSON.stringify(items)), function () {});
     })();
+  }
+
+  // Second bloc de la page Ordres : memes colonnes que le tableau Tresors de Ma vue (Dist., Actions, Ref., Nom, X, Y, N), tri au clic sur l'en-tete.
+  function addVueTable(parent, before, d) {
+    var box = document.createElement('div');
+    box.id = 'mhx-tresors-ordres2';
+    box.innerHTML = '<div class="mhx-to-titre">Tr\u00e9sors (m\u00eame affichage que Ma vue)</div>';
+    var tab = document.createElement('div');
+    tab.className = 'mhx-to-tab mhx-to-tab-vue';
+    var t = document.createElement('table');
+    t.className = 'mh_tdborder';
+    t.id = 'mhx-vue-copie';
+    var cols = [['dist', 'Dist.', 'dist'], ['', 'Actions', null], ['ref', 'R\u00e9f.', 'ref'], ['', 'Nom', 'nom'], ['x', 'X', 'x'], ['y', 'Y', 'y'], ['n', 'N', 'n']];
+    var hd = t.createTHead(), hr = hd.insertRow(), tb = t.createTBody();
+    hd.className = 'mh_tdtitre';
+    var tri = { cle: 'dist', sens: 1 };
+    var draw = function () {
+      tb.textContent = '';
+      d.items.slice().sort(function (a, b) {
+        var va = a[tri.cle], vb = b[tri.cle];
+        return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * tri.sens || a.ref - b.ref;
+      }).forEach(function (it) {
+        var tr = tb.insertRow();
+        tr.className = 'mh_tdpage';
+        cols.forEach(function (c) {
+          var td = tr.insertCell();
+          if (c[1] === 'Actions') {
+            if (it.icone) { var im = document.createElement('img'); im.src = it.icone; im.alt = 'Tr\u00e9sor'; im.height = 20; td.appendChild(im); }
+            td.className = 'actions';
+          } else if (c[1] === 'Nom') td.textContent = it.nom;
+          else { td.textContent = it[c[2]]; if (c[0]) td.className = c[0]; }
+        });
+      });
+    };
+    cols.forEach(function (c) {
+      var td = hr.insertCell();
+      td.textContent = c[1];
+      if (c[0]) td.className = c[0];
+      if (c[2]) {
+        td.style.cursor = 'pointer';
+        td.addEventListener('click', function () { tri = { cle: c[2], sens: tri.cle === c[2] ? -tri.sens : 1 }; draw(); });
+      }
+    });
+    draw();
+    tab.appendChild(t);
+    box.appendChild(tab);
+    parent.insertBefore(box, before);
   }
 
   var TRESOR_ORDRES_FILTRES = [['Parchemin', /^Parchemin/i], ['Composant', /^Composant/i], ['Gigots de Gob', /^Gigots?\s+de\s+Gob/i]];
@@ -1379,6 +1426,7 @@
         sel.addEventListener('change', function () { pilesN = parseInt(sel.value, 10); draw(); });
         bar.appendChild(sel);
         box.appendChild(bar); box.appendChild(tab);
+        addVueTable(box.parentNode, box.nextSibling, d);
         var draw = function () {
           var any = Object.keys(actifs).some(function (k) { return actifs[k]; });
           var items = d.items.filter(function (t) {
