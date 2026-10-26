@@ -101,3 +101,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.19.0 | 2026-10-26 | Picto 🙈 pour Flash Aveuglant ; compétence Hurlement Effrayant (😱 fuit / 😡 plus énervé) mémorisée, picto dans Ma vue et message WhatsApp |
 | 0.19.1 | 2026-10-26 | Pictos d'effets légèrement agrandis |
 | 0.19.2 | 2026-10-26 | Demande de sacro : « Régen : ~N PV » (moyenne) dans le popup et le message ; PV max retiré |
+| 0.21.0 | 2026-10-26 | Page de connexion : bonus/malus en cours et pas encore actifs envoyés au serveur MH (`notif/bonus_malus.php`, remplacement sans doublon) |
