@@ -73,6 +73,12 @@
       d.textContent = (nom || 'Troll') + ' \u2014 ' + m[1] + '/' + m[2] + ' PV';
       var st = document.createElement('div');
       st.className = 'mhx-sacro-st';
+      var rg = document.createElement('div'); // régén moyenne, lue sur le serveur (simulation, rien n'est envoyé)
+      rg.className = 'mhx-sacro-who';
+      fetch(NOTIF_SACRO_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: 'dry=1&troll=' + (currentTrollId() || 0) + '&cible=' + encodeURIComponent(cible) + '&pv=' + m[1] + '&pvmax=' + m[2] + '&nom=' + encodeURIComponent(nom) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV'; }, function () {});
       var btns = document.createElement('div');
       var mk = function (label) {
         var bt = document.createElement('input');
@@ -99,7 +105,7 @@
         });
       });
       btns.appendChild(ok); btns.appendChild(no);
-      body.appendChild(q); body.appendChild(d); body.appendChild(st); body.appendChild(btns);
+      body.appendChild(q); body.appendChild(d); body.appendChild(rg); body.appendChild(st); body.appendChild(btns);
       box.appendChild(head); box.appendChild(body);
       ov.appendChild(box);
       document.body.appendChild(ov);
