@@ -112,3 +112,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.23.1 | 2026-10-26 | Interrupteur de Ma vue : réglage stocké par troll sur le serveur MH (`notif/prefs_vue.php`), bouton déplacé dans l'encart d'informations sous le titre |
 | 0.24.0 | 2026-10-26 | Ma vue : interrupteurs plus fins (16 px) ; option « Blocs ouverts à l'ouverture » (Monstres, Trôlls, Trésors... ouverts ou fermés), mémorisée par troll sur le serveur |
 | 0.24.1 | 2026-10-26 | Ma vue : les deux interrupteurs sur la même ligne |
+| 0.25.0 | 2026-10-26 | Kiki Meter : essais de sorts / compétences comptés par troll sur le serveur MH (ratés, effets réduits, dégât max) et tableau des 5 trolls dans Mon Profil (meilleur vert, pire rouge) |
