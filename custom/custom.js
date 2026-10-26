@@ -305,8 +305,8 @@
   function addVueSwitch() {
     if (!VUE_RE.test(location.pathname) || document.getElementById('mhx-vueswitch')) return;
     var on = vueEnabled(), blocs = vueBlocsOuverts();
-    var mkLi = function (id, texte, bouton) {
-      var li = document.createElement('li');
+    var mkLi = function (id, texte, bouton) { // un r\u00e9glage = un libell\u00e9 + son interrupteur (les deux r\u00e9glages sont sur la m\u00eame ligne)
+      var li = document.createElement('span');
       li.id = id;
       li.className = 'mhx-vueopt';
       var lab = document.createElement('span');
@@ -322,7 +322,7 @@
       this.disabled = true;
       vueSave('vue_on=' + val, function () { location.reload(); });
     });
-    var li1 = mkLi('mhx-vueswitch', 'Am\u00e9liorations du script : ' + (on ? 'ON' : 'OFF'), sw);
+    var li1 = mkLi('mhx-vueswitch-on', 'Am\u00e9liorations du script : ' + (on ? 'ON' : 'OFF'), sw);
     var lab2 = null;
     var sw2 = mkSwitch(blocs, 'Blocs ouverts \u00e0 l\'ouverture : cliquer pour les fermer', 'Blocs ferm\u00e9s \u00e0 l\'ouverture : cliquer pour les ouvrir', function () {
       blocs = !blocs;
@@ -336,12 +336,16 @@
     });
     var li2 = mkLi('mhx-vueblocs', 'Blocs ouverts \u00e0 l\'ouverture : ' + (blocs ? 'OUI' : 'NON'), sw2);
     lab2 = li2.firstChild;
-    // dans l'encart d'informations sous le titre (liste « Ma position actuelle... »), sinon sous le titre
+    var ligne = document.createElement('li');
+    ligne.id = 'mhx-vueswitch';
+    ligne.appendChild(li1);
+    ligne.appendChild(li2);
+    // dans l'encart d'informations sous le titre (liste \u00ab Ma position actuelle... \u00bb), sinon sous le titre
     var ul = document.querySelector('#infoTab ul');
-    if (ul) { ul.appendChild(li1); ul.appendChild(li2); }
+    if (ul) ul.appendChild(ligne);
     else {
       var h = document.getElementById('MHTitreH2') || document.querySelector('h2');
-      if (h && h.parentNode) { h.parentNode.insertBefore(li2, h.nextSibling); h.parentNode.insertBefore(li1, h.nextSibling); }
+      if (h && h.parentNode) h.parentNode.insertBefore(ligne, h.nextSibling);
     }
   }
 
