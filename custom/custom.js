@@ -181,6 +181,76 @@
     mhdPost(NOTIF_BM_URL, 'troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
   }
 
+  // Page Ma vue, partie Trésors : boutons Parchemin / Composant / Gigots de Gob. Les filtres s'additionnent (un trésor est
+  // gardé s'il correspond à l'un des boutons actifs) ; aucun bouton actif = tout est affiché. Affichage seulement, rien n'est envoyé.
+  var TRESOR_FILTRES = [
+    { cle: 'parchemin', label: 'Parchemin', re: /^Parchemin/i },
+    { cle: 'composant', label: 'Composant', re: /^Composant/i },
+    { cle: 'gigots', label: 'Gigots de Gob', re: /^Gigots?\s+de\s+Gob/i }
+  ];
+  function addTresorFilters() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var KEY = 'mhx-tresor-filtres';
+    var actifs = {};
+    try { actifs = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { actifs = {}; }
+    var bar = null, info = null;
+    var rows = function () { return document.querySelectorAll('#VUE_tresors tbody tr.mh_tdpage'); };
+    var apply = function () {
+      var on = TRESOR_FILTRES.filter(function (f) { return actifs[f.cle]; });
+      var total = 0, vus = 0;
+      rows().forEach(function (tr) {
+        var cell = tr.cells[3];
+        var nom = cell ? cell.textContent.replace(/[\s\u00a0]+/g, ' ').trim() : '';
+        var garde = !on.length || on.some(function (f) { return f.re.test(nom); });
+        tr.classList.toggle('mhx-tfiltre-cache', !garde);
+        total++;
+        if (garde) vus++;
+      });
+      if (bar) {
+        bar.querySelectorAll('button[data-cle]').forEach(function (b) { b.classList.toggle('mhx-actif', !!actifs[b.getAttribute('data-cle')]); });
+        if (info) info.textContent = on.length ? vus + ' / ' + total : '';
+      }
+    };
+    var build = function () {
+      var table = document.getElementById('VUE_tresors');
+      if (!table || document.getElementById('mhx-tfiltres')) return;
+      bar = document.createElement('div');
+      bar.id = 'mhx-tfiltres';
+      TRESOR_FILTRES.forEach(function (f) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'mh_form_submit mhx-tfiltre';
+        b.setAttribute('data-cle', f.cle);
+        b.textContent = f.label;
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          actifs[f.cle] = !actifs[f.cle];
+          try { localStorage.setItem(KEY, JSON.stringify(actifs)); } catch (e) { /* stockage indisponible */ }
+          apply();
+        });
+        bar.appendChild(b);
+      });
+      var tout = document.createElement('button');
+      tout.type = 'button';
+      tout.className = 'mh_form_submit mhx-tfiltre';
+      tout.textContent = 'Tout';
+      tout.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        actifs = {};
+        try { localStorage.setItem(KEY, '{}'); } catch (e) { /* stockage indisponible */ }
+        apply();
+      });
+      bar.appendChild(tout);
+      info = document.createElement('span');
+      info.className = 'mhx-tinfo';
+      bar.appendChild(info);
+      table.parentNode.insertBefore(bar, table);
+      apply();
+    };
+    build();
+    [800, 2000, 5000, 9000].forEach(function (d) { setTimeout(function () { build(); apply(); }, d); }); // le tableau est retravaillé après le chargement
+  }
+
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
   // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
   var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
@@ -1075,7 +1145,7 @@
     }
   }
 
-  function init() { addMonsterPv(); colorVueGowaps(); addEffectIcons(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
