@@ -68,7 +68,7 @@
       q.textContent = 'Envoyer une demande de sacro ?';
       var d = document.createElement('div');
       d.className = 'mhx-sacro-who';
-      d.textContent = (nom || 'Troll') + ' (' + cible + ') \u2014 ' + m[1] + '/' + m[2] + ' PV';
+      d.textContent = (nom || 'Troll') + ' \u2014 ' + m[1] + '/' + m[2] + ' PV';
       var st = document.createElement('div');
       st.className = 'mhx-sacro-st';
       var btns = document.createElement('div');
