@@ -96,3 +96,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.16.2 | 2026-10-26 | Popup sacro : sans numéro de troll |
 | 0.17.0 | 2026-10-26 | Ma vue : survol de « DLA à... » = temps restant + heure approximative du cumul d'après (DLA + durée du tour) |
 | 0.17.1 | 2026-10-26 | Infobulle DLA : libellé « Cumul » |
+| 0.18.0 | 2026-10-26 | Sortilège Flash Aveuglant : cibles mémorisées sur le serveur MH, picto 💫 à côté du nom des monstres touchés dans Ma vue (durée approximative) et résumé dans le groupe WhatsApp |

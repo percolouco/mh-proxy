@@ -34,6 +34,8 @@
 
   // Page Ma vue : clic sur la colonne PV d'un troll -> popup « envoyer une demande de sacro » -> confirmer -> message dans le groupe WhatsApp.
   // Rien n'est envoyé au jeu ; le message part seulement après le clic sur « Confirmer ».
+  var NOTIF_FLASH_URL = 'https://mh.percolouco.com/notif/flash_whatsapp.php';
+  var EFFETS_URL = 'https://mh.percolouco.com/notif/effets_monstres.php';
   var NOTIF_SACRO_URL = 'https://mh.percolouco.com/notif/sacro_whatsapp.php';
   function addSacroClick() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
@@ -102,6 +104,35 @@
       ov.appendChild(box);
       document.body.appendChild(ov);
     });
+  }
+
+  // Page Ma vue : picto à côté du nom des monstres touchés par un Flash Aveuglant (durée approximative : tours x durée du tour du lanceur).
+  function addEffectIcons() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var t0 = Date.now();
+    var paint = function (list) {
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre');
+        var e = ref && list[ref.textContent.trim()];
+        var old = tr.querySelector('.mhx-fa');
+        if (!nom || !e || e.effet !== 'FA' || e.reste - Math.round((Date.now() - t0) / 1000) <= 0) { if (old) old.parentNode.removeChild(old); return; }
+        var rest = e.reste - Math.round((Date.now() - t0) / 1000), mn = Math.floor(rest / 60);
+        var tip = 'Flash Aveuglant' + (e.reduit ? ' (effet r\u00e9duit)' : '') + ' : Att ' + e.att + ' | Esq ' + e.esq + ' | Vue ' + e.vue + '\nEncore ~' + Math.floor(mn / 60) + 'h' + ('0' + (mn % 60)).slice(-2) + ' (' + e.tours + ' tour' + (e.tours > 1 ? 's' : '') + ')';
+        if (!old) {
+          old = document.createElement('span');
+          old.className = 'mhx-fa';
+          old.textContent = ' \u1f4ab';
+          nom.parentNode.insertBefore(old, nom.nextSibling);
+        }
+        old.title = tip;
+      });
+    };
+    var load = function () {
+      fetch(EFFETS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (l) { if (l) { t0 = Date.now(); paint(l); } }, function () {});
+    };
+    load();
+    setInterval(load, 60000);
+    [1500, 4000, 8000].forEach(function (d) { setTimeout(load, d); });
   }
 
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
@@ -307,6 +338,29 @@
     var mon = { role: 'cible', nom: m[2], id: m[3], etat: et ? et[1] : '' };
     return { type: 'attaque', nom: tt ? tt[1] : m[1].charAt(0) + m[1].slice(1).toLowerCase(), moyen: 'sortil\u00e8ge', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets + '|' + m[3], monstres: [mon] };
   }
+  // Sortilège Flash Aveuglant : une section par cible touchée (monstre ou troll), avec durée en tours, effet réduit et malus.
+  function parseFlash(txt) {
+    var re = /\((\d+)\) a \u00e9t\u00e9 influenc\u00e9 par l'effet du sortil\u00e8ge : Flash Aveuglant, pour une dur\u00e9e de (\d+) tours?/g;
+    var hits = [], m;
+    while ((m = re.exec(txt))) hits.push({ id: m[1], tours: parseInt(m[2], 10), start: m.index, end: re.lastIndex });
+    if (!hits.length) return null;
+    var cibles = [], prev = 0;
+    hits.forEach(function (h, i) {
+      var avant = txt.slice(prev, h.start);
+      var cut = Math.max(avant.lastIndexOf('Copier le texte') >= 0 ? avant.lastIndexOf('Copier le texte') + 15 : 0, (function () { var k = /Vue : -?\d+/g, p = 0, x; while ((x = k.exec(avant))) p = k.lastIndex; return p; })());
+      var nom = avant.slice(cut).replace(/^[\s.]+|\s+$/g, '');
+      var apres = txt.slice(h.end, i + 1 < hits.length ? hits[i + 1].start : txt.length);
+      var mal = /Att : (-?\d+) \| Esq : (-?\d+) \| Vue : (-?\d+)/.exec(apres);
+      var art = /^(?:une|un)\s+/.exec(nom);
+      if (art) nom = nom.slice(art[0].length);
+      if (!nom || nom.length > 70) return;
+      cibles.push({ nom: nom, id: h.id, monstre: !!art, tours: h.tours, reduit: /EFFET R[E\u00c9]DUIT/.test(apres), att: mal ? parseInt(mal[1], 10) : 0, esq: mal ? parseInt(mal[2], 10) : 0, vue: mal ? parseInt(mal[3], 10) : 0 });
+      prev = h.end;
+    });
+    if (!cibles.length) return null;
+    var jets = (txt.match(/Jet de R\u00e9sistance ?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
+    return { type: 'flash', sig: jets, cibles: cibles };
+  }
   // Compétence Baroufle : symphonie, effets, durée et lieu -> groupe WhatsApp.
   function parseBaroufle(txt) {
     var so = /Vous parvenez \u00e0 jouer (\d+) sons?/.exec(txt);
@@ -323,6 +377,13 @@
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
+    var fl = parseFlash(txt), troll0 = currentTrollId();
+    if (fl && troll0) {
+      mhdPost(NOTIF_FLASH_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify({ sig: fl.sig, cibles: fl.cibles })), function (ok) {
+        mhdBadge(ok ? 'Flash Aveuglant signal\u00e9 sur WhatsApp' : 'Flash Aveuglant : envoi impossible', !ok);
+      });
+      return;
+    }
     var res = parseLancer(txt) || parseAttaque(txt) || parseSortEffet(txt) || parseBaroufle(txt);
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
@@ -956,7 +1017,7 @@
     }
   }
 
-  function init() { addMonsterPv(); colorVueGowaps(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addMonsterPv(); colorVueGowaps(); addEffectIcons(); addTrollEtat(); addSacroClick(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
