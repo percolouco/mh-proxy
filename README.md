@@ -131,3 +131,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.34.1 | 2026-10-26 | Aller chercher : le formulaire est posté en arrière-plan puis la page Ordres est rechargée (les blocs Trésors ne disparaissent plus) ; fenêtre Action fermée |
 | 0.35.0 | 2026-10-26 | Aller chercher : séquence complète en arrière-plan (ordre « Se secouer à terre dans ma caverne » créé et remonté en 1er, pause 1 s, ordre « Aller chercher » du trésor créé et remonté en 1er) puis rechargement de la page Ordres ; plus de fenêtre Action |
 | 0.35.1 | 2026-10-26 | Page Ordres : le 1er bloc Trésors (recherche / piles compactes) est retiré, seul reste le bloc « même affichage que Ma vue » avec la date de la vue |
+| 0.36.0 | 2026-10-26 | Page Ordres : bouton « Dans la vue du suivant (≤ N) » dans le bloc Trésors, limite la liste aux trésors à portée de vue du suivant |
