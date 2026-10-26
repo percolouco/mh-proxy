@@ -111,20 +111,30 @@
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var t0 = Date.now();
     var paint = function (list) {
+      var sec = Math.round((Date.now() - t0) / 1000);
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
         var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre');
-        var e = ref && list[ref.textContent.trim()];
-        var old = tr.querySelector('.mhx-fa');
-        if (!nom || !e || e.effet !== 'FA' || e.reste - Math.round((Date.now() - t0) / 1000) <= 0) { if (old) old.parentNode.removeChild(old); return; }
-        var rest = e.reste - Math.round((Date.now() - t0) / 1000), mn = Math.floor(rest / 60);
-        var tip = 'Flash Aveuglant' + (e.reduit ? ' (effet r\u00e9duit)' : '') + ' : Att ' + e.att + ' | Esq ' + e.esq + ' | Vue ' + e.vue + '\nEncore ~' + Math.floor(mn / 60) + 'h' + ('0' + (mn % 60)).slice(-2) + ' (' + e.tours + ' tour' + (e.tours > 1 ? 's' : '') + ')';
-        if (!old) {
-          old = document.createElement('span');
-          old.className = 'mhx-fa';
-          old.textContent = ' \ud83d\udcab';
-          nom.parentNode.insertBefore(old, nom.nextSibling);
-        }
-        old.title = tip;
+        if (!ref || !nom) return;
+        tr.querySelectorAll('.mhx-fa').forEach(function (o) { o.parentNode.removeChild(o); });
+        var effets = (list[ref.textContent.trim()] || []).filter(function (e) { return e.reste - sec > 0; });
+        var after = nom;
+        effets.forEach(function (e) {
+          var rest = e.reste - sec, mn = Math.floor(rest / 60), fin = '\nEncore ~' + Math.floor(mn / 60) + 'h' + ('0' + (mn % 60)).slice(-2);
+          var ico, tip;
+          if (e.effet === 'HE') {
+            ico = e.issue === 'fuite' ? '\ud83d\ude31' : '\ud83d\ude21';
+            tip = 'Hurlement Effrayant' + (e.reduit ? ' (effet r\u00e9duit)' : '') + ' : ' + (e.issue === 'fuite' ? 'le monstre fuit' : 'le monstre est plus \u00e9nerv\u00e9') + fin;
+          } else {
+            ico = '\ud83d\ude48';
+            tip = 'Flash Aveuglant' + (e.reduit ? ' (effet r\u00e9duit)' : '') + ' : Att ' + e.att + ' | Esq ' + e.esq + ' | Vue ' + e.vue + fin + ' (' + e.tours + ' tour' + (e.tours > 1 ? 's' : '') + ')';
+          }
+          var sp = document.createElement('span');
+          sp.className = 'mhx-fa';
+          sp.textContent = ' ' + ico;
+          sp.title = tip;
+          after.parentNode.insertBefore(sp, after.nextSibling);
+          after = sp;
+        });
       });
     };
     var load = function () {
@@ -361,6 +371,18 @@
     var jets = (txt.match(/Jet de R\u00e9sistance ?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     return { type: 'flash', sig: jets, cibles: cibles };
   }
+  // Compétence Hurlement Effrayant (HE) : la cible fuit (réussi) ou est plus énervée (raté). Durée inconnue : 1 tour.
+  function parseHurlement(txt) {
+    if (!/Hurlement Effrayant/.test(txt)) return null;
+    var m = /Votre cible (?:(une|un)\s+)?(.+?) \((\d+)\) (.{1,120}?)(?=\s*Seuil de|$)/.exec(txt);
+    if (!m) return null;
+    var phrase = m[4], issue = '';
+    if (/pas effray|au contraire/.test(phrase)) issue = 'enerve';
+    else if (/effray|fuit|fuir|enfui/.test(phrase)) issue = 'fuite';
+    if (!issue) return null;
+    var jets = (txt.match(/Jet de R\u00e9sistance ?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
+    return { type: 'flash', effet: 'HE', sig: jets + '|' + m[3], cibles: [{ nom: m[2], id: m[3], monstre: !!m[1], tours: 1, reduit: /EFFET R[E\u00c9]DUIT/.test(txt), att: 0, esq: 0, vue: 0, issue: issue }] };
+  }
   // Compétence Baroufle : symphonie, effets, durée et lieu -> groupe WhatsApp.
   function parseBaroufle(txt) {
     var so = /Vous parvenez \u00e0 jouer (\d+) sons?/.exec(txt);
@@ -377,10 +399,10 @@
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
-    var fl = parseFlash(txt), troll0 = currentTrollId();
+    var fl = parseFlash(txt) || parseHurlement(txt), troll0 = currentTrollId();
     if (fl && troll0) {
-      mhdPost(NOTIF_FLASH_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify({ sig: fl.sig, cibles: fl.cibles })), function (ok) {
-        mhdBadge(ok ? 'Flash Aveuglant signal\u00e9 sur WhatsApp' : 'Flash Aveuglant : envoi impossible', !ok);
+      mhdPost(NOTIF_FLASH_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify({ sig: fl.sig, effet: fl.effet || 'FA', cibles: fl.cibles })), function (ok) {
+        mhdBadge(ok ? (fl.effet === 'HE' ? 'Hurlement' : 'Flash Aveuglant') + ' signal\u00e9 sur WhatsApp' : 'Envoi WhatsApp impossible', !ok);
       });
       return;
     }
