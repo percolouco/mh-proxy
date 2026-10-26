@@ -20,7 +20,7 @@
     a.parentNode.insertBefore(document.createElement('br'), a.nextSibling);
   }
 
-  // Menu : image des points cardinaux (pistage) au début de la div #favoris.
+  // Menu : image des points cardinaux (pistage) tout en bas de la div #favoris.
   function addPistageImage() {
     if (!/\/Play_menu\.php$/.test(location.pathname) || document.getElementById('mhx-pistage')) return;
     var fav = document.getElementById('favoris');
