@@ -1376,11 +1376,15 @@
   var TRESORS_URL = 'https://mh.percolouco.com/notif/tresors_vue.php';
   function sendTresorsVue() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var tries = 0;
+    // Grande vue : le tableau se remplit lentement. On n'envoie qu'une fois le nombre de lignes stable (2 relevés identiques, 2 s
+    // d'ecart), et au plus tard apres 90 s : une liste incomplete ne doit pas faire retirer des tresors du serveur.
+    var tries = 0, dernier = -1, stable = 0;
     (function run() {
       var tb = document.querySelector('#VUE_tresors tbody');
       var rows = tb ? tb.querySelectorAll('tr.mh_tdpage') : [];
-      if (!rows.length && ++tries < 5) return setTimeout(run, 1500); // le tableau peut arriver apres le reste de la page
+      stable = rows.length === dernier ? stable + 1 : 0;
+      dernier = rows.length;
+      if (++tries < 45 && (stable < 2 || !rows.length && tries < 5)) return setTimeout(run, 2000);
       var me = aggroTroll();
       if (!tb || !me) return;
       var txt = function (tr, sel) { var c = tr.querySelector(sel); return c ? c.textContent.trim() : ''; };
@@ -1401,7 +1405,12 @@
         var q = pos3(r);
         if (q && !r.classList.contains('mhx-horsvue') && txt(r, 'td.ref') !== moi) occ.troll.push(q);
       });
-      mhdPost(TRESORS_URL, 'troll=' + me + '&data=' + encodeURIComponent(JSON.stringify(items)) + '&occ=' + encodeURIComponent(JSON.stringify(occ)), function () {});
+      // zone couverte par cette vue (position + portees affichees en haut de Ma vue) : le serveur n'y retire que les tresors disparus
+      var tete = (document.getElementById('infoTab') || document.body).textContent.replace(/[\s\u00a0]+/g, ' ');
+      var mp = /position actuelle est\s*:\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/i.exec(tete);
+      var mv = /affichage est limit\u00e9 \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(tete) || /vue porte actuellement \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(tete);
+      var cov = mp && mv ? { x: +mp[1], y: +mp[2], n: +mp[3], h: +mv[1], v: +mv[2] } : null;
+      mhdPost(TRESORS_URL, 'troll=' + me + '&data=' + encodeURIComponent(JSON.stringify(items)) + '&occ=' + encodeURIComponent(JSON.stringify(occ)) + (cov ? '&cov=' + encodeURIComponent(JSON.stringify(cov)) : ''), function () {});
     })();
   }
 
@@ -1598,7 +1607,9 @@
         var tr = tb.insertRow();
         tr.className = 'mh_tdpage' + (sel && sel === it.x + ';' + it.y + ';' + it.n ? ' mhx-pile-hl' : '');
         tr.style.cursor = 'pointer';
-        tr.title = 'Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00e9tape \u00ab Se d\u00e9placer vers \u00bb pr\u00e9-remplie';
+        if (it.age > 3600) { tr.style.opacity = '0.75'; }
+        var vuIl = it.age >= 3600 ? Math.floor(it.age / 3600) + ' h' : Math.floor(it.age / 60) + ' min';
+        tr.title = '(vu il y a ' + vuIl + ') Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00e9tape \u00ab Se d\u00e9placer vers \u00bb pr\u00e9-remplie';
         tr.addEventListener('click', function () { if (allerChercher(it, function (t) { info.textContent = t; })) return; if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
         cols.forEach(function (c) {
           var td = tr.insertCell();
@@ -1685,8 +1696,9 @@
         if (!d || !d.maj) { info.textContent = 'Aucune vue enregistr\u00e9e : ouvre \u00ab Ma vue \u00bb une fois pour alimenter cette liste.'; return; }
         var gp = gowapPos();
         if (gp) d.items.forEach(function (it) { it.dist = distGowap(it, gp); }); // Dist. = distance au suivant
+        var anciens = d.items.filter(function (it) { return it.age > d.age + 600; }).length; // vus lors d'une vue precedente
         var h = Math.floor(d.age / 3600), min = Math.floor(d.age / 60) % 60;
-        info.textContent = d.items.length + ' tr\u00e9sors, vue du ' + d.maj + ' (il y a ' + (h ? h + ' h ' : '') + min + ' min)' + (gp ? ' \u2014 distances depuis le suivant (X=' + gp.x + ' Y=' + gp.y + ' N=' + gp.n + ')' : '');
+        info.textContent = d.items.length + ' tr\u00e9sors' + (anciens ? ' (dont ' + anciens + ' conserv\u00e9s d\u2019une vue pr\u00e9c\u00e9dente)' : '') + ', derni\u00e8re vue du ' + d.maj + ' (il y a ' + (h ? h + ' h ' : '') + min + ' min)' + (gp ? ' \u2014 distances depuis le suivant (X=' + gp.x + ' Y=' + gp.y + ' N=' + gp.n + ')' : '');
         if (d.age > 86400) { info.className += ' mhx-to-vieux'; info.textContent += ' \u2014 vue ancienne, rouvre \u00ab Ma vue \u00bb'; }
         // seul le bloc « meme affichage que Ma vue » est conserve ; la ligne d'information (date de la vue) passe dedans
         addVueTable(box.parentNode, box, d, info.textContent, d.age > 86400);
