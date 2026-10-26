@@ -78,7 +78,7 @@
       fetch(NOTIF_SACRO_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
         body: 'dry=1&troll=' + (currentTrollId() || 0) + '&cible=' + encodeURIComponent(cible) + '&pv=' + m[1] + '&pvmax=' + m[2] + '&nom=' + encodeURIComponent(nom) })
         .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) { if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV'; }, function () {});
+        .then(function (j) { if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV'; if (j && j.malus_pv) rg.textContent += (rg.textContent ? ' \u2014 ' : '') + j.malus_pv; }, function () {});
       var btns = document.createElement('div');
       var mk = function (label) {
         var bt = document.createElement('input');
