@@ -1443,14 +1443,60 @@
   // « Aller chercher ... » et ouvre l'ecran de choix (fenetre « Action » du jeu) ; la-bas, le tresor est selectionne dans la liste et le
   // bouton « Action » est clique (sans PA, a la demande de Perco). La demande est transmise par localStorage et expire apres 2 minutes.
   var AC_KEY = 'mhx-aller-chercher';
-  function allerChercher(it) {
+  var acBusy = false;
+  function allerChercher(it, say) {
     var id = gowapId(), vue = id ? gowapVueGet(id) : null;
-    var ordre = document.querySelector('select[name="gus_ordre"]'), btn = document.querySelector('button[name="gus_add"]');
-    if (!vue || !ordre || !btn || !ordre.querySelector('option[value="8"]') || it.dist > vue.v + vue.b) return false;
-    try { localStorage.setItem(AC_KEY, JSON.stringify({ ref: String(it.ref), gowap: id, t: Date.now(), ret: location.href })); } catch (e) { return false; }
-    ordre.value = '8';
-    btn.click();
+    var ordre = document.querySelector('select[name="gus_ordre"]');
+    if (!vue || !ordre || !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]') || it.dist > vue.v + vue.b) return false;
+    if (acBusy) { say('Un envoi est d\u00e9j\u00e0 en cours, patiente quelques secondes.'); return true; }
+    acBusy = true;
+    sequenceAllerChercher(it, id, say).then(function (txt) { say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
+      .then(function () { acBusy = false; setTimeout(function () { location.reload(); }, 1200); });
     return true;
+  }
+  // Sequence a la demande de Perco (chaque nouvel ordre arrive en derniere position, d'ou les « gus_top ») :
+  // 1. ordre « Se secouer a terre dans ma caverne » -> remonte en premier ; 2. attente 1 s ; 3. ordre « Aller chercher » (tresor clique)
+  // -> remonte en premier. Le suivant va donc chercher le tresor, puis se secoue. Tout est poste en arriere-plan, une requete a la fois.
+  function sequenceAllerChercher(it, id, say) {
+    var base = '/mountyhall/MH_Play/Play_a_Action.php?type=F&id=-4&id_target=' + id;
+    var wait = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
+    var post = function (url, body) {
+      return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: body, referrerPolicy: 'no-referrer' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+        .then(function (b) { return new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html'); });
+    };
+    // cree un ordre : formulaire d'ordre, puis formulaire de confirmation (« Action ») avec ses champs caches ; ref = tresor a choisir
+    var creer = function (valeur, ref) {
+      return post(base, 'gus_ordre=' + valeur + '&gus_add=').then(function (doc) {
+        var form = doc.getElementById('ActionForm');
+        if (!form) throw new Error('\u00e9cran de confirmation introuvable');
+        var champs = new URLSearchParams();
+        form.querySelectorAll('input[name], select[name]').forEach(function (f) { if (f.type !== 'button' && f.type !== 'submit') champs.set(f.name, f.value); });
+        if (ref) {
+          var sel = form.querySelector('select[name="id_tresor"]');
+          if (!sel || !sel.querySelector('option[value="' + ref + '"]')) throw new Error('le tr\u00e9sor ' + ref + ' n\u2019est pas dans la liste de ce suivant');
+          champs.set('id_tresor', String(ref));
+        }
+        return post(new URL(form.getAttribute('action'), location.href).href, champs.toString());
+      });
+    };
+    // remonte le dernier ordre de la liste en premiere position (bouton gus_top de sa ligne)
+    var remonter = function () {
+      return fetch(base + '&sub=ordres', { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+        .then(function (b) {
+          var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html');
+          var tops = doc.querySelectorAll('button[name="gus_top"]');
+          if (!tops.length) throw new Error('bouton \u00ab \u21d1\u21d1 \u00bb du dernier ordre introuvable');
+          return post('/mountyhall/MH_Play/Play_a_ActionResult.php', 'type=F&id=-4&id_target=' + id + '&gus_top=' + encodeURIComponent(tops[tops.length - 1].value));
+        });
+    };
+    say('1/5 Se secouer \u00e0 terre dans ma caverne\u2026');
+    return creer('12').then(function () { say('2/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
+      .then(function () { return wait(1000); })
+      .then(function () { say('3/5 Aller chercher ' + it.nom + ' (' + it.ref + ')\u2026'); return creer('8', it.ref); })
+      .then(function () { say('4/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
+      .then(function () { return 'Termin\u00e9 : le suivant ira chercher ' + it.nom + ' (' + it.ref + '), puis se secouera \u00e0 terre.'; });
   }
   function addAllerChercherPopup() {
     if (!/\/Play_a_Action\.php$/.test(location.pathname)) return;
@@ -1545,7 +1591,7 @@
         tr.className = 'mh_tdpage' + (sel && sel === it.x + ';' + it.y + ';' + it.n ? ' mhx-pile-hl' : '');
         tr.style.cursor = 'pointer';
         tr.title = 'Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00e9tape \u00ab Se d\u00e9placer vers \u00bb pr\u00e9-remplie';
-        tr.addEventListener('click', function () { if (allerChercher(it)) { info.textContent = 'Ordre \u00ab Aller chercher \u00bb envoy\u00e9 pour ' + it.nom + ' (' + it.ref + ')'; return; } if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
+        tr.addEventListener('click', function () { if (allerChercher(it, function (t) { info.textContent = t; })) return; if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
         cols.forEach(function (c) {
           var td = tr.insertCell();
           if (c[0]) td.className = c[0];
@@ -1679,7 +1725,7 @@
             tr.addEventListener('click', function () {
               var pos = 'X=' + g[0].x + ' | Y=' + g[0].y + ' | N=' + g[0].n;
               try { navigator.clipboard.writeText(pos); } catch (e) { /* presse-papiers indisponible */ }
-              if (allerChercher(g[0])) { info.textContent = 'Ordre \u00ab Aller chercher \u00bb envoy\u00e9 pour ' + g[0].nom + ' (' + g[0].ref + ')'; return; }
+              if (allerChercher(g[0], function (t) { info.textContent = t; })) return;
               info.textContent = (prefillDeplacement(g[0].x, g[0].y, g[0].n) ? '\u00c9tape pr\u00e9-remplie (' : 'Position copi\u00e9e (') + pos + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame';
             });
           });
