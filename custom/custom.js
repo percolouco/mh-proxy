@@ -244,40 +244,62 @@
   }
 
   // Page Ma vue : interrupteur ON / OFF des améliorations du script (PV, PA, DLA, couleurs, pictos, filtres, sacro).
-  // Mémorisé par troll dans ce navigateur ; le changement recharge la page. Par défaut : ON.
-  function vueSwitchKey() {
+  // Réglage mémorisé par troll sur le serveur MH (notif/prefs_vue.php), avec une copie dans le navigateur pour décider
+  // tout de suite au chargement ; si le serveur dit autre chose, la copie est corrigée et la page rechargée une fois. Par défaut : ON.
+  var PREFS_VUE_URL = 'https://mh.percolouco.com/notif/prefs_vue.php';
+  function vueTrollId() {
     var id = document.body && document.body.getAttribute('data-idtroll');
-    return 'mhx-vue-on-' + (/^\d+$/.test(id || '') ? id : 'inconnu');
+    return /^\d+$/.test(id || '') ? id : null;
   }
+  function vueSwitchKey() { return 'mhx-vue-on-' + (vueTrollId() || 'inconnu'); }
   function vueEnabled() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return true;
     try { return localStorage.getItem(vueSwitchKey()) !== '0'; } catch (e) { return true; }
   }
+  function syncVuePref() {
+    var id = vueTrollId();
+    if (!/\/Play_vue2\.php$/.test(location.pathname) || !id) return;
+    fetch(PREFS_VUE_URL + '?troll=' + id, { referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || typeof j.vue_on !== 'boolean' || j.vue_on === vueEnabled()) return;
+        try { localStorage.setItem(vueSwitchKey(), j.vue_on ? '1' : '0'); } catch (e) { return; }
+        location.reload();
+      }, function () {});
+  }
   function addVueSwitch() {
     if (!/\/Play_vue2\.php$/.test(location.pathname) || document.getElementById('mhx-vueswitch')) return;
     var on = vueEnabled();
-    var box = document.createElement('div');
-    box.id = 'mhx-vueswitch';
+    var li = document.createElement('li');
+    li.id = 'mhx-vueswitch';
+    var lab = document.createElement('span');
+    lab.className = 'mhx-switch-label';
+    lab.textContent = 'Am\u00e9liorations du script : ' + (on ? 'ON' : 'OFF');
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'mhx-switch' + (on ? ' mhx-on' : '');
     b.setAttribute('role', 'switch');
     b.setAttribute('aria-checked', on ? 'true' : 'false');
     b.title = on ? 'Am\u00e9liorations activ\u00e9es : cliquer pour les d\u00e9sactiver' : 'Am\u00e9liorations d\u00e9sactiv\u00e9es : cliquer pour les activer';
-    var knob = document.createElement('span');
-    b.appendChild(knob);
-    var lab = document.createElement('span');
-    lab.className = 'mhx-switch-label';
-    lab.textContent = 'Am\u00e9liorations du script : ' + (on ? 'ON' : 'OFF');
+    b.appendChild(document.createElement('span'));
     b.addEventListener('click', function () {
-      try { localStorage.setItem(vueSwitchKey(), on ? '0' : '1'); } catch (e) { return; }
-      location.reload();
+      var id = vueTrollId(), val = on ? '0' : '1';
+      try { localStorage.setItem(vueSwitchKey(), val); } catch (e) { /* stockage indisponible */ }
+      var done = function () { location.reload(); };
+      if (!id) { done(); return; }
+      b.disabled = true;
+      fetch(PREFS_VUE_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'troll=' + id + '&vue_on=' + val })
+        .then(done, done);
     });
-    box.appendChild(b);
-    box.appendChild(lab);
-    var h = document.getElementById('MHTitreH2') || document.querySelector('h2');
-    if (h && h.parentNode) h.parentNode.insertBefore(box, h.nextSibling);
-    else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+    li.appendChild(lab);
+    li.appendChild(b);
+    // dans l'encart d'informations sous le titre (liste « Ma position actuelle... »), sinon sous le titre
+    var ul = document.querySelector('#infoTab ul');
+    if (ul) ul.appendChild(li);
+    else {
+      var h = document.getElementById('MHTitreH2') || document.querySelector('h2');
+      if (h && h.parentNode) h.parentNode.insertBefore(li, h.nextSibling);
+    }
   }
 
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
@@ -1174,7 +1196,7 @@
     }
   }
 
-  function init() { addVueSwitch(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addVueSwitch(); syncVuePref(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

@@ -109,3 +109,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.22.1 | 2026-10-26 | Filtres Trésors placés sur la même ligne que Filtre / Copier |
 | 0.22.2 | 2026-10-26 | Filtres Trésors : bouton « Tout » retiré |
 | 0.23.0 | 2026-10-26 | Ma vue : interrupteur ON / OFF de toutes les améliorations du script, mémorisé par troll (navigateur) |
+| 0.23.1 | 2026-10-26 | Interrupteur de Ma vue : réglage stocké par troll sur le serveur MH (`notif/prefs_vue.php`), bouton déplacé dans l'encart d'informations sous le titre |
