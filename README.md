@@ -121,3 +121,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.29.2 | 2026-10-26 | Aggro : le troll est mémorisé (localStorage) pour que la page d’un monstre ouverte hors du jeu envoie quand même la cible |
 | 0.30.0 | 2026-10-26 | Aggro : vérification en arrière-plan (lecture seule, une page à la fois, 1 à 10 s entre deux) des monstres à distance 0-2 hors gowaps/familiers : d’abord sans info, puis dernier check > 6 h ; un check sans coup est enregistré (aggro vide) |
 | 0.30.1 | 2026-10-26 | Aggro : colonne bien placée entre PV et Réf. (attend la colonne PV) ; vérifié en réel (Voir le Monde Souterrain) |
+| 0.30.2 | 2026-10-26 | Aggro : la vérification en arrière-plan lit les événements dans les données de la page (le tableau est rempli par JavaScript, donc vide dans la page récupérée) ; corrige les faux « aucun coup » |
