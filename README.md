@@ -103,3 +103,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.19.2 | 2026-10-26 | Demande de sacro : « Régen : ~N PV » (moyenne) dans le popup et le message ; PV max retiré |
 | 0.21.0 | 2026-10-26 | Page de connexion : bonus/malus en cours et pas encore actifs envoyés au serveur MH (`notif/bonus_malus.php`, remplacement sans doublon) |
 | 0.21.1 | 2026-10-26 | Demande de sacro : ligne « Malus PV : N (suivant : M) » (popup et message) d'après les bonus/malus enregistrés |
+| 0.21.2 | 2026-10-26 | Image pistage placée tout en bas de la div #favoris |
