@@ -84,3 +84,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.12.2 | 2026-10-24 | Message d'attaque : ligne XP au-dessus de 2 PX, ligne butin retirée |
 | 0.12.3 | 2026-10-25 | Page Ma vue : trolls hors vue ajoutés en style léger (estompés, italique) |
 | 0.13.0 | 2026-10-25 | Compétence Baroufle (symphonie, effets, durée, lieu) envoyée dans le groupe WhatsApp |
+| 0.13.1 | 2026-10-26 | Attaque : monstre interposé pris en compte (dégâts sur le bon monstre, cible visée indiquée) et jet d'esquive affiché si > 0 |
