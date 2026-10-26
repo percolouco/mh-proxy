@@ -1340,6 +1340,10 @@
     if (form && form.parentNode) form.parentNode.insertBefore(box, form);
     else if (document.body) document.body.insertBefore(box, document.body.firstChild);
     var me = (document.body && document.body.getAttribute('data-idtroll')) || currentTrollId();
+    try { // page ouverte hors du jeu (pas de cadre) : troll m\u00e9moris\u00e9 lors d'une visite pr\u00e9c\u00e9dente
+      if (/^\d+$/.test(me || '')) localStorage.setItem('mhx-troll', me);
+      else me = localStorage.getItem('mhx-troll');
+    } catch (e) { /* stockage indisponible */ }
     if (/^\d+$/.test(me || '')) {
       mhdPost(AGGRO_URL, 'troll=' + me + '&monstre=' + last.monstre + '&cible=' + last.cible + '&nom=' + encodeURIComponent(last.nom) + '&date=' + encodeURIComponent(last.date), function () {});
     }
@@ -1552,7 +1556,7 @@
     }
   }
 
-  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
