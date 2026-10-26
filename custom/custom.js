@@ -56,7 +56,7 @@
       var head = document.createElement('div');
       head.className = 'mh_tdtitre mhx-sacro-head';
       var t = document.createElement('span');
-      t.textContent = 'Demande de sacro';
+      t.textContent = '';
       var x = document.createElement('button');
       x.type = 'button';
       x.className = 'mhx-sacro-x';
@@ -75,10 +75,12 @@
       st.className = 'mhx-sacro-st';
       var rg = document.createElement('div'); // régén moyenne, lue sur le serveur (simulation, rien n'est envoyé)
       rg.className = 'mhx-sacro-who';
+      var mp = document.createElement('div'); // malus PV (bonus/malus enregistr\u00e9s), sur sa propre ligne
+      mp.className = 'mhx-sacro-who';
       fetch(NOTIF_SACRO_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
         body: 'dry=1&troll=' + (currentTrollId() || 0) + '&cible=' + encodeURIComponent(cible) + '&pv=' + m[1] + '&pvmax=' + m[2] + '&nom=' + encodeURIComponent(nom) })
         .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) { if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV'; if (j && j.malus_pv) rg.textContent += (rg.textContent ? ' \u2014 ' : '') + j.malus_pv; }, function () {});
+        .then(function (j) { if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV'; if (j && j.malus_pv) mp.textContent = j.malus_pv; }, function () {});
       var btns = document.createElement('div');
       var mk = function (label) {
         var bt = document.createElement('input');
@@ -105,7 +107,7 @@
         });
       });
       btns.appendChild(ok); btns.appendChild(no);
-      body.appendChild(q); body.appendChild(d); body.appendChild(rg); body.appendChild(st); body.appendChild(btns);
+      body.appendChild(q); body.appendChild(d); body.appendChild(rg); body.appendChild(mp); body.appendChild(st); body.appendChild(btns);
       box.appendChild(head); box.appendChild(body);
       ov.appendChild(box);
       document.body.appendChild(ov);

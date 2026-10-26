@@ -71,7 +71,7 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 /* Popup « demande de sacro » : look de l'interface MH (parchemin, bandeau marron, boutons du jeu), utilisable au doigt */
 #mhx-sacro-pop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(0,0,0,.5); }
 .mhx-sacro-box { width: 100%; max-width: 340px; border: 2px solid #a47e3c; border-radius: 9px; overflow: hidden; background: url(/mountyhall/MH_Packs/packMH_parchemin/fond/fond2.jpg); font: 14px "Trebuchet MS", "Times New Roman", Times, serif; color: #333; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
-.mhx-sacro-head { display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 14px; padding: 6px 8px 6px 12px; border-radius: 0; }
+.mhx-sacro-head { display: flex; align-items: center; justify-content: flex-end; font-weight: bold; font-size: 14px; padding: 2px 6px; min-height: 0; border-radius: 0; }
 .mhx-sacro-x { min-width: 36px; height: 32px; padding: 0; border: 0; background: transparent; color: #333; font-size: 26px; line-height: 28px; cursor: pointer; }
 .mhx-sacro-body { padding: 14px 12px 12px; }
 .mhx-sacro-who { margin: 6px 0 10px; font-weight: bold; }
@@ -80,3 +80,4 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 
 /* Pictos d'effets (FA, HE) à côté du nom des monstres */
 .mhx-fa { font-size: 1.35em; line-height: 1; vertical-align: middle; cursor: help; }
+.mhx-sacro-who { margin-top: 2px; }
