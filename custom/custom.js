@@ -247,7 +247,7 @@
   // Page « Ma vue » : PV de chaque monstre (fourchette « xxx-yyy PV ») sur sa ligne, dans la colonne du nom.
   // Source : le popup CDM de Mountyzilla (clic sur le niveau du monstre), que Mountyzilla remplit lui-même.
   // On l'ouvre une fraction de seconde (masqu\u00e9 par le CSS), on lit la ligne \u00ab Points de Vie \u00bb, puis on le referme.
-  // Ouvrir ce popup n'est qu'un affichage, rien n'est envoy\u00e9 au jeu. Pas de valeur pour les Gowap Apprivois\u00e9s.
+  // Ouvrir ce popup n'est qu'un affichage, rien n'est envoy\u00e9 au jeu. Pas de valeur pour les Gowap Apprivois\u00e9s ni les Familiers.
   // Trois cas dans la ligne « Points de Vie » du popup :
   //  - « 90-110 → 100 PV » seul : on affiche « 90-110 PV » ;
   //  - avec une ligne « Blessure » en plus : CDM fiable, même affichage + ✓ ;
@@ -264,7 +264,7 @@
       var out = [];
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
         var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre'), niv = tr.querySelector('td[data-indxmz]');
-        if (!ref || !nom || !niv || /^\s*Gowap Apprivois/i.test(nom.textContent)) return;
+        if (!ref || !nom || !niv || /^\s*(?:Gowap Apprivois|Familier)/i.test(nom.textContent)) return;
         out.push({ tr: tr, id: ref.textContent.trim(), nom: nom, niv: niv });
       });
       return out;

@@ -87,3 +87,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.13.1 | 2026-10-26 | Attaque : monstre interposé pris en compte (dégâts sur le bon monstre, cible visée indiquée) et jet d'esquive affiché si > 0 |
 | 0.13.2 | 2026-10-26 | Sortilèges sans dégâts (Hypnotisme) envoyés dans le groupe WhatsApp (cible, effet, état) |
 | 0.13.3 | 2026-10-26 | Correctif : script invalide sur les pages du jeu (accents non échappés, introduits en 0.13.2) qui masquait les PV monstres et infos trolls de Ma vue |
+| 0.13.4 | 2026-10-26 | Ma vue : pas de PV pour les Familiers (comme pour les Gowap Apprivoisés) |
