@@ -88,3 +88,4 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 #mhx-tfiltres .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
 #mhx-tfiltres .mhx-tinfo { font-size: 12px; margin-left: 4px; }
 tr.mhx-tfiltre-cache { display: none !important; }
+#mhx-tfiltres.mhx-tfiltres-ligne { display: inline-flex; margin: 0 0 0 5px; vertical-align: middle; }
