@@ -116,3 +116,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.26.0 | 2026-10-26 | Filtres Trésors : boutons « Sans gowap » / « Sans troll » avec distance réglable (même case, 1, 2 ou 3 cases) |
 | 0.26.1 | 2026-10-26 | Filtres Trésors : « Sans gowap » et « Sans troll » fusionnés en un seul bouton « Personne sur la case » |
 | 0.27.0 | 2026-10-26 | Trésors : 2e ligne « Plus grosses piles » (liste des N plus grosses piles de la plus grosse à la plus petite, N = 3 / 5 / 10 / 20, clic pour repérer la pile dans le tableau) |
+| 0.28.0 | 2026-10-26 | Menu : liens vers les 4 écuyers (Retak, Coucouze, Roxxor, Xouz) en haut, ouverts dans un nouvel onglet |
