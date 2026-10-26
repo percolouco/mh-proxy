@@ -120,3 +120,7 @@ tr.mhx-tfiltre-cache { display: none !important; }
 .mhx-pile:hover { background: rgba(255,215,0,.35); }
 .mhx-pile.mhx-pile-sel { background: #f3d25c; font-weight: bold; }
 tr.mhx-pile-hl > td { background: #f3d25c !important; }
+
+/* Menu : liens vers les ecuyers */
+#mhx-ecuyers { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center; padding: 4px 6px; font: bold 12px "Trebuchet MS", Arial, sans-serif; }
+#mhx-ecuyers a { color: #6b1f1f; text-decoration: underline; }

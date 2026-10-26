@@ -20,6 +20,23 @@
     a.parentNode.insertBefore(document.createElement('br'), a.nextSibling);
   }
 
+  // Menu : liens vers les 4 ecuyers (nouvel onglet), en haut du menu.
+  function addEcuyers() {
+    if (!/\/Play_menu\.php$/.test(location.pathname) || document.getElementById('mhx-ecuyers')) return;
+    var liens = [['Retak', 'retak'], ['Coucouze', 'coucouze'], ['Roxxor', 'roxxor'], ['Xouz', 'xouz']];
+    var d = document.createElement('div');
+    d.id = 'mhx-ecuyers';
+    liens.forEach(function (l) {
+      var a = document.createElement('a');
+      a.href = 'https://' + l[1] + '.nas.percolouco.com/login/';
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = l[0];
+      d.appendChild(a);
+    });
+    document.body.insertBefore(d, document.body.firstChild);
+  }
+
   // Menu : image des points cardinaux (pistage) tout en bas de la div #favoris.
   function addPistageImage() {
     if (!/\/Play_menu\.php$/.test(location.pathname) || document.getElementById('mhx-pistage')) return;
@@ -1459,7 +1476,7 @@
     }
   }
 
-  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
+  function init() { addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
