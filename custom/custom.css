@@ -128,3 +128,17 @@ tr.mhx-pile-hl > td { background: #f3d25c !important; }
 /* Page Ma vue : colonne Aggro des monstres */
 .mhx-aggrocol { white-space: nowrap; font-size: 12px; text-align: center; padding-left: 1px; padding-right: 2px; }
 .mhx-aggroh { text-align: center !important; }
+
+/* Page Ordres d'un suivant : tresors de la derniere vue, au-dessus de la carte du trajet */
+#mhx-tresors-ordres { margin: 10px 0; padding: 8px; border: 1px solid #a47e3c; border-radius: 6px; background: rgba(255,255,255,.3); font: 13px "Trebuchet MS", Arial, sans-serif; }
+#mhx-tresors-ordres .mhx-to-titre { font-weight: bold; margin-bottom: 4px; }
+#mhx-tresors-ordres .mhx-to-info { font-size: 12px; font-style: italic; margin-bottom: 6px; }
+#mhx-tresors-ordres .mhx-to-vieux { color: #b00020; font-weight: bold; }
+#mhx-tresors-ordres .mhx-to-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
+#mhx-tresors-ordres .mhx-to-bar input[type=text] { min-height: 26px; }
+#mhx-tresors-ordres .mhx-to-bar .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
+#mhx-tresors-ordres .mhx-to-tab { max-height: 260px; overflow-y: auto; }
+#mhx-tresors-ordres table { width: 100%; border-collapse: collapse; }
+#mhx-tresors-ordres td { padding: 2px 6px; }
+#mhx-tresors-ordres tr.mhx-to-ligne { cursor: pointer; }
+#mhx-tresors-ordres tr.mhx-to-ligne:hover > td { background: rgba(255,215,0,.35); }

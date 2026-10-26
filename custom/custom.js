@@ -1316,6 +1316,110 @@
     })();
   }
 
+  // Tresors : la liste vue sur Ma vue est envoyee au serveur MH (par troll, elle remplace la precedente) et reaffichee
+  // sur la page Ordres d'un suivant (Equipement > Suivants > Ordres), au-dessus de la carte du trajet. Affichage seulement.
+  var TRESORS_URL = 'https://mh.percolouco.com/notif/tresors_vue.php';
+  function sendTresorsVue() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var tries = 0;
+    (function run() {
+      var tb = document.querySelector('#VUE_tresors tbody');
+      var rows = tb ? tb.querySelectorAll('tr.mh_tdpage') : [];
+      if (!rows.length && ++tries < 5) return setTimeout(run, 1500); // le tableau peut arriver apres le reste de la page
+      var me = aggroTroll();
+      if (!tb || !me) return;
+      var txt = function (tr, sel) { var c = tr.querySelector(sel); return c ? c.textContent.trim() : ''; };
+      var items = [];
+      rows.forEach(function (tr) {
+        var nomCell = tr.cells[3];
+        var it = { ref: txt(tr, 'td.ref'), nom: nomCell ? nomCell.textContent.replace(/[\s\u00a0]+/g, ' ').trim() : '', x: txt(tr, 'td.x'), y: txt(tr, 'td.y'), n: txt(tr, 'td.n'), dist: txt(tr, 'td.dist') };
+        if (/^\d+$/.test(it.ref) && it.nom) items.push(it);
+      });
+      mhdPost(TRESORS_URL, 'troll=' + me + '&data=' + encodeURIComponent(JSON.stringify(items)), function () {});
+    })();
+  }
+
+  var TRESOR_ORDRES_FILTRES = [['Parchemin', /^Parchemin/i], ['Composant', /^Composant/i], ['Gigots de Gob', /^Gigots?\s+de\s+Gob/i]];
+  function addTresorsOrdres() {
+    if (!/\/Play_a_Action\.php$/.test(location.pathname) || !/[?&]sub=ordres\b/.test(location.search)) return;
+    var tries = 0;
+    (function run() {
+      var carte = document.getElementById('carte_trajet');
+      if (!carte && ++tries < 6) return setTimeout(run, 800);
+      if (!carte || document.getElementById('mhx-tresors-ordres')) return;
+      var me = aggroTroll();
+      if (!me) return;
+      var box = document.createElement('div');
+      box.id = 'mhx-tresors-ordres';
+      box.innerHTML = '<div class="mhx-to-titre">Tr\u00e9sors (derni\u00e8re vue de Ma vue)</div><div class="mhx-to-info">Chargement\u2026</div>';
+      carte.parentNode.insertBefore(box, carte);
+      fetch(TRESORS_URL + '?troll=' + me, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        var info = box.querySelector('.mhx-to-info');
+        if (!d || !d.maj) { info.textContent = 'Aucune vue enregistr\u00e9e : ouvre \u00ab Ma vue \u00bb une fois pour alimenter cette liste.'; return; }
+        var h = Math.floor(d.age / 3600), min = Math.floor(d.age / 60) % 60;
+        info.textContent = d.items.length + ' tr\u00e9sors, vue du ' + d.maj + ' (il y a ' + (h ? h + ' h ' : '') + min + ' min)';
+        if (d.age > 86400) { info.className += ' mhx-to-vieux'; info.textContent += ' \u2014 vue ancienne, rouvre \u00ab Ma vue \u00bb'; }
+        var actifs = {}, q = '', pilesN = 0;
+        var bar = document.createElement('div'), tab = document.createElement('div');
+        bar.className = 'mhx-to-bar'; tab.className = 'mhx-to-tab';
+        var search = document.createElement('input');
+        search.type = 'text'; search.placeholder = 'Rechercher un nom\u2026';
+        search.addEventListener('input', function () { q = search.value.trim().toLowerCase(); draw(); });
+        bar.appendChild(search);
+        TRESOR_ORDRES_FILTRES.forEach(function (f, i) {
+          var b = document.createElement('input');
+          b.type = 'button'; b.value = f[0]; b.className = 'mh_form_submit mhx-tfiltre';
+          b.addEventListener('click', function () { actifs[i] = !actifs[i]; b.classList.toggle('mhx-actif', !!actifs[i]); draw(); });
+          bar.appendChild(b);
+        });
+        var sel = document.createElement('select');
+        [['0', 'Piles : toutes'], ['3', 'Plus grosses piles : 3'], ['5', 'Plus grosses piles : 5'], ['10', 'Plus grosses piles : 10'], ['20', 'Plus grosses piles : 20']].forEach(function (o) {
+          var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op);
+        });
+        sel.addEventListener('change', function () { pilesN = parseInt(sel.value, 10); draw(); });
+        bar.appendChild(sel);
+        box.appendChild(bar); box.appendChild(tab);
+        var draw = function () {
+          var any = Object.keys(actifs).some(function (k) { return actifs[k]; });
+          var items = d.items.filter(function (t) {
+            if (q && t.nom.toLowerCase().indexOf(q) < 0) return false;
+            if (!any) return true;
+            return TRESOR_ORDRES_FILTRES.some(function (f, i) { return actifs[i] && f[1].test(t.nom); });
+          });
+          var piles = {};
+          items.forEach(function (t) { var k = t.x + ';' + t.y + ';' + t.n; (piles[k] = piles[k] || []).push(t); });
+          var groupes = Object.keys(piles).map(function (k) { return piles[k]; });
+          if (pilesN) groupes = groupes.sort(function (a, b) { return b.length - a.length; }).slice(0, pilesN);
+          else groupes = groupes.sort(function (a, b) { return a[0].dist - b[0].dist; });
+          tab.textContent = '';
+          var t = document.createElement('table');
+          t.className = 'mh_tdborder';
+          var hd = t.createTHead().insertRow();
+          hd.className = 'mh_tdtitre';
+          ['Dist.', 'Tr\u00e9sors', 'X', 'Y', 'N'].forEach(function (x) { var c = document.createElement('td'); c.textContent = x; hd.appendChild(c); });
+          var tbd = t.createTBody();
+          groupes.slice(0, 300).forEach(function (g) {
+            var noms = {};
+            g.forEach(function (it) { var nm = /centaines? de GG/i.test(it.nom) || /^\d+ .*GG/i.test(it.nom) ? 'GG' : it.nom; noms[nm] = (noms[nm] || 0) + 1; });
+            var compo = Object.keys(noms).sort(function (a, b) { return noms[b] - noms[a]; }).map(function (nm) { return noms[nm] + ' ' + nm; }).join(', ');
+            var tr = tbd.insertRow();
+            tr.className = 'mh_tdpage mhx-to-ligne';
+            tr.title = 'Cliquer pour copier X | Y | N';
+            [g[0].dist, g.length + ' : ' + compo, g[0].x, g[0].y, g[0].n].forEach(function (v) { tr.insertCell().textContent = v; });
+            tr.addEventListener('click', function () {
+              var pos = 'X=' + g[0].x + ' | Y=' + g[0].y + ' | N=' + g[0].n;
+              try { navigator.clipboard.writeText(pos); } catch (e) { /* presse-papiers indisponible */ }
+              info.textContent = 'Position copi\u00e9e : ' + pos;
+            });
+          });
+          if (!groupes.length) { var vide = tbd.insertRow().insertCell(); vide.colSpan = 5; vide.textContent = 'Aucun tr\u00e9sor.'; }
+          tab.appendChild(t);
+        };
+        draw();
+      }, function () { box.querySelector('.mhx-to-info').textContent = 'Serveur MH injoignable.'; });
+    })();
+  }
+
   // Aggro : derniere personne frappee par un monstre. Page du monstre : lue dans ses evenements, affichee et envoyee
   // au serveur MH (table mh_aggro) ; page Ma vue : colonne « Aggro » entre PV et Ref., lue sur le serveur.
   var AGGRO_URL = 'https://mh.percolouco.com/notif/aggro.php';
@@ -1627,7 +1731,7 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
