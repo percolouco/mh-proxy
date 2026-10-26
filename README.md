@@ -90,3 +90,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.13.4 | 2026-10-26 | Ma vue : pas de PV pour les Familiers (comme pour les Gowap Apprivoisés) |
 | 0.14.0 | 2026-10-26 | Ma vue : les gowaps de la liste commune sont colorés (couleur choisie sur la page Suivants) |
 | 0.15.0 | 2026-10-26 | Menu : image des points cardinaux (pistage) au début de la div #favoris |
+| 0.15.1 | 2026-10-26 | Image pistage : marges 14 px (CSS demandé) |
