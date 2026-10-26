@@ -77,3 +77,6 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 .mhx-sacro-who { margin: 6px 0 10px; font-weight: bold; }
 .mhx-sacro-st { min-height: 18px; margin-bottom: 8px; font-size: 12px; }
 .mhx-sacro-btn { margin: 0 6px; min-width: 96px; min-height: 36px; font-size: 14px; cursor: pointer; }
+
+/* Pictos d'effets (FA, HE) à côté du nom des monstres */
+.mhx-fa { font-size: 1.35em; line-height: 1; vertical-align: middle; cursor: help; }

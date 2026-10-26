@@ -99,3 +99,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.18.0 | 2026-10-26 | Sortilège Flash Aveuglant : cibles mémorisées sur le serveur MH, picto 💫 à côté du nom des monstres touchés dans Ma vue (durée approximative) et résumé dans le groupe WhatsApp |
 | 0.18.1 | 2026-10-26 | Correctif : picto Flash Aveuglant affiché correctement (emoji mal encodé) |
 | 0.19.0 | 2026-10-26 | Picto 🙈 pour Flash Aveuglant ; compétence Hurlement Effrayant (😱 fuit / 😡 plus énervé) mémorisée, picto dans Ma vue et message WhatsApp |
+| 0.19.1 | 2026-10-26 | Pictos d'effets légèrement agrandis |
