@@ -61,3 +61,9 @@ tr.mhx-horsvue > td { opacity: 0.7; font-style: italic; }
 
 /* Page Ma vue : gowaps de la liste commune colorés (couleur choisie sur la page Suivants) */
 tr.mhx-gw > td { background: var(--mhx-gw) !important; background-image: none !important; }
+
+/* Bouton « Pistage » du menu + popup de l'image des points cardinaux */
+a.mhx-pistage, a.mhx-pistage:link, a.mhx-pistage:visited { display: inline-block; box-sizing: border-box; width: 200px; height: 26px; line-height: 24px; text-align: center; font: bold 13px Arial, sans-serif; color: #f3e6c8; background: #6b1f1f; border: 1px solid #3a0f0f; border-radius: 3px; text-decoration: none; }
+a.mhx-pistage:hover { background: #8a2a2a; }
+#mhx-pistage-pop { position: fixed; inset: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); cursor: pointer; }
+#mhx-pistage-pop img { max-width: 90vw; max-height: 90vh; background: #fff; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
