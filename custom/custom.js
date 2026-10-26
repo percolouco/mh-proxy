@@ -888,29 +888,29 @@
     var rows = function () {
       var out = [];
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
-        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre'), niv = tr.querySelector('td[data-indxmz]');
-        if (!ref || !nom || !niv || /^\s*(?:Gowap Apprivois|Familier)/i.test(nom.textContent)) return;
+        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre'), niv = tr.querySelector('td[data-indxmz]'); // niv : cellule MZ, absente si MZ ne repond pas
+        if (!ref || !nom || /^\s*(?:Gowap Apprivois|Familier)/i.test(nom.textContent)) return;
         out.push({ tr: tr, id: ref.textContent.trim(), nom: nom, niv: niv });
       });
       return out;
     };
-    // Vraie colonne « PV » entre « Niv. » et « R\u00e9f. » : une cellule ajout\u00e9e apr\u00e8s celle du niveau dans chaque ligne
+    // Vraie colonne « PV » juste avant « Réf. » (donc indépendante de la colonne « Niv. » du script MZ, qui peut manquer)
     var ensureCol = function () {
-      var th = document.querySelector('#VUE_monstres thead tr td:nth-child(3), #VUE_monstres thead tr th:nth-child(3)');
-      if (th && /^\s*Niv/i.test(th.textContent) && !th.parentNode.querySelector('.mhx-pvh')) {
+      var th = document.querySelector('#VUE_monstres thead tr td.ref, #VUE_monstres thead tr th.ref');
+      if (th && !th.parentNode.querySelector('.mhx-pvh')) {
         var h = document.createElement(th.tagName.toLowerCase());
         h.className = 'mhx-pvh'; // sans style propre : il reprend celui des autres en-têtes du tableau
         h.textContent = 'PV';
         h.style.cssText = 'width: 80px; display: table-cell;';
-        th.parentNode.insertBefore(h, th.nextSibling);
+        th.parentNode.insertBefore(h, th);
       }
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
-        var niv = tr.cells[2]; // colonne « Niv. » : présente dans toutes les lignes, même sans niveau cliquable
-        if (!niv || tr.cells.length < 6 || tr.querySelector('td.mhx-pvcol')) return;
+        var ref = tr.querySelector('td.ref');
+        if (!ref || tr.querySelector('td.mhx-pvcol')) return;
         var td = document.createElement('td');
         td.className = 'mhx-pvcol';
-        td.style.cssText = 'width: 80px; display: table-cell;'; // footable masque les cellules qu'il ne conna\u00eet pas
-        niv.parentNode.insertBefore(td, niv.nextSibling);
+        td.style.cssText = 'width: 80px; display: table-cell;'; // footable masque les cellules qu'il ne connaît pas
+        ref.parentNode.insertBefore(td, ref);
       });
     };
     var show = function (r) {
@@ -965,7 +965,7 @@
         for (var i = 0; i < list.length; i++) {
           var r = list[i];
           show(r);
-          if (done[r.id] || (tries[r.id] || 0) >= 5 || document.getElementById('popupCDM' + r.id)) continue;
+          if (!r.niv || done[r.id] || (tries[r.id] || 0) >= 5 || document.getElementById('popupCDM' + r.id)) continue;
           tries[r.id] = (tries[r.id] || 0) + 1;
           r.niv.click();
           await sleep(40);
