@@ -1372,23 +1372,21 @@
     var ensure = function () {
       var hr = document.querySelector('#VUE_monstres thead tr');
       if (!hr) return;
-      if (!hr.querySelector('.mhx-aggroh')) {
-        var ref = hr.querySelector('.mhx-pvh') || hr.querySelector('td:nth-child(3), th:nth-child(3)');
-        if (ref && !ref.classList.contains('mhx-aggroh')) {
-          var h = document.createElement(ref.tagName.toLowerCase());
-          h.className = 'mhx-aggroh';
-          h.textContent = 'Aggro';
-          h.style.cssText = 'width: 80px; display: table-cell;';
-          ref.parentNode.insertBefore(h, ref.nextSibling);
-        }
+      var hRef = hr.querySelector('.mhx-pvh'); // on attend la colonne PV (ajout\u00e9e par addMonsterPv) pour se placer juste apr\u00e8s
+      if (hRef && !hr.querySelector('.mhx-aggroh')) { // juste apr\u00e8s PV, donc avant « R\u00e9f. » (apr\u00e8s PV, ajout\u00e9 par addMonsterPv)
+        var h = document.createElement(hRef.tagName.toLowerCase());
+        h.className = 'mhx-aggroh';
+        h.textContent = 'Aggro';
+        h.style.cssText = 'width: 80px; display: table-cell;';
+        hRef.parentNode.insertBefore(h, hRef.nextSibling);
       }
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
-        if (tr.cells.length < 6 || tr.querySelector('td.mhx-aggrocol')) return;
-        var after = tr.querySelector('td.mhx-pvcol') || tr.cells[2];
+        var ref = tr.querySelector('td.mhx-pvcol');
+        if (!ref || tr.querySelector('td.mhx-aggrocol')) return;
         var td = document.createElement('td');
         td.className = 'mhx-aggrocol';
         td.style.cssText = 'width: 80px; display: table-cell;';
-        after.parentNode.insertBefore(td, after.nextSibling);
+        ref.parentNode.insertBefore(td, ref.nextSibling);
       });
     };
     var paint = function () {
