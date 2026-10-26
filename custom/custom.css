@@ -143,8 +143,6 @@ tr.mhx-pile-hl > td { background: #f3d25c !important; }
 #mhx-tresors-ordres tr.mhx-to-ligne { cursor: pointer; }
 #mhx-tresors-ordres tr.mhx-to-ligne:hover > td { background: rgba(255,215,0,.35); }
 #mhx-tresors-ordres2 { margin: 10px 0; padding: 8px; border: 1px solid #a47e3c; border-radius: 6px; background: rgba(255,255,255,.3); font: 13px "Trebuchet MS", Arial, sans-serif; }
-#mhx-tresors-ordres2 .mhx-to-titre { font-weight: bold; margin-bottom: 4px; }
-#mhx-tresors-ordres2 .mhx-to-tab-vue { max-height: 420px; overflow-y: auto; }
-#mhx-tresors-ordres2 table { width: 100%; border-collapse: collapse; }
-#mhx-tresors-ordres2 td { padding: 2px 6px; }
-#mhx-tresors-ordres2 td.dist, #mhx-tresors-ordres2 td.ref, #mhx-tresors-ordres2 td.x, #mhx-tresors-ordres2 td.y, #mhx-tresors-ordres2 td.n { text-align: right; }
+#mhx-tresors-ordres2 .mhx-to2-titre { padding: 2px 6px; margin-bottom: 4px; }
+#mhx-tresors-ordres2 .mhx-to2-titre h3 { margin: 0; font-size: 1.1em; }
+#mhx-tresors-ordres2 .horizontal-scroll { max-height: 420px; overflow-y: auto; }
