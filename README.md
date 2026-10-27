@@ -143,3 +143,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.42.0 | 2026-10-27 | Connexion : lecture en arrière-plan (simple GET de Play_e_follo.php, au plus 1 fois / 5 min) de la page Équipement > Suivants ; pour chaque gowap de la liste commune, DLA, PA, PV, vue, position, poids et ordres sont envoyés au serveur MH (`gowap/gowap_infos.php`) et affichés dans « Mes gowaps » (prioritaires sur les infos du cron SP) |
 | 0.42.1 | 2026-10-27 | Mes gowaps : ligne « Infos du … » retirée |
 | 0.42.2 | 2026-10-27 | Mes gowaps : PV, PA, DLA, position et vue sur une seule ligne |
+| 0.43.0 | 2026-10-27 | Mes gowaps : objets lus à la connexion dans les tableaux repliables « [+] » de la page Suivants (n°, nom, détail, état, poids, y compris les objets non identifiés), groupés par type dans un bloc « Objets (N) » repliable |

@@ -188,7 +188,18 @@
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
         .then(function (b) {
           var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html');
-          var envois = [];
+          var envois = [], objets = {}; // objets : par gowap, lus dans les tableaux repliables « [+] » de la page (n°, nom, detail, etat, poids)
+          doc.querySelectorAll('table.toggle').forEach(function (tb) {
+            var m = /(?:^|\s)(\d+)_\S+/.exec(tb.className), cells = tb.querySelectorAll('td'), cible = tb.nextElementSibling;
+            if (!m || cells.length < 2 || !cible) return;
+            var type = cells[1].textContent.trim();
+            cible.querySelectorAll('tbody tr').forEach(function (tr) {
+              var td = tr.querySelectorAll('td');
+              if (td.length < 5) return;
+              var t = function (i) { return (td[i].textContent || '').replace(/[\s\u00a0]+/g, ' ').trim(); };
+              (objets[m[1]] = objets[m[1]] || []).push([type, t(1), t(2), t(3), t(4)]);
+            });
+          });
           doc.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
             var j = null;
             try { j = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
@@ -199,6 +210,7 @@
                       ordres: (j.ordres || []).slice(0, 8).map(function (o) { return o.ordre; }) };
             if (pos) { d.x = parseInt(pos[1], 10); d.y = parseInt(pos[2], 10); d.n = parseInt(pos[3], 10); }
             if (poids) d.poids = poids[1];
+            if (objets[j.id]) d.objets = objets[j.id];
             envois.push([j.id, d]);
           });
           var suite = function (i) {
@@ -252,7 +264,29 @@
         if (lv && lv.ordres && lv.ordres.length) lignes.push('Ordres : ' + lv.ordres.join(' \u2192 '));
         if (g.dernier_deces) lignes.push('Dernier décès : ' + g.dernier_deces);
         lignes.forEach(function (t) { var p = document.createElement('div'); p.textContent = t; c.appendChild(p); });
-        if (g.objets && g.objets.length) {
+        var objs = lv && lv.objets ? lv.objets : null; // [type, nom, detail, etat, poids] lus dans le jeu
+        if (objs && objs.length) {
+          var det = document.createElement('details');
+          var sm = document.createElement('summary');
+          sm.textContent = 'Objets (' + objs.length + ')';
+          det.appendChild(sm);
+          var types = [];
+          objs.forEach(function (x) { if (types.indexOf(x[0]) < 0) types.push(x[0]); });
+          types.forEach(function (ty) {
+            var lst = objs.filter(function (x) { return x[0] === ty; });
+            var tt = document.createElement('div');
+            tt.className = 'mhx-mg-type';
+            tt.textContent = ty + ' (' + lst.length + ')';
+            det.appendChild(tt);
+            lst.forEach(function (x) {
+              var li = document.createElement('div');
+              li.className = 'mhx-mg-obj';
+              li.textContent = x[1].replace(/\s*\[[^\]]*\]$/, '') + (x[2] ? ' [' + x[2] + ']' : '') + (x[3] ? ' \u2022 ' + x[3] : '') + (x[4] ? ' \u2022 ' + x[4] : '');
+              det.appendChild(li);
+            });
+          });
+          c.appendChild(det);
+        } else if (g.objets && g.objets.length) {
           var o = document.createElement('div');
           o.textContent = 'Objets (' + g.objets.length + ') : ' + g.objets.map(function (x) { return (x.nom || 'objet non identifi\u00e9') + (x.description ? ' [' + x.description + ']' : ''); }).join(', ');
           c.appendChild(o);
