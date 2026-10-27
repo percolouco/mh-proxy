@@ -2397,13 +2397,19 @@
         perksCall('', function (list) {
           if (!list) return;
           perks = list;
-          var now = Date.now(), seen = {};
-          queue = rows().filter(function (r) {
-            if (list[r.id] || seen[r.id]) return false;
-            seen[r.id] = true;
-            return !cache[r.id] || now - cache[r.id][0] > TTL;
-          }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
-          paint(); step();
+          // le tableau de la vue peut arriver apr\u00e8s le chargement (grosses vues) : la file est reconstruite r\u00e9guli\u00e8rement
+          var refill = function () {
+            if (running || (queue && queue.length)) return;
+            var now = Date.now(), seen = {};
+            queue = rows().filter(function (r) {
+              if (list[r.id] || seen[r.id]) return false;
+              seen[r.id] = true;
+              return !cache[r.id] || now - cache[r.id][0] > TTL;
+            }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
+            paint(); step();
+          };
+          refill();
+          setInterval(refill, 5000);
         });
       });
     setInterval(paint, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement

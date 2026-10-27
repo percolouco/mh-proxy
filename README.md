@@ -157,3 +157,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.50.1 | 2026-10-27 | Gowaps soulignés en rose : toute la vue est lue (plus seulement les 0-2 cases), les plus proches d'abord. |
 | 0.51.0 | 2026-10-27 | Gowaps roses : les lectures d'événements sont stockées sur le serveur MH (gowap/gowap_events.php, 7 jours) et partagées entre joueurs ; un gowap lu depuis moins de 6 h n'est relu par personne. |
 | 0.51.1 | 2026-10-27 | Gowaps roses : les lectures déjà faites dans le navigateur avant le partage (0.50.x) sont envoyées au serveur à la 1re ouverture de Ma vue. |
+| 0.51.2 | 2026-10-27 | Gowaps roses : la file de lecture est reconstruite toutes les 5 s (grosses vues dont le tableau arrive après le chargement : rien n'était lu). |
