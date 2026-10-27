@@ -2333,7 +2333,7 @@
   var EVENTS_URL = 'https://mh.percolouco.com/gowap/gowap_events.php';
   function addGowapEvents() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
-    var KEY = 'mhx-gwev', TTL = 6 * 3600 * 1000, cache = {}, perks = null, queue = null, running = false;
+    var KEY = 'mhx-gwev', TTL = 6 * 3600 * 1000, cache = {}, perks = null, queue = null, running = false, actif = false, fait = false;
     try { cache = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { cache = {}; }
     var save = function () { try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch (e) { /* stockage indisponible */ } };
     var rows = function () {
@@ -2354,7 +2354,8 @@
       });
     };
     var step = function () {
-      if (running || !queue || !queue.length) return;
+      if (running || !actif) return;
+      if (!queue || !queue.length) { actif = false; majBtn(); return; }
       running = true;
       var id = queue.shift();
       fetch('/mountyhall/View/MonsterView.php?ai_IDPJ=' + id, { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
@@ -2375,7 +2376,36 @@
           mhdPost(EVENTS_URL, 'id=' + id + '&eb=' + eb + '&ra=' + ra, function () {});
         })
         .catch(function () { /* ignore */ })
-        .then(function () { running = false; setTimeout(step, 1000 + Math.random() * 9000); });
+        .then(function () { running = false; majBtn(); setTimeout(step, 1000 + Math.random() * 9000); });
+    };
+    // Bouton « Lancer la recherche » : les lectures ne d\u00e9marrent que sur clic (grosses vues = des centaines de pages, \u00e0 1-10 s l'une)
+    var btn = null, info = null;
+    var majBtn = function () {
+      if (!btn) return;
+      btn.textContent = actif ? 'Arr\u00eater la recherche' : 'Lancer la recherche des gowaps (\u00e9brouements / tr\u00e9sors)';
+      info.textContent = actif ? (queue ? queue.length : 0) + ' gowap(s) \u00e0 lire' + (running ? '...' : '') : (queue && !queue.length && fait ? 'Recherche termin\u00e9e.' : '');
+    };
+    var ensureBtn = function () {
+      var table = document.getElementById('VUE_monstres');
+      if (!table || !table.parentNode || document.getElementById('mhx-gwsearch')) return;
+      var box = document.createElement('div');
+      box.id = 'mhx-gwsearch'; box.style.cssText = 'margin:6px 0';
+      btn = document.createElement('button'); btn.type = 'button'; btn.className = 'mh_form_submit';
+      info = document.createElement('span'); info.style.cssText = 'margin-left:8px;font-size:11px';
+      btn.addEventListener('click', function () {
+        if (actif) { actif = false; majBtn(); return; }
+        if (!perks) return;
+        var now = Date.now(), seen = {};
+        queue = rows().filter(function (r) {
+          if (perks[r.id] || seen[r.id]) return false;
+          seen[r.id] = true;
+          return !cache[r.id] || now - cache[r.id][0] > TTL;
+        }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
+        actif = true; fait = true; majBtn(); step();
+      });
+      box.appendChild(btn); box.appendChild(info);
+      table.parentNode.insertBefore(box, table);
+      majBtn();
     };
     // lectures partag\u00e9es par le serveur MH (fra\u00eeches de moins de 6 h : rien n'est relu) ; le navigateur ne sert que de repli
     fetch(EVENTS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
@@ -2397,22 +2427,9 @@
         perksCall('', function (list) {
           if (!list) return;
           perks = list;
-          // le tableau de la vue peut arriver apr\u00e8s le chargement (grosses vues) : la file est reconstruite r\u00e9guli\u00e8rement
-          var refill = function () {
-            if (running || (queue && queue.length)) return;
-            var now = Date.now(), seen = {};
-            queue = rows().filter(function (r) {
-              if (list[r.id] || seen[r.id]) return false;
-              seen[r.id] = true;
-              return !cache[r.id] || now - cache[r.id][0] > TTL;
-            }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
-            paint(); step();
-          };
-          refill();
-          setInterval(refill, 5000);
         });
       });
-    setInterval(paint, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
+    setInterval(function () { ensureBtn(); paint(); }, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
   }
 
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); }
