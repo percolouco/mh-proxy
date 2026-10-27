@@ -151,3 +151,7 @@ tr.mhx-pile-hl > td { background: #f3d25c !important; }
 #mhx-mesgowaps { margin: 8px 0; }
 #mhx-mesgowaps .mhx-mg { margin: 4px 0; padding: 4px 8px; border-left: 5px solid #8fcf9a; background: rgba(0,0,0,.04); font-size: 13px; }
 #mhx-gowaps input[type=checkbox] { margin-right: 4px; vertical-align: middle; }
+#mhx-mesgowaps details { margin-top: 3px; }
+#mhx-mesgowaps summary { cursor: pointer; }
+#mhx-mesgowaps .mhx-mg-type { margin-top: 4px; font-weight: bold; }
+#mhx-mesgowaps .mhx-mg-obj { margin-left: 14px; }
