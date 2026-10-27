@@ -250,6 +250,7 @@
           g.pv_actuel = lv.pv; g.pv_max = lv.pvmax; g.pa_restant = lv.pa; g.dla = lv.dla; g.modified_at = lv.maj;
           if (lv.x !== undefined) { g.pos_x = lv.x; g.pos_y = lv.y; g.pos_n = lv.n; }
         }
+        if (lv && lv.ordres && /^Arr[e\u00ea]t/i.test(lv.ordres[0] || '')) c.style.background = 'rgba(218, 11, 11, 0.6)'; // 1er ordre = Arret
         var vue = gowapVueGet(g.gowap_id);
         var l = document.createElement('b');
         l.textContent = (g.type || 'Gowap') + ' (' + g.gowap_id + ')';
