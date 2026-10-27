@@ -174,14 +174,15 @@
 
   // Connexion (TurnStart.php) : lecture en arriere-plan (simple GET, rien n'est soumis dans le jeu) de la page Equipement > Suivants ;
   // pour chaque gowap de la liste commune on envoie au serveur MH ses infos du moment (DLA, PA, PV, vue, position, poids, ordres).
-  // Au plus une fois toutes les 5 minutes par navigateur.
+  // A chaque ouverture de la page (10 s minimum entre deux lectures), puis toutes les 60 s tant que la page reste ouverte.
   var INFOS_URL = 'https://mh.percolouco.com/gowap/gowap_infos.php';
   var GINFO_KEY = 'mhx-gowap-infos-t';
-  function majInfosGowaps(apres) {
+  function majInfosGowaps(apres, force) {
     if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body) return;
     var id = document.body.getAttribute('data-idtroll') || currentTrollId();
     if (!/^\d+$/.test(id || '')) return;
-    try { if (Date.now() - parseInt(localStorage.getItem(GINFO_KEY) || '0', 10) < 300000) return; localStorage.setItem(GINFO_KEY, String(Date.now())); } catch (e) { /* stockage indisponible */ }
+    // 10 s minimum entre deux lectures : evite seulement les doubles chargements
+    try { if (!force && Date.now() - parseInt(localStorage.getItem(GINFO_KEY) || '0', 10) < 10000) return; localStorage.setItem(GINFO_KEY, String(Date.now())); } catch (e) { /* stockage indisponible */ }
     perksCall('', function (list) {
       if (!list) return;
       fetch('/mountyhall/MH_Play/Play_e_follo.php?type=F', { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
@@ -238,7 +239,12 @@
       var box = document.createElement('div');
       box.id = 'mhx-mesgowaps';
       var h = document.createElement('h3');
-      h.textContent = 'Mes gowaps :';
+      h.textContent = 'Mes gowaps : ';
+      var maj = document.createElement('button');
+      maj.type = 'button'; maj.className = 'mh_form_submit'; maj.textContent = 'MAJ';
+      maj.title = 'Relire les infos des gowaps dans le jeu et rafra\u00eechir cet encart';
+      maj.onclick = function () { maj.disabled = true; maj.textContent = 'MAJ\u2026'; majInfosGowaps(function () { addMesGowaps(); }, true); setTimeout(function () { maj.disabled = false; maj.textContent = 'MAJ'; }, 15000); };
+      h.appendChild(maj);
       box.appendChild(h);
       var fmt = function (t) { return t ? t.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') : '?'; };
       d.gowaps.forEach(function (g) {
@@ -2215,7 +2221,7 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
