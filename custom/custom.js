@@ -2384,6 +2384,16 @@
           var t = Date.now() - srv[id][0] * 1000;
           if (!cache[id] || cache[id][0] < t) cache[id] = [t, srv[id][1], srv[id][2]];
         });
+        // lectures d\u00e9j\u00e0 faites dans ce navigateur (avant le partage) et inconnues du serveur : on les lui envoie, \u00e0 petit rythme
+        if (srv) {
+          var aEnvoyer = Object.keys(cache).filter(function (id) { return !srv[id] && Date.now() - cache[id][0] < TTL; }).slice(0, 300);
+          var envoi = function () {
+            var id = aEnvoyer.shift();
+            if (!id) return;
+            mhdPost(EVENTS_URL, 'id=' + id + '&eb=' + cache[id][1] + '&ra=' + cache[id][2], function () { setTimeout(envoi, 300); });
+          };
+          envoi();
+        }
         perksCall('', function (list) {
           if (!list) return;
           perks = list;
