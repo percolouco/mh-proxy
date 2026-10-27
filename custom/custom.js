@@ -1460,9 +1460,9 @@
   function allerChercher(it, say) {
     var id = gowapId(), vue = id ? gowapVueGet(id) : null;
     var ordre = document.querySelector('select[name="gus_ordre"]');
-    if (!vue || !ordre || !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]')) return false;
+    if (!vue || !ordre) return false;
     var hors = gowapPos() ? !dansVueSuivant(it, gowapPos(), vue.v + vue.b) : it.dist > vue.v + vue.b;
-    if (hors && !ordre.querySelector('option[value="1"]')) return false;
+    if (hors ? !ordre.querySelector('option[value="1"]') || !ordre.querySelector('option[value="5"]') : !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]')) return false;
     if (acBusy) { say('Un envoi est d\u00e9j\u00e0 en cours, patiente quelques secondes.'); return true; }
     acBusy = true;
     sequenceAllerChercher(it, id, say, hors).then(function (txt) { say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
@@ -1487,7 +1487,8 @@
         if (!form) throw new Error('\u00e9cran de confirmation introuvable');
         var champs = new URLSearchParams();
         form.querySelectorAll('input[name], select[name]').forEach(function (f) { if (f.type !== 'button' && f.type !== 'submit') champs.set(f.name, f.value); });
-        if (ref) {
+        if (ref && typeof ref === 'object') { champs.set('gus_x', String(ref.x)); champs.set('gus_y', String(ref.y)); champs.set('gus_n', String(ref.n)); }
+        else if (ref) {
           var sel = form.querySelector('select[name="id_tresor"]');
           if (!sel || !sel.querySelector('option[value="' + ref + '"]')) throw new Error('le tr\u00e9sor ' + ref + ' n\u2019est pas dans la liste de ce suivant');
           champs.set('id_tresor', String(ref));
@@ -1495,15 +1496,6 @@
         return post(new URL(form.getAttribute('action'), location.href).href, champs.toString());
     };
     var creer = function (valeur, ref, souple) { return post(base, 'gus_ordre=' + valeur + '&gus_add=').then(function (doc) { return confirmer(doc, ref, souple); }); };
-    // « Se deplacer vers » : on poste le formulaire de la page tel que rempli par l'etape pre-remplie (X/Y/N), puis on confirme si le jeu le demande
-    var deplacer = function () {
-      var ordre = document.querySelector('select[name="gus_ordre"]'), form = ordre && ordre.form;
-      if (!form || !prefillDeplacement(it.x, it.y, it.n)) throw new Error('formulaire de d\u00e9placement introuvable');
-      var fd = new FormData(form); fd.set('gus_add', '');
-      return post(new URL(form.getAttribute('action') || location.href, location.href).href, new URLSearchParams(fd).toString()).then(function (doc) {
-        return doc.getElementById('ActionForm') ? confirmer(doc) : doc;
-      });
-    };
     // remonte le dernier ordre de la liste en premiere position (bouton gus_top de sa ligne)
     var remonter = function () {
       return fetch(base + '&sub=ordres', { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
@@ -1515,15 +1507,11 @@
           return post('/mountyhall/MH_Play/Play_a_ActionResult.php', 'type=F&id=-4&id_target=' + id + '&gus_top=' + encodeURIComponent(tops[tops.length - 1].value));
         });
     };
-    if (hors) {
-      var arret = document.querySelector('select[name="gus_ordre"]');
-      var optArret = null;
-      arret && arret.querySelectorAll('option').forEach(function (o) { if (!optArret && /^\s*arr[e\u00ea]t/i.test(o.textContent)) optArret = o; });
-      if (!optArret) return Promise.reject(new Error('ordre \u00ab Arr\u00eat \u00bb introuvable'));
+    if (hors) { // tresor hors de vue : ordre « Arret » (5) puis « Se deplacer vers » (1) sa position, remonte en premier
       say('1/5 Arr\u00eat\u2026');
-      return creer(optArret.value, null, true).then(function () { say('2/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
+      return creer('5', null, true).then(function () { say('2/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
         .then(function () { return wait(1000); })
-        .then(function () { say('3/5 Se d\u00e9placer vers X=' + it.x + ' Y=' + it.y + ' N=' + it.n + '\u2026'); return deplacer(); })
+        .then(function () { say('3/5 Se d\u00e9placer vers X=' + it.x + ' Y=' + it.y + ' N=' + it.n + '\u2026'); return creer('1', { x: it.x, y: it.y, n: it.n }); })
         .then(function () { say('4/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
         .then(function () { return 'Termin\u00e9 : le suivant ira en X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ' (' + it.nom + '), puis s\u2019arr\u00eatera.'; });
     }

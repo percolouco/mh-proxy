@@ -136,4 +136,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.37.1 | 2026-10-26 | Page Ordres : « Dans la vue du suivant » et « Aller chercher » tiennent compte de la portée verticale = moitié de la Vue (6 -> N ±3, 5 -> N ±2) |
 | 0.37.2 | 2026-10-26 | Aggro : la colonne ne dépend plus de la colonne PV (elle-même liée à la colonne Niv. ajoutée par MZ) : si PV n’apparaît pas au bout de 6 s, Aggro se place avant Réf. |
 | 0.38.0 | 2026-10-26 | Monstres : colonnes PV et Aggro placées juste avant « Réf. » (plus de dépendance à la colonne Niv. de MZ) ; sans MZ, PV n’affiche que les valeurs déjà mémorisées |
-| 0.39.0 | 2026-10-27 | Ordres : clic sur un trésor hors de la vue du suivant = ordres « Arrêt » puis « Se déplacer vers » (X/Y/N du trésor) créés en arrière-plan, déplacement en 1er ; dans la vue, « Aller chercher » inchangé |
+| 0.39.0 | 2026-10-27 | Ordres : clic sur un trésor hors de la vue du suivant = ordres « Arrêt » puis « Se déplacer vers » (X/Y/N du trésor) créés via le menu déroulant des ordres du jeu, en arrière-plan, déplacement en 1er ; dans la vue, « Aller chercher » inchangé |
