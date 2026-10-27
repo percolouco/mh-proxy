@@ -2329,7 +2329,8 @@
 
   // Gowaps de la vue qui ne sont pas dans la liste commune : on lit en arri\u00e8re-plan (lecture seule, une page \u00e0 la fois, 1 \u00e0 10 s entre
   // deux) la page de chaque gowap de la vue (les plus proches d'abord) et on compte ses \u00e9v\u00e9nements \u00ab s'est \u00e9brou\u00e9 \u00bb et \u00ab a ramass\u00e9 un tr\u00e9sor \u00bb. Au moins 3 de chaque :
-  // le nom du gowap est soulign\u00e9 en rose. R\u00e9sultat gard\u00e9 6 h dans le navigateur ; rien n'est envoy\u00e9 au serveur.
+  // le nom du gowap est soulign\u00e9 en rose. Les lectures sont partag\u00e9es via le serveur MH (gowap_events.php) : gard\u00e9es 6 h pour tous, jamais relues avant.
+  var EVENTS_URL = 'https://mh.percolouco.com/gowap/gowap_events.php';
   function addGowapEvents() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var KEY = 'mhx-gwev', TTL = 6 * 3600 * 1000, cache = {}, perks = null, queue = null, running = false;
@@ -2371,21 +2372,30 @@
           });
           cache[id] = [Date.now(), eb, ra];
           save(); paint();
+          mhdPost(EVENTS_URL, 'id=' + id + '&eb=' + eb + '&ra=' + ra, function () {});
         })
         .catch(function () { /* ignore */ })
         .then(function () { running = false; setTimeout(step, 1000 + Math.random() * 9000); });
     };
-    perksCall('', function (list) {
-      if (!list) return;
-      perks = list;
-      var now = Date.now(), seen = {};
-      queue = rows().filter(function (r) {
-        if (list[r.id] || seen[r.id]) return false;
-        seen[r.id] = true;
-        return !cache[r.id] || now - cache[r.id][0] > TTL;
-      }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
-      paint(); step();
-    });
+    // lectures partag\u00e9es par le serveur MH (fra\u00eeches de moins de 6 h : rien n'est relu) ; le navigateur ne sert que de repli
+    fetch(EVENTS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      .then(function (srv) {
+        if (srv) Object.keys(srv).forEach(function (id) {
+          var t = Date.now() - srv[id][0] * 1000;
+          if (!cache[id] || cache[id][0] < t) cache[id] = [t, srv[id][1], srv[id][2]];
+        });
+        perksCall('', function (list) {
+          if (!list) return;
+          perks = list;
+          var now = Date.now(), seen = {};
+          queue = rows().filter(function (r) {
+            if (list[r.id] || seen[r.id]) return false;
+            seen[r.id] = true;
+            return !cache[r.id] || now - cache[r.id][0] > TTL;
+          }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
+          paint(); step();
+        });
+      });
     setInterval(paint, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
   }
 
