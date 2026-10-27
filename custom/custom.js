@@ -172,16 +172,57 @@
     [1500, 4000, 8000].forEach(function (d) { setTimeout(load, d); });
   }
 
+  // Connexion (TurnStart.php) : lecture en arriere-plan (simple GET, rien n'est soumis dans le jeu) de la page Equipement > Suivants ;
+  // pour chaque gowap de la liste commune on envoie au serveur MH ses infos du moment (DLA, PA, PV, vue, position, poids, ordres).
+  // Au plus une fois toutes les 5 minutes par navigateur.
+  var INFOS_URL = 'https://mh.percolouco.com/gowap/gowap_infos.php';
+  var GINFO_KEY = 'mhx-gowap-infos-t';
+  function majInfosGowaps(apres) {
+    if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body) return;
+    var id = document.body.getAttribute('data-idtroll') || currentTrollId();
+    if (!/^\d+$/.test(id || '')) return;
+    try { if (Date.now() - parseInt(localStorage.getItem(GINFO_KEY) || '0', 10) < 300000) return; localStorage.setItem(GINFO_KEY, String(Date.now())); } catch (e) { /* stockage indisponible */ }
+    perksCall('', function (list) {
+      if (!list) return;
+      fetch('/mountyhall/MH_Play/Play_e_follo.php?type=F', { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+        .then(function (b) {
+          var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html');
+          var envois = [];
+          doc.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
+            var j = null;
+            try { j = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
+            if (!j || !list[j.id]) return; // seulement les gowaps de la liste commune
+            var bloc = h3.parentNode && h3.parentNode.parentNode, t = (bloc ? bloc.textContent : '').replace(/[\s ]+/g, ' ');
+            var pos = /X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(t), poids = /poids\s+port\S*\s*:\s*(\d+\s*minutes)/i.exec(t);
+            var d = { nom: h3.textContent.replace(/[\s ]+/g, ' ').trim(), dla: j.dla, pa: j.pa, pv: j.pv, pvmax: j.pvmax, vue: j.vue, tour: j.tour,
+                      ordres: (j.ordres || []).slice(0, 8).map(function (o) { return o.ordre; }) };
+            if (pos) { d.x = parseInt(pos[1], 10); d.y = parseInt(pos[2], 10); d.n = parseInt(pos[3], 10); }
+            if (poids) d.poids = poids[1];
+            envois.push([j.id, d]);
+          });
+          var suite = function (i) {
+            if (i >= envois.length) { if (apres) apres(); return; }
+            mhdPost(INFOS_URL, 'id=' + envois[i][0] + '&troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(envois[i][1])), function () { suite(i + 1); });
+          };
+          suite(0);
+        })
+        .catch(function () { /* silencieux : on reessaiera a la prochaine connexion */ });
+    });
+  }
+
   // Page de connexion (TurnStart.php) : encart « Mes gowaps » au-dessus de « Votre Equipement utilisé » (gowaps cochés dans la liste commune)
   function addMesGowaps() {
-    if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body || document.getElementById('mhx-mesgowaps')) return;
+    if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body) return;
     var id = document.body.getAttribute('data-idtroll') || currentTrollId();
     if (!/^\d+$/.test(id || '')) return;
     var titre = null;
     document.querySelectorAll('h3').forEach(function (h) { if (!titre && /Equipement utilis/i.test(h.textContent)) titre = h; });
     if (!titre) return;
     mineCall(id, '', function (d) {
-      if (!d || !d.gowaps || !d.gowaps.length || document.getElementById('mhx-mesgowaps')) return;
+      var ancien = document.getElementById('mhx-mesgowaps');
+      if (ancien) ancien.remove(); // reaffichage apres la lecture de la page Suivants
+      if (!d || !d.gowaps || !d.gowaps.length) return;
       var box = document.createElement('div');
       box.id = 'mhx-mesgowaps';
       var h = document.createElement('h3');
@@ -192,6 +233,11 @@
         var c = document.createElement('div');
         c.className = 'mhx-mg';
         if (g.color && PERK_COLORS[g.color]) c.style.borderLeftColor = PERK_COLORS[g.color];
+        var lv = g.live || null;
+        if (lv) { // infos lues dans le jeu (page Suivants) : plus fraiches que celles du serveur MH
+          g.pv_actuel = lv.pv; g.pv_max = lv.pvmax; g.pa_restant = lv.pa; g.dla = lv.dla; g.modified_at = lv.maj;
+          if (lv.x !== undefined) { g.pos_x = lv.x; g.pos_y = lv.y; g.pos_n = lv.n; }
+        }
         var vue = gowapVueGet(g.gowap_id);
         var l = document.createElement('b');
         l.textContent = (g.type || 'Gowap') + ' (' + g.gowap_id + ')';
@@ -199,13 +245,16 @@
         var lignes = [];
         if (g.pv_actuel !== null) lignes.push('PV ' + g.pv_actuel + (g.pv_max ? ' / ' + g.pv_max : '') + ' \u2022 PA ' + g.pa_restant + ' \u2022 DLA ' + fmt(g.dla));
         if (g.pos_x !== null) lignes.push('Position X=' + g.pos_x + ' Y=' + g.pos_y + ' N=' + g.pos_n);
+        if (lv && lv.vue && !vue) lignes.push('Vue ' + lv.vue + ' cases');
         if (vue) lignes.push('Vue ' + (vue.v + vue.b) + ' case' + (vue.v + vue.b > 1 ? 's' : '') + ' (' + vue.v + (vue.b ? (vue.b > 0 ? '+' : '') + vue.b : '') + ')');
+        if (lv && lv.poids) lignes.push('Poids port\u00e9 : ' + lv.poids);
+        if (lv && lv.ordres && lv.ordres.length) lignes.push('Ordres : ' + lv.ordres.join(' \u2192 '));
         if (g.dernier_deces) lignes.push('Dernier décès : ' + g.dernier_deces);
         if (g.modified_at) lignes.push('Infos du ' + fmt(g.modified_at));
         lignes.forEach(function (t) { var p = document.createElement('div'); p.textContent = t; c.appendChild(p); });
         if (g.objets && g.objets.length) {
           var o = document.createElement('div');
-          o.textContent = 'Objets (' + g.objets.length + ') : ' + g.objets.map(function (x) { return x.nom + (x.description ? ' [' + x.description + ']' : ''); }).join(', ');
+          o.textContent = 'Objets (' + g.objets.length + ') : ' + g.objets.map(function (x) { return (x.nom || 'objet non identifi\u00e9') + (x.description ? ' [' + x.description + ']' : ''); }).join(', ');
           c.appendChild(o);
         }
         box.appendChild(c);
@@ -2115,7 +2164,7 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); addMesGowaps(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
