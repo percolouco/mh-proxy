@@ -172,6 +172,48 @@
     [1500, 4000, 8000].forEach(function (d) { setTimeout(load, d); });
   }
 
+  // Page de connexion (TurnStart.php) : encart « Mes gowaps » au-dessus de « Votre Equipement utilisé » (gowaps cochés dans la liste commune)
+  function addMesGowaps() {
+    if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body || document.getElementById('mhx-mesgowaps')) return;
+    var id = document.body.getAttribute('data-idtroll') || currentTrollId();
+    if (!/^\d+$/.test(id || '')) return;
+    var titre = null;
+    document.querySelectorAll('h3').forEach(function (h) { if (!titre && /Equipement utilis/i.test(h.textContent)) titre = h; });
+    if (!titre) return;
+    mineCall(id, '', function (d) {
+      if (!d || !d.gowaps || !d.gowaps.length || document.getElementById('mhx-mesgowaps')) return;
+      var box = document.createElement('div');
+      box.id = 'mhx-mesgowaps';
+      var h = document.createElement('h3');
+      h.textContent = 'Mes gowaps :';
+      box.appendChild(h);
+      var fmt = function (t) { return t ? t.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') : '?'; };
+      d.gowaps.forEach(function (g) {
+        var c = document.createElement('div');
+        c.className = 'mhx-mg';
+        if (g.color && PERK_COLORS[g.color]) c.style.borderLeftColor = PERK_COLORS[g.color];
+        var vue = gowapVueGet(g.gowap_id);
+        var l = document.createElement('b');
+        l.textContent = (g.type || 'Gowap') + ' (' + g.gowap_id + ')';
+        c.appendChild(l);
+        var lignes = [];
+        if (g.pv_actuel !== null) lignes.push('PV ' + g.pv_actuel + (g.pv_max ? ' / ' + g.pv_max : '') + ' \u2022 PA ' + g.pa_restant + ' \u2022 DLA ' + fmt(g.dla));
+        if (g.pos_x !== null) lignes.push('Position X=' + g.pos_x + ' Y=' + g.pos_y + ' N=' + g.pos_n);
+        if (vue) lignes.push('Vue ' + (vue.v + vue.b) + ' case' + (vue.v + vue.b > 1 ? 's' : '') + ' (' + vue.v + (vue.b ? (vue.b > 0 ? '+' : '') + vue.b : '') + ')');
+        if (g.dernier_deces) lignes.push('Dernier décès : ' + g.dernier_deces);
+        if (g.modified_at) lignes.push('Infos du ' + fmt(g.modified_at));
+        lignes.forEach(function (t) { var p = document.createElement('div'); p.textContent = t; c.appendChild(p); });
+        if (g.objets && g.objets.length) {
+          var o = document.createElement('div');
+          o.textContent = 'Objets (' + g.objets.length + ') : ' + g.objets.map(function (x) { return x.nom + (x.description ? ' [' + x.description + ']' : ''); }).join(', ');
+          c.appendChild(o);
+        }
+        box.appendChild(c);
+      });
+      titre.parentNode.insertBefore(box, titre);
+    });
+  }
+
   // Page de connexion (TurnStart.php) : « Vos Bonus et Malus en cours » et « Pas encore actifs » -> serveur MH
   // (table mh_bonus_malus). La liste envoyée remplace la précédente : pas de doublon si on se reconnecte.
   var NOTIF_BM_URL = 'https://mh.percolouco.com/notif/bonus_malus.php';
@@ -654,6 +696,19 @@
     });
   }
 
+  // Gowaps « a moi » : case a cocher dans la liste commune -> rattache le gowap au troll connecte (un seul proprietaire par gowap),
+  // stocke sur le serveur MH ; affiches sur TurnStart.php au-dessus de « Votre Equipement utilise ». Lecture / affichage uniquement.
+  var MINE_URL = 'https://mh.percolouco.com/gowap/gowap_mine.php';
+  function mineCall(troll, body, cb) {
+    var opt = { referrerPolicy: 'no-referrer' };
+    if (body) {
+      opt.method = 'POST';
+      opt.headers = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
+      opt.body = body + '&troll=' + troll;
+    }
+    fetch(MINE_URL + (body ? '' : '?troll=' + troll), opt).then(function (r) { return r.ok ? r.json() : null; }).then(cb, function () { cb(null); });
+  }
+
   // Encart en bas de la page Suivants : liste commune, couleur modifiable, ajout / retrait d'un gowap
   function addGowapPanel(list) {
     var box = document.getElementById('mhx-gowaps');
@@ -686,8 +741,22 @@
       var del = document.createElement('button');
       del.type = 'button'; del.textContent = '\u2715';
       del.onclick = function () { save('action=del&id=' + id); };
-      row.appendChild(lab); row.appendChild(sel); row.appendChild(del);
+      var chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.disabled = true; chk.dataset.gid = id;
+      chk.title = 'Mon gowap : affich\u00e9 sur la page de connexion';
+      row.appendChild(chk); row.appendChild(lab); row.appendChild(sel); row.appendChild(del);
       box.appendChild(row);
+    });
+    var moi = currentTrollId();
+    if (moi) mineCall(moi, '', function (m) {
+      if (!m) return;
+      box.querySelectorAll('input[type="checkbox"][data-gid]').forEach(function (chk) {
+        var prop = m.all[chk.dataset.gid];
+        chk.checked = String(prop) === String(moi);
+        chk.disabled = !!prop && !chk.checked; // deja rattache a un autre troll
+        if (chk.disabled) chk.title = 'D\u00e9j\u00e0 rattach\u00e9 au troll ' + prop;
+        chk.onchange = function () { chk.disabled = true; mineCall(moi, 'action=' + (chk.checked ? 'set' : 'del') + '&id=' + chk.dataset.gid, function () { chk.disabled = false; }); };
+      });
     });
     var add = document.createElement('div');
     var inp = document.createElement('input');
@@ -2046,7 +2115,7 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); addMesGowaps(); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
