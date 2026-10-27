@@ -155,3 +155,5 @@ tr.mhx-pile-hl > td { background: #f3d25c !important; }
 #mhx-mesgowaps summary { cursor: pointer; }
 #mhx-mesgowaps .mhx-mg-type { margin-top: 4px; font-weight: bold; }
 #mhx-mesgowaps .mhx-mg-obj { margin-left: 14px; }
+tr.mhx-marque > td { background: #9fd0ee !important; background-image: none !important; }
+.mhx-marque-x { margin-left: 4px; color: #b00020; font-weight: bold; text-decoration: none; cursor: pointer; }

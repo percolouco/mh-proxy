@@ -783,6 +783,22 @@
     });
   }
 
+  // Page Ma vue : les tresors marques « en cours de recuperation » (voir marksCall) sont colores, reconnus par leur reference.
+  function colorVueMarks() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    marksCall('', function (m) {
+      if (!m) return;
+      var paint = function () {
+        document.querySelectorAll('#VUE_tresors tbody tr.mh_tdpage').forEach(function (tr) {
+          var ref = tr.querySelector('td.ref');
+          if (ref && m[ref.textContent.trim()]) { tr.classList.add('mhx-marque'); tr.title = 'Tr\u00e9sor en cours de r\u00e9cup\u00e9ration'; }
+        });
+      };
+      paint();
+      [1500, 4000, 8000].forEach(function (d) { setTimeout(paint, d); });
+    });
+  }
+
   // Page Ma vue : les gowaps de la liste commune sont colorés (même couleur que sur la page Suivants), reconnus par leur référence.
   function colorVueGowaps() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
@@ -1627,6 +1643,18 @@
   }
   function distGowap(it, g) { return Math.max(Math.abs(it.x - g.x), Math.abs(it.y - g.y), Math.abs(it.n - g.n)); }
 
+  // Marques « tresor en cours de recuperation » : partagees entre joueurs (serveur MH), une seule couleur, retirees seulement par celui qui les a posees
+  var MARKS_URL = 'https://mh.percolouco.com/gowap/tresor_marks.php';
+  function marksCall(body, cb) {
+    var opt = { referrerPolicy: 'no-referrer' };
+    if (body) {
+      opt.method = 'POST';
+      opt.headers = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
+      opt.body = body;
+    }
+    fetch(MARKS_URL, opt).then(function (r) { return r.ok ? r.json() : null; }).then(cb, function () { cb(null); });
+  }
+
   // « Aller chercher » : sur la page Ordres, un clic sur un tresor situe dans la portee de vue du suivant (Dist. <= Vue) choisit l'ordre
   // « Aller chercher ... » et ouvre l'ecran de choix (fenetre « Action » du jeu) ; la-bas, le tresor est selectionne dans la liste et le
   // bouton « Action » est clique (sans PA, a la demande de Perco). La demande est transmise par localStorage et expire apres 2 minutes.
@@ -1641,7 +1669,7 @@
     if (gigots ? !ordre.querySelector('option[value="7"]') || !ordre.querySelector('option[value="5"]') || !ordre.querySelector('option[value="' + (hors ? 1 : 8) + '"]') : hors ? !ordre.querySelector('option[value="1"]') || !ordre.querySelector('option[value="5"]') : !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]')) return false;
     if (acBusy) { say('Un envoi est d\u00e9j\u00e0 en cours, patiente quelques secondes.'); return true; }
     acBusy = true;
-    sequenceAllerChercher(it, id, say, hors).then(function (txt) { say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
+    sequenceAllerChercher(it, id, say, hors).then(function (txt) { var moi = currentTrollId(); if (moi && /^\d+$/.test(it.ref)) marksCall('action=set&ref=' + it.ref + '&troll=' + moi, function () {}); say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
       .then(function () { acBusy = false; setTimeout(function () { location.reload(); }, 1200); });
     return true;
   }
@@ -1762,6 +1790,9 @@
     if (infoTxt) { var ligne = document.createElement('div'); ligne.className = 'mhx-to-info' + (vieux ? ' mhx-to-vieux' : ''); ligne.textContent = infoTxt; box.appendChild(ligne); }
     var occ = d.occ || { gowap: [], troll: [] };
     var actifs = {}, excl = { actif: false, dist: 0 }, pilesN = 5, pilesOn = false, sel = null, tri = { cle: 'dist', sens: 1 };
+    var marks = {}, moiM = currentTrollId(), drawM = null;
+    var chargeMarks = function () { marksCall('', function (m) { if (m) { marks = m; if (drawM) drawM(); } }); };
+    chargeMarks();
     var pilesBox = document.createElement('div'); pilesBox.id = 'mhx-tpiles';
     var pl = document.createElement('div'); pl.className = 'mhx-piles-ligne';
     var bp = document.createElement('button'); bp.type = 'button'; bp.className = 'mh_form_submit mhx-tfiltre'; bp.textContent = 'Plus grosses piles';
@@ -1808,6 +1839,7 @@
       }).forEach(function (it) {
         var tr = tb.insertRow();
         tr.className = 'mh_tdpage' + (sel && sel === it.x + ';' + it.y + ';' + it.n ? ' mhx-pile-hl' : '');
+        if (marks[it.ref]) tr.classList.add('mhx-marque');
         tr.style.cursor = 'pointer';
         if (it.age > 3600) { tr.style.opacity = '0.75'; }
         var vuIl = it.age >= 3600 ? Math.floor(it.age / 3600) + ' h' : Math.floor(it.age / 60) + ' min';
@@ -1817,6 +1849,12 @@
           var td = tr.insertCell();
           if (c[0]) td.className = c[0];
           if (c[1] === 'Actions') {
+            if (marks[it.ref] && String(marks[it.ref]) === String(moiM)) { // seul celui qui a pose la marque peut la retirer
+              var x = document.createElement('a');
+              x.href = '#'; x.textContent = '\u2715'; x.className = 'mhx-marque-x'; x.title = 'Retirer la marque (trésor plus en cours de récupération)';
+              x.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); delete marks[it.ref]; draw(); marksCall('action=del&ref=' + it.ref + '&troll=' + moiM, function (m) { if (m) { marks = m; draw(); } }); });
+              td.appendChild(x);
+            }
             if (it.icone) {
               var sp2 = document.createElement('span'); sp2.className = 'cm cm-tresor';
               var im = document.createElement('img'); im.src = it.icone; im.alt = 'Tr\u00e9sor'; im.height = 20;
@@ -1875,6 +1913,7 @@
     sp.addEventListener('change', function () { pilesN = parseInt(sp.value, 10) || 5; draw(); });
     box.appendChild(pilesBox); box.appendChild(bar);
     sortable.appendChild(table); box.appendChild(sortable);
+    drawM = draw;
     draw();
     parent.insertBefore(box, before);
   }
@@ -2221,7 +2260,7 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
