@@ -2328,7 +2328,7 @@
   }
 
   // Gowaps de la vue qui ne sont pas dans la liste commune : on lit en arri\u00e8re-plan (lecture seule, une page \u00e0 la fois, 1 \u00e0 10 s entre
-  // deux) la page de chaque gowap \u00e0 distance 0-2 et on compte ses \u00e9v\u00e9nements \u00ab s'est \u00e9brou\u00e9 \u00bb et \u00ab a ramass\u00e9 un tr\u00e9sor \u00bb. Au moins 3 de chaque :
+  // deux) la page de chaque gowap de la vue (les plus proches d'abord) et on compte ses \u00e9v\u00e9nements \u00ab s'est \u00e9brou\u00e9 \u00bb et \u00ab a ramass\u00e9 un tr\u00e9sor \u00bb. Au moins 3 de chaque :
   // le nom du gowap est soulign\u00e9 en rose. R\u00e9sultat gard\u00e9 6 h dans le navigateur ; rien n'est envoy\u00e9 au serveur.
   function addGowapEvents() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
@@ -2380,10 +2380,10 @@
       perks = list;
       var now = Date.now(), seen = {};
       queue = rows().filter(function (r) {
-        if (list[r.id] || isNaN(r.d) || r.d > 2 || seen[r.id]) return false;
+        if (list[r.id] || seen[r.id]) return false;
         seen[r.id] = true;
         return !cache[r.id] || now - cache[r.id][0] > TTL;
-      }).map(function (r) { return r.id; });
+      }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
       paint(); step();
     });
     setInterval(paint, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
