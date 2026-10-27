@@ -138,3 +138,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.38.0 | 2026-10-26 | Monstres : colonnes PV et Aggro placées juste avant « Réf. » (plus de dépendance à la colonne Niv. de MZ) ; sans MZ, PV n’affiche que les valeurs déjà mémorisées |
 | 0.39.0 | 2026-10-27 | Ordres : clic sur un trésor hors de la vue du suivant = ordres « Arrêt » puis « Se déplacer vers » (X/Y/N du trésor) créés via le menu déroulant des ordres du jeu, en arrière-plan, déplacement en 1er ; dans la vue, « Aller chercher » inchangé |
 | 0.40.0 | 2026-10-27 | Ordres : clic sur des « Gigots de Gob » = « Se secouer » sur leur case (X/Y/N), puis « Aller chercher » (dans la vue) ou « Se déplacer vers » (hors vue), puis « Arrêt » ; créés en arrière-plan via le menu déroulant des ordres |
+| 0.40.2 | 2026-10-27 | Gigots de Gob hors de la vue : « Se secouer » sur leur case puis « Arrêt » suffisent (plus de « Se déplacer vers ») ; dans la vue inchangé |
