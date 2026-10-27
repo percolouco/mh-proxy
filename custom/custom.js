@@ -2260,7 +2260,61 @@
     }
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); }
+  // Page \u00ab Mes commandes \u00bb (Play_e_enchantements.php) : une case par commande pour la suivre dans le suivi des enchantements du site MH.
+  // Le texte est lu comme le formulaire du site (objet, boutique X=|Y=|N=, 3 composants). Rien n'est envoy\u00e9 pour une commande non coch\u00e9e.
+  var ENCH_URL = 'https://mh.percolouco.com/enchantements/includes/update/sync-commandes.php';
+  function addCommandesSync() {
+    if (!/\/Play_e_enchantements\.php$/.test(location.pathname) || document.getElementById('mhx-commandes')) return;
+    var troll = currentTrollId();
+    if (!troll) return;
+    var cells = [].slice.call(document.querySelectorAll('td.mh_tdtitre')).filter(function (td) { return /command\u00e9 un enchantement/.test(td.textContent); });
+    if (!cells.length) return;
+    var orders = cells.map(function (td) {
+      var lines = td.innerText.split('\n'), item = '', name = '', shop = '', comps = [], found = false, sect = false;
+      lines.forEach(function (l) {
+        l = l.trim();
+        if (found) { name = l.replace("(vous n'avez pas ce tr\u00e9sor sur vous)", '').replace(/:$/, '').trim(); found = false; return; }
+        if (l.indexOf('command\u00e9 un enchantement de :') !== -1 && !name) { found = true; return; }
+        if (l.indexOf('X=') !== -1) shop = (l.indexOf(' - ') !== -1 ? l.split(' - ').pop() : l).trim();
+        if (l.indexOf("Les Composants demand\u00e9s par l'enchanteur sont :") !== -1) { sect = true; return; }
+        if (sect && l) comps.push(l);
+      });
+      var m = /^\[(\d+)\]/.exec(name);
+      if (m) item = m[1];
+      return { td: td, key: item + '|' + shop, o: { item: item, name: name, shop: shop, comps: comps } };
+    }).filter(function (x) { return x.o.item && x.o.shop && x.o.comps.length >= 3; });
+    if (!orders.length) return;
+    var marker = document.createElement('span'); marker.id = 'mhx-commandes'; marker.style.display = 'none'; document.body.appendChild(marker);
+    var call = function (extra, cb) {
+      var body = 'troll=' + encodeURIComponent(troll) + '&orders=' + encodeURIComponent(JSON.stringify(orders.map(function (x) { return x.o; }))) + (extra || '');
+      fetch(ENCH_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: body, referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.json() : null; }).then(cb, function () { cb(null); });
+    };
+    var boxes = orders.map(function (x) {
+      var lab = document.createElement('label');
+      lab.className = 'mhx-cmd-sync'; lab.style.cssText = 'display:block;margin-top:6px;font-size:11px;cursor:pointer';
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.disabled = true;
+      var st = document.createElement('span'); st.textContent = ' Synchroniser avec le suivi des enchantements';
+      lab.appendChild(cb); lab.appendChild(st); x.td.appendChild(lab);
+      cb.addEventListener('change', function () {
+        cb.disabled = true;
+        call('&set=' + encodeURIComponent(x.key) + '&sync=' + (cb.checked ? '1' : '0'), function (r) {
+          cb.disabled = false;
+          if (!r) { cb.checked = !cb.checked; st.textContent = ' Synchronisation impossible (serveur MH)'; return; }
+          st.textContent = cb.checked ? ' Synchronis\u00e9e avec le suivi des enchantements' : ' Synchroniser avec le suivi des enchantements';
+        });
+      });
+      return { cb: cb, st: st, key: x.key };
+    });
+    call('', function (r) {
+      boxes.forEach(function (b) {
+        b.cb.disabled = !r;
+        if (r && r.sync && r.sync[b.key]) { b.cb.checked = true; b.st.textContent = ' Synchronis\u00e9e avec le suivi des enchantements'; }
+      });
+    });
+  }
+
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
