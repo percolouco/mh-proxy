@@ -250,7 +250,6 @@
         if (lv && lv.poids) lignes.push('Poids port\u00e9 : ' + lv.poids);
         if (lv && lv.ordres && lv.ordres.length) lignes.push('Ordres : ' + lv.ordres.join(' \u2192 '));
         if (g.dernier_deces) lignes.push('Dernier décès : ' + g.dernier_deces);
-        if (g.modified_at) lignes.push('Infos du ' + fmt(g.modified_at));
         lignes.forEach(function (t) { var p = document.createElement('div'); p.textContent = t; c.appendChild(p); });
         if (g.objets && g.objets.length) {
           var o = document.createElement('div');
