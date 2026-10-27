@@ -1462,7 +1462,8 @@
     var ordre = document.querySelector('select[name="gus_ordre"]');
     if (!vue || !ordre) return false;
     var hors = gowapPos() ? !dansVueSuivant(it, gowapPos(), vue.v + vue.b) : it.dist > vue.v + vue.b;
-    if (hors ? !ordre.querySelector('option[value="1"]') || !ordre.querySelector('option[value="5"]') : !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]')) return false;
+    var gigots = /^Gigots?\s+de\s+Gob/i.test(it.nom);
+    if (gigots ? !ordre.querySelector('option[value="7"]') || !ordre.querySelector('option[value="5"]') || !ordre.querySelector('option[value="' + (hors ? 1 : 8) + '"]') : hors ? !ordre.querySelector('option[value="1"]') || !ordre.querySelector('option[value="5"]') : !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]')) return false;
     if (acBusy) { say('Un envoi est d\u00e9j\u00e0 en cours, patiente quelques secondes.'); return true; }
     acBusy = true;
     sequenceAllerChercher(it, id, say, hors).then(function (txt) { say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
@@ -1507,6 +1508,16 @@
           return post('/mountyhall/MH_Play/Play_a_ActionResult.php', 'type=F&id=-4&id_target=' + id + '&gus_top=' + encodeURIComponent(tops[tops.length - 1].value));
         });
     };
+    if (/^Gigots?\s+de\s+Gob/i.test(it.nom)) { // Gigots de Gob : Arret, puis « Aller chercher » (dans la vue) ou « Se deplacer vers » (hors vue), puis « Se secouer » sur leur case
+      var pos = { x: it.x, y: it.y, n: it.n };
+      var etapes = [['Se secouer', '7', pos], [hors ? 'Se d\u00e9placer vers' : 'Aller chercher', hors ? '1' : '8', hors ? pos : it.ref], ['Arr\u00eat', '5', null]]; // crees dans l'ordre inverse : chacun remonte en premier
+      var chaine = Promise.resolve();
+      etapes.forEach(function (e, i) {
+        chaine = chaine.then(function () { say((i + 1) + '/' + etapes.length + ' ' + e[0] + '\u2026'); return creer(e[1], e[2], e[1] === '5'); })
+          .then(function () { return remonter(); }).then(function () { return wait(1000); });
+      });
+      return chaine.then(function () { return 'Termin\u00e9 : Arr\u00eat, ' + (hors ? 'd\u00e9placement vers' : 'aller chercher') + ' ' + it.nom + ' (' + it.ref + '), puis se secouer sur la case.'; });
+    }
     if (hors) { // tresor hors de vue : ordre « Arret » (5) puis « Se deplacer vers » (1) sa position, remonte en premier
       say('1/5 Arr\u00eat\u2026');
       return creer('5', null, true).then(function () { say('2/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
