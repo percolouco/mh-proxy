@@ -144,3 +144,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.42.1 | 2026-10-27 | Mes gowaps : ligne « Infos du … » retirée |
 | 0.42.2 | 2026-10-27 | Mes gowaps : PV, PA, DLA, position et vue sur une seule ligne |
 | 0.43.0 | 2026-10-27 | Mes gowaps : objets lus à la connexion dans les tableaux repliables « [+] » de la page Suivants (n°, nom, détail, état, poids, y compris les objets non identifiés), groupés par type dans un bloc « Objets (N) » repliable |
+| 0.43.1 | 2026-10-27 | Mes gowaps : les objets avec une mention « Autre » (ex. [En gueule]) sont listés directement (« Objet : nom • [En gueule] »), le reste reste dans le bloc repliable « Tous les objets » |
