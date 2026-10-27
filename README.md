@@ -147,3 +147,5 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.43.1 | 2026-10-27 | Mes gowaps : les objets avec une mention « Autre » (ex. [En gueule]) sont listés directement (« Objet : nom • [En gueule] »), le reste reste dans le bloc repliable « Tous les objets » |
 | 0.44.0 | 2026-10-27 | Mes gowaps : fond rouge (rgba(218, 11, 11, 0.6)) quand le 1er ordre du gowap est « Arrêt » |
 | 0.45.0 | 2026-10-27 | Mes gowaps : fond orange (rgba(218, 137, 11, 0.6)) quand le 1er ordre est « Se secouer » sur une case à portée de vue du gowap (X et Y ≤ Vue, N ≤ Vue / 2) |
+| 0.45.1 | 2026-10-27 | Mes gowaps : infos relues à chaque ouverture de TurnStart (10 s mini entre deux lectures) puis toutes les 60 s tant que la page reste ouverte (avant : 5 min) |
+| 0.46.0 | 2026-10-27 | Mes gowaps : bouton « MAJ » à côté du titre, relit tout de suite les infos des gowaps (sans attendre les 10 s / 60 s) et rafraîchit l’encart |
