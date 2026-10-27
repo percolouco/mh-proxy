@@ -195,9 +195,9 @@
             var type = cells[1].textContent.trim();
             cible.querySelectorAll('tbody tr').forEach(function (tr) {
               var td = tr.querySelectorAll('td');
-              if (td.length < 5) return;
+              if (td.length < 5) return; // 6e colonne « Autre » : ex. [En gueule]
               var t = function (i) { return (td[i].textContent || '').replace(/[\s\u00a0]+/g, ' ').trim(); };
-              (objets[m[1]] = objets[m[1]] || []).push([type, t(1), t(2), t(3), t(4)]);
+              (objets[m[1]] = objets[m[1]] || []).push([type, t(1), t(2), t(3), t(4), td.length > 5 ? t(5) : '']);
             });
           });
           doc.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
@@ -266,9 +266,22 @@
         lignes.forEach(function (t) { var p = document.createElement('div'); p.textContent = t; c.appendChild(p); });
         var objs = lv && lv.objets ? lv.objets : null; // [type, nom, detail, etat, poids] lus dans le jeu
         if (objs && objs.length) {
+          var gueule = objs.filter(function (x) { return x[5]; }); // objets avec une mention « Autre » (ex. [En gueule]) : liste directe, sans clic
+          if (gueule.length) {
+            var tg = document.createElement('div');
+            tg.className = 'mhx-mg-type';
+            tg.textContent = gueule.length > 1 ? 'Objets :' : 'Objet :';
+            c.appendChild(tg);
+            gueule.forEach(function (x) {
+              var li = document.createElement('div');
+              li.className = 'mhx-mg-obj';
+              li.textContent = x[1].replace(/\s*\[[^\]]*\]$/, '') + ' \u2022 ' + x[5];
+              c.appendChild(li);
+            });
+          }
           var det = document.createElement('details');
           var sm = document.createElement('summary');
-          sm.textContent = 'Objets (' + objs.length + ')';
+          sm.textContent = (gueule.length ? 'Tous les objets (' : 'Objets (') + objs.length + ')';
           det.appendChild(sm);
           var types = [];
           objs.forEach(function (x) { if (types.indexOf(x[0]) < 0) types.push(x[0]); });
@@ -285,7 +298,7 @@
               det.appendChild(li);
             });
           });
-          c.appendChild(det);
+          if (objs.length > gueule.length) c.appendChild(det); // rien de plus a montrer si tout est deja liste au-dessus
         } else if (g.objets && g.objets.length) {
           var o = document.createElement('div');
           o.textContent = 'Objets (' + g.objets.length + ') : ' + g.objets.map(function (x) { return (x.nom || 'objet non identifi\u00e9') + (x.description ? ' [' + x.description + ']' : ''); }).join(', ');
