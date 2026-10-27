@@ -252,6 +252,9 @@
         }
         if (lv && lv.ordres && /^Arr[e\u00ea]t/i.test(lv.ordres[0] || '')) c.style.background = 'rgba(218, 11, 11, 0.6)'; // 1er ordre = Arret
         var vue = gowapVueGet(g.gowap_id);
+        var o1 = lv && lv.ordres ? lv.ordres[0] || '' : '', ms = /^Se secouer.*?X\s*=\s*(-?\d+).*?Y\s*=\s*(-?\d+).*?N\s*=\s*(-?\d+)/i.exec(o1), pv0 = vue ? vue.v + vue.b : (lv && lv.vue) || 0;
+        // 1er ordre « Se secouer » sur une case a portee de vue du gowap (X, Y <= vue ; N <= vue / 2, comme pour « Aller chercher ») : fond orange
+        if (ms && pv0 && g.pos_x !== null && Math.abs(ms[1] - g.pos_x) <= pv0 && Math.abs(ms[2] - g.pos_y) <= pv0 && Math.abs(ms[3] - g.pos_n) <= Math.floor(pv0 / 2)) c.style.background = 'rgba(218, 137, 11, 0.6)';
         var l = document.createElement('b');
         l.textContent = (g.type || 'Gowap') + ' (' + g.gowap_id + ')';
         c.appendChild(l);
