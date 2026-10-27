@@ -146,3 +146,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.43.0 | 2026-10-27 | Mes gowaps : objets lus à la connexion dans les tableaux repliables « [+] » de la page Suivants (n°, nom, détail, état, poids, y compris les objets non identifiés), groupés par type dans un bloc « Objets (N) » repliable |
 | 0.43.1 | 2026-10-27 | Mes gowaps : les objets avec une mention « Autre » (ex. [En gueule]) sont listés directement (« Objet : nom • [En gueule] »), le reste reste dans le bloc repliable « Tous les objets » |
 | 0.44.0 | 2026-10-27 | Mes gowaps : fond rouge (rgba(218, 11, 11, 0.6)) quand le 1er ordre du gowap est « Arrêt » |
+| 0.45.0 | 2026-10-27 | Mes gowaps : fond orange (rgba(218, 137, 11, 0.6)) quand le 1er ordre est « Se secouer » sur une case à portée de vue du gowap (X et Y ≤ Vue, N ≤ Vue / 2) |
