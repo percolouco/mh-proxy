@@ -2327,7 +2327,69 @@
     });
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); }
+  // Gowaps de la vue qui ne sont pas dans la liste commune : on lit en arri\u00e8re-plan (lecture seule, une page \u00e0 la fois, 1 \u00e0 10 s entre
+  // deux) la page de chaque gowap \u00e0 distance 0-2 et on compte ses \u00e9v\u00e9nements \u00ab s'est \u00e9brou\u00e9 \u00bb et \u00ab a ramass\u00e9 un tr\u00e9sor \u00bb. Au moins 3 de chaque :
+  // le nom du gowap est soulign\u00e9 en rose. R\u00e9sultat gard\u00e9 6 h dans le navigateur ; rien n'est envoy\u00e9 au serveur.
+  function addGowapEvents() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var KEY = 'mhx-gwev', TTL = 6 * 3600 * 1000, cache = {}, perks = null, queue = null, running = false;
+    try { cache = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { cache = {}; }
+    var save = function () { try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch (e) { /* stockage indisponible */ } };
+    var rows = function () {
+      var out = [];
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre'), dist = tr.querySelector('td.dist');
+        if (!ref || !nom || !dist || !/^\s*Gowap Apprivois/i.test(nom.textContent)) return;
+        out.push({ id: ref.textContent.trim(), a: nom, d: parseInt(dist.textContent, 10) });
+      });
+      return out;
+    };
+    var paint = function () {
+      rows().forEach(function (r) {
+        var c = cache[r.id], rose = !!c && c[1] >= 3 && c[2] >= 3 && !(perks && perks[r.id]);
+        r.a.classList.toggle('mhx-gw-rose', rose);
+        var t = rose ? '\u00c9brou\u00e9 ' + c[1] + ' fois, a ramass\u00e9 un tr\u00e9sor ' + c[2] + ' fois' : '';
+        if (rose) r.a.title = t; else if (r.a.title && /^\u00c9brou\u00e9 \d+ fois/.test(r.a.title)) r.a.title = '';
+      });
+    };
+    var step = function () {
+      if (running || !queue || !queue.length) return;
+      running = true;
+      var id = queue.shift();
+      fetch('/mountyhall/View/MonsterView.php?ai_IDPJ=' + id, { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (buf) {
+          if (!buf) return;
+          var raw = new TextDecoder('iso-8859-1').decode(buf);
+          var ev = aggroEvents(new DOMParser().parseFromString(raw, 'text/html'), raw);
+          if (!ev) return; // page inattendue (session expir\u00e9e, erreur...) : rien n'est m\u00e9moris\u00e9
+          var eb = 0, ra = 0;
+          ev.forEach(function (e) {
+            var d = e.descr.replace(/[\s\u00a0]+/g, ' ');
+            if (/s.est \u00e9brou\u00e9/i.test(d)) eb++;
+            else if (/a ramass\u00e9 un tr\u00e9sor/i.test(d)) ra++;
+          });
+          cache[id] = [Date.now(), eb, ra];
+          save(); paint();
+        })
+        .catch(function () { /* ignore */ })
+        .then(function () { running = false; setTimeout(step, 1000 + Math.random() * 9000); });
+    };
+    perksCall('', function (list) {
+      if (!list) return;
+      perks = list;
+      var now = Date.now(), seen = {};
+      queue = rows().filter(function (r) {
+        if (list[r.id] || isNaN(r.d) || r.d > 2 || seen[r.id]) return false;
+        seen[r.id] = true;
+        return !cache[r.id] || now - cache[r.id][0] > TTL;
+      }).map(function (r) { return r.id; });
+      paint(); step();
+    });
+    setInterval(paint, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
+  }
+
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
