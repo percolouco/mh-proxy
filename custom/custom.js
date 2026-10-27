@@ -242,11 +242,12 @@
         var l = document.createElement('b');
         l.textContent = (g.type || 'Gowap') + ' (' + g.gowap_id + ')';
         c.appendChild(l);
-        var lignes = [];
-        if (g.pv_actuel !== null) lignes.push('PV ' + g.pv_actuel + (g.pv_max ? ' / ' + g.pv_max : '') + ' \u2022 PA ' + g.pa_restant + ' \u2022 DLA ' + fmt(g.dla));
-        if (g.pos_x !== null) lignes.push('Position X=' + g.pos_x + ' Y=' + g.pos_y + ' N=' + g.pos_n);
-        if (lv && lv.vue && !vue) lignes.push('Vue ' + lv.vue + ' cases');
-        if (vue) lignes.push('Vue ' + (vue.v + vue.b) + ' case' + (vue.v + vue.b > 1 ? 's' : '') + ' (' + vue.v + (vue.b ? (vue.b > 0 ? '+' : '') + vue.b : '') + ')');
+        var lignes = [], resume = [];
+        if (g.pv_actuel !== null) resume.push('PV ' + g.pv_actuel + (g.pv_max ? ' / ' + g.pv_max : ''), g.pa_restant + ' PA', 'DLA ' + fmt(g.dla));
+        if (g.pos_x !== null) resume.push('Position X=' + g.pos_x + ' Y=' + g.pos_y + ' N=' + g.pos_n);
+        var nvue = vue ? vue.v + vue.b : (lv && lv.vue) || 0;
+        if (nvue) resume.push('Vue ' + nvue + ' case' + (nvue > 1 ? 's' : ''));
+        if (resume.length) lignes.push(resume.join(' \u2022 '));
         if (lv && lv.poids) lignes.push('Poids port\u00e9 : ' + lv.poids);
         if (lv && lv.ordres && lv.ordres.length) lignes.push('Ordres : ' + lv.ordres.join(' \u2192 '));
         if (g.dernier_deces) lignes.push('Dernier décès : ' + g.dernier_deces);
