@@ -1510,13 +1510,14 @@
     };
     if (/^Gigots?\s+de\s+Gob/i.test(it.nom)) { // Gigots de Gob : « Se secouer » sur leur case, puis « Aller chercher » (dans la vue) ou « Se deplacer vers » (hors vue), puis « Arret »
       var pos = { x: it.x, y: it.y, n: it.n };
-      var etapes = [['Arr\u00eat', '5', null], [hors ? 'Se d\u00e9placer vers' : 'Aller chercher', hors ? '1' : '8', hors ? pos : it.ref], ['Se secouer', '7', pos]]; // crees dans l'ordre inverse : chacun remonte en premier
+      var etapes = [['Arr\u00eat', '5', null], [hors ? 'Se d\u00e9placer vers' : 'Aller chercher', hors ? '1' : '8', hors ? pos : it.ref], ['Se secouer', '7', pos]];
+      if (hors) etapes.splice(1, 1); // hors vue : pas de deplacement, « Se secouer » sur la case suffit // crees dans l'ordre inverse : chacun remonte en premier
       var chaine = Promise.resolve();
       etapes.forEach(function (e, i) {
         chaine = chaine.then(function () { say((i + 1) + '/' + etapes.length + ' ' + e[0] + '\u2026'); return creer(e[1], e[2], e[1] === '5'); })
           .then(function () { return remonter(); }).then(function () { return wait(1000); });
       });
-      return chaine.then(function () { return 'Termin\u00e9 : se secouer, ' + (hors ? 'd\u00e9placement vers' : 'aller chercher') + ' ' + it.nom + ' (' + it.ref + '), puis arr\u00eat.'; });
+      return chaine.then(function () { return 'Termin\u00e9 : se secouer' + (hors ? '' : ', aller chercher ' + it.nom + ' (' + it.ref + ')') + ', puis arr\u00eat.'; });
     }
     if (hors) { // tresor hors de vue : ordre « Arret » (5) puis « Se deplacer vers » (1) sa position, remonte en premier
       say('1/5 Arr\u00eat\u2026');
