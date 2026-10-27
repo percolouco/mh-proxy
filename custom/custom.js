@@ -211,7 +211,7 @@
                       ordres: (j.ordres || []).slice(0, 8).map(function (o) { return o.ordre; }) };
             if (pos) { d.x = parseInt(pos[1], 10); d.y = parseInt(pos[2], 10); d.n = parseInt(pos[3], 10); }
             if (poids) d.poids = poids[1];
-            if (objets[j.id]) d.objets = objets[j.id];
+            d.objets = objets[j.id] || []; // liste vide = gowap sans equipement (ecrase l'ancienne liste)
             envois.push([j.id, d]);
           });
           var suite = function (i) {
@@ -274,7 +274,7 @@
         if (lv && lv.ordres && lv.ordres.length) lignes.push('Ordres : ' + lv.ordres.join(' \u2192 '));
         if (g.dernier_deces) lignes.push('Dernier décès : ' + g.dernier_deces);
         lignes.forEach(function (t) { var p = document.createElement('div'); p.textContent = t; c.appendChild(p); });
-        var objs = lv && lv.objets ? lv.objets : null; // [type, nom, detail, etat, poids] lus dans le jeu
+        var objs = lv && lv.objets ? lv.objets : null; // [type, nom, detail, etat, poids] lus dans le jeu ; [] = vide, on n'affiche pas l'ancienne liste du serveur
         if (objs && objs.length) {
           var gueule = objs.filter(function (x) { return x[5]; }); // objets avec une mention « Autre » (ex. [En gueule]) : liste directe, sans clic
           if (gueule.length) {
@@ -309,7 +309,7 @@
             });
           });
           if (objs.length > gueule.length) c.appendChild(det); // rien de plus a montrer si tout est deja liste au-dessus
-        } else if (g.objets && g.objets.length) {
+        } else if (!objs && g.objets && g.objets.length) { // pas d'infos lues dans le jeu : repli sur la liste du serveur (cron SP)
           var o = document.createElement('div');
           o.textContent = 'Objets (' + g.objets.length + ') : ' + g.objets.map(function (x) { return (x.nom || 'objet non identifi\u00e9') + (x.description ? ' [' + x.description + ']' : ''); }).join(', ');
           c.appendChild(o);

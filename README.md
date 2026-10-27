@@ -149,3 +149,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.45.0 | 2026-10-27 | Mes gowaps : fond orange (rgba(218, 137, 11, 0.6)) quand le 1er ordre est « Se secouer » sur une case à portée de vue du gowap (X et Y ≤ Vue, N ≤ Vue / 2) |
 | 0.45.1 | 2026-10-27 | Mes gowaps : infos relues à chaque ouverture de TurnStart (10 s mini entre deux lectures) puis toutes les 60 s tant que la page reste ouverte (avant : 5 min) |
 | 0.46.0 | 2026-10-27 | Mes gowaps : bouton « MAJ » à côté du titre, relit tout de suite les infos des gowaps (sans attendre les 10 s / 60 s) et rafraîchit l’encart |
+| 0.46.1 | 2026-10-27 | Mes gowaps : un gowap sans aucun objet écrase désormais l'ancienne liste (liste vide envoyée) ; le repli sur la liste du serveur (cron SP) n'a lieu que si aucune info n'a été lue dans le jeu |
