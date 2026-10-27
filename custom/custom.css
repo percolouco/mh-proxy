@@ -157,3 +157,6 @@ tr.mhx-pile-hl > td { background: #f3d25c !important; }
 #mhx-mesgowaps .mhx-mg-obj { margin-left: 14px; }
 tr.mhx-marque > td { background: #9fd0ee !important; background-image: none !important; }
 .mhx-marque-x { margin-left: 4px; color: #b00020; font-weight: bold; text-decoration: none; cursor: pointer; }
+
+/* Gowap (hors liste commune) avec au moins 3 ebrouements et 3 tresors ramasses : nom souligne en rose */
+a.monstre.mhx-gw-rose { text-decoration: underline; text-decoration-color: #ff4fa3; text-decoration-thickness: 3px; text-underline-offset: 3px; }
