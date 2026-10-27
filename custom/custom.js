@@ -1460,17 +1460,19 @@
   function allerChercher(it, say) {
     var id = gowapId(), vue = id ? gowapVueGet(id) : null;
     var ordre = document.querySelector('select[name="gus_ordre"]');
-    if (!vue || !ordre || !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]') || (gowapPos() ? !dansVueSuivant(it, gowapPos(), vue.v + vue.b) : it.dist > vue.v + vue.b)) return false;
+    if (!vue || !ordre || !ordre.querySelector('option[value="8"]') || !ordre.querySelector('option[value="12"]')) return false;
+    var hors = gowapPos() ? !dansVueSuivant(it, gowapPos(), vue.v + vue.b) : it.dist > vue.v + vue.b;
+    if (hors && !ordre.querySelector('option[value="1"]')) return false;
     if (acBusy) { say('Un envoi est d\u00e9j\u00e0 en cours, patiente quelques secondes.'); return true; }
     acBusy = true;
-    sequenceAllerChercher(it, id, say).then(function (txt) { say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
+    sequenceAllerChercher(it, id, say, hors).then(function (txt) { say(txt); }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : e) + ' \u2014 v\u00e9rifie les ordres du suivant.'); })
       .then(function () { acBusy = false; setTimeout(function () { location.reload(); }, 1200); });
     return true;
   }
   // Sequence a la demande de Perco (chaque nouvel ordre arrive en derniere position, d'ou les « gus_top ») :
   // 1. ordre « Se secouer a terre dans ma caverne » -> remonte en premier ; 2. attente 1 s ; 3. ordre « Aller chercher » (tresor clique)
   // -> remonte en premier. Le suivant va donc chercher le tresor, puis se secoue. Tout est poste en arriere-plan, une requete a la fois.
-  function sequenceAllerChercher(it, id, say) {
+  function sequenceAllerChercher(it, id, say, hors) {
     var base = '/mountyhall/MH_Play/Play_a_Action.php?type=F&id=-4&id_target=' + id;
     var wait = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
     var post = function (url, body) {
@@ -1479,9 +1481,9 @@
         .then(function (b) { return new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html'); });
     };
     // cree un ordre : formulaire d'ordre, puis formulaire de confirmation (« Action ») avec ses champs caches ; ref = tresor a choisir
-    var creer = function (valeur, ref) {
-      return post(base, 'gus_ordre=' + valeur + '&gus_add=').then(function (doc) {
+    var confirmer = function (doc, ref, souple) {
         var form = doc.getElementById('ActionForm');
+        if (!form && souple) return doc; // ordre sans ecran de confirmation (ex. « Arret »)
         if (!form) throw new Error('\u00e9cran de confirmation introuvable');
         var champs = new URLSearchParams();
         form.querySelectorAll('input[name], select[name]').forEach(function (f) { if (f.type !== 'button' && f.type !== 'submit') champs.set(f.name, f.value); });
@@ -1491,6 +1493,15 @@
           champs.set('id_tresor', String(ref));
         }
         return post(new URL(form.getAttribute('action'), location.href).href, champs.toString());
+    };
+    var creer = function (valeur, ref, souple) { return post(base, 'gus_ordre=' + valeur + '&gus_add=').then(function (doc) { return confirmer(doc, ref, souple); }); };
+    // « Se deplacer vers » : on poste le formulaire de la page tel que rempli par l'etape pre-remplie (X/Y/N), puis on confirme si le jeu le demande
+    var deplacer = function () {
+      var ordre = document.querySelector('select[name="gus_ordre"]'), form = ordre && ordre.form;
+      if (!form || !prefillDeplacement(it.x, it.y, it.n)) throw new Error('formulaire de d\u00e9placement introuvable');
+      var fd = new FormData(form); fd.set('gus_add', '');
+      return post(new URL(form.getAttribute('action') || location.href, location.href).href, new URLSearchParams(fd).toString()).then(function (doc) {
+        return doc.getElementById('ActionForm') ? confirmer(doc) : doc;
       });
     };
     // remonte le dernier ordre de la liste en premiere position (bouton gus_top de sa ligne)
@@ -1504,6 +1515,18 @@
           return post('/mountyhall/MH_Play/Play_a_ActionResult.php', 'type=F&id=-4&id_target=' + id + '&gus_top=' + encodeURIComponent(tops[tops.length - 1].value));
         });
     };
+    if (hors) {
+      var arret = document.querySelector('select[name="gus_ordre"]');
+      var optArret = null;
+      arret && arret.querySelectorAll('option').forEach(function (o) { if (!optArret && /^\s*arr[e\u00ea]t/i.test(o.textContent)) optArret = o; });
+      if (!optArret) return Promise.reject(new Error('ordre \u00ab Arr\u00eat \u00bb introuvable'));
+      say('1/5 Arr\u00eat\u2026');
+      return creer(optArret.value, null, true).then(function () { say('2/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
+        .then(function () { return wait(1000); })
+        .then(function () { say('3/5 Se d\u00e9placer vers X=' + it.x + ' Y=' + it.y + ' N=' + it.n + '\u2026'); return deplacer(); })
+        .then(function () { say('4/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
+        .then(function () { return 'Termin\u00e9 : le suivant ira en X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ' (' + it.nom + '), puis s\u2019arr\u00eatera.'; });
+    }
     say('1/5 Se secouer \u00e0 terre dans ma caverne\u2026');
     return creer('12').then(function () { say('2/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
       .then(function () { return wait(1000); })
@@ -1613,7 +1636,7 @@
         tr.style.cursor = 'pointer';
         if (it.age > 3600) { tr.style.opacity = '0.75'; }
         var vuIl = it.age >= 3600 ? Math.floor(it.age / 3600) + ' h' : Math.floor(it.age / 60) + ' min';
-        tr.title = '(vu il y a ' + vuIl + ') Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00e9tape \u00ab Se d\u00e9placer vers \u00bb pr\u00e9-remplie';
+        tr.title = '(vu il y a ' + vuIl + ') Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00ab Se d\u00e9placer vers \u00bb sa position puis \u00ab Arr\u00eat \u00bb';
         tr.addEventListener('click', function () { if (allerChercher(it, function (t) { info.textContent = t; })) return; if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
         cols.forEach(function (c) {
           var td = tr.insertCell();
