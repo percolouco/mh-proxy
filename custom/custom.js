@@ -2307,6 +2307,19 @@
       return { cb: cb, st: st, key: x.key };
     });
     call('', function (r) {
+      // couleur de chaque composant (comme sur le site MH) et lieu o\u00f9 il se trouve (GT / gowap)
+      if (r && r.compos) orders.forEach(function (x) {
+        var lis = x.td.querySelectorAll('li');
+        x.o.comps.forEach(function (c, i) {
+          var li = lis[i], d = r.compos[c];
+          if (!li || !d || li.querySelector('.mhx-compo')) return;
+          var col = { vert: '#046a38', bleu: '#002d72', rouge: '#da291c' }[d.s] || '#da291c';
+          var sp = document.createElement('span'); sp.className = 'mhx-compo';
+          sp.style.cssText = 'background:' + col + ';color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px;font-size:11px';
+          sp.textContent = d.s === 'rouge' ? 'non disponible' : (d.s === 'bleu' ? 'stock : ' + d.qualite + ' ' : '') + '\ud83d\udccd ' + d.lieux.join(', ');
+          li.appendChild(sp);
+        });
+      });
       boxes.forEach(function (b) {
         b.cb.disabled = !r;
         if (r && r.sync && r.sync[b.key]) { b.cb.checked = true; b.st.textContent = ' Synchronis\u00e9e avec le suivi des enchantements'; }
