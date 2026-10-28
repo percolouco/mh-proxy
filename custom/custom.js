@@ -2380,8 +2380,21 @@
         .catch(function () { /* ignore */ })
         .then(function () { running = false; majBtn(); setTimeout(step, 1000 + Math.random() * 9000); });
     };
-    // Bouton « Lancer la recherche » : les lectures ne d\u00e9marrent que sur clic (grosses vues = des centaines de pages, \u00e0 1-10 s l'une)
-    var btn = null, info = null;
+    // Bouton \u00ab Lancer la recherche \u00bb : les lectures ne d\u00e9marrent que sur clic (grosses vues = des centaines de pages, \u00e0 1-10 s l'une)
+    var btn = null, info = null, btnF = null, filtre = false;
+    try { filtre = localStorage.getItem('mhx-gw-filtre') === '1'; } catch (e) { /* stockage indisponible */ }
+    // Filtre \u00ab gowaps ramasseurs \u00bb : ne garde que les lignes roses du tableau des monstres (m\u00eame bouton que les filtres de tr\u00e9sors)
+    var appliqueFiltre = function () {
+      if (btnF) { btnF.classList.toggle('mhx-actif', filtre); }
+      var n = 0;
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        if (!tr.querySelector('td.ref')) return;
+        var rose = tr.classList.contains('mhx-gw-rose-row');
+        if (rose) n++;
+        tr.classList.toggle('mhx-gwfiltre-cache', filtre && !rose);
+      });
+      if (btnF) btnF.title = filtre ? n + ' gowap(s) ramasseur(s) affich\u00e9(s)' : 'Ne garder que les lignes roses (gowaps ramasseurs)';
+    };
     var majBtn = function () {
       if (!btn) return;
       btn.textContent = actif ? 'Arr\u00eater la recherche' : 'Lancer la recherche des gowaps (\u00e9brouements / tr\u00e9sors)';
@@ -2392,7 +2405,7 @@
       if (!table || !table.parentNode || document.getElementById('mhx-gwsearch')) return;
       var box = document.createElement('div');
       box.id = 'mhx-gwsearch'; box.style.cssText = 'margin:6px 0';
-      btn = document.createElement('button'); btn.type = 'button'; btn.className = 'mh_form_submit';
+      btn = document.createElement('button'); btn.type = 'button'; btn.className = 'mh_form_submit mhx-tfiltre';
       info = document.createElement('span'); info.style.cssText = 'margin-left:8px;font-size:11px';
       btn.addEventListener('click', function () {
         if (actif) { actif = false; majBtn(); return; }
@@ -2405,7 +2418,10 @@
         }).sort(function (a, b) { return (isNaN(a.d) ? 99 : a.d) - (isNaN(b.d) ? 99 : b.d); }).map(function (r) { return r.id; }); // les plus proches d'abord
         actif = true; fait = true; majBtn(); step();
       });
-      box.appendChild(btn); box.appendChild(info);
+      btnF = document.createElement('button'); btnF.type = 'button'; btnF.className = 'mh_form_submit mhx-tfiltre'; btnF.style.marginLeft = '6px';
+      btnF.textContent = 'Filtrer sur les gowaps ramasseurs';
+      btnF.addEventListener('click', function () { filtre = !filtre; try { localStorage.setItem('mhx-gw-filtre', filtre ? '1' : '0'); } catch (e) { /* ignore */ } appliqueFiltre(); });
+      box.appendChild(btn); box.appendChild(btnF); box.appendChild(info);
       table.parentNode.insertBefore(box, table);
       majBtn();
     };
@@ -2431,7 +2447,7 @@
           perks = list;
         });
       });
-    setInterval(function () { ensureBtn(); paint(); }, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
+    setInterval(function () { ensureBtn(); paint(); appliqueFiltre(); }, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
   }
 
   // Page \u00ab Ma vue \u00bb : destination des Portails de T\u00e9l\u00e9portation connus (relev\u00e9e dans le r\u00e9sultat du sortil\u00e8ge, stock\u00e9e sur le serveur MH),
