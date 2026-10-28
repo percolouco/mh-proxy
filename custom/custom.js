@@ -2626,7 +2626,104 @@
       .then(function (l) { evs = l; paint(); setInterval(paint, 2000); }); // le tableau est rempli par JavaScript apr\u00e8s le chargement
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); addPortailDest(); addTresorsIdent(); addEventDetails(); }
+
+  // ===== Fonctionnalit\u00e9s \u00e0 afficher ou non, par troll, gard\u00e9es sur le serveur MH (suivent le joueur d'un navigateur \u00e0 l'autre) =====
+  // Une copie locale sert au d\u00e9marrage imm\u00e9diat des pages ; elle est rafra\u00eechie depuis le serveur \u00e0 chaque page (effet \u00e0 la page suivante).
+  var FEATURES = [
+    ['Page Ma vue', [
+      ['vue_pv', 'PV des monstres (colonne PV, lus dans la CDM)'],
+      ['vue_aggro', 'Colonne Aggro (derni\u00e8re cible frapp\u00e9e par les monstres)'],
+      ['vue_gowaps_liste', 'Couleur des gowaps de la liste commune'],
+      ['vue_gowaps_ramasseurs', 'Gowaps ramasseurs : recherche, ligne rose et filtre'],
+      ['vue_marques', 'Marque bleue des tr\u00e9sors en cours de r\u00e9cup\u00e9ration'],
+      ['vue_filtres_tresors', 'Filtres des tr\u00e9sors (Parchemin, Composant, Gigots de Gob\u2026) et piles'],
+      ['vue_tresors_ident', 'Nom r\u00e9el des tr\u00e9sors identifi\u00e9s'],
+      ['vue_portails', 'Destination des portails de t\u00e9l\u00e9portation'],
+      ['vue_effets', 'Ic\u00f4nes des effets (Flash Aveuglant) sur les monstres'],
+      ['vue_trolls_etat', 'Colonnes PA / PV / DLA des trolls'],
+      ['vue_sacro', 'Clic sur les PV d\u2019un troll pour demander un sacro']
+    ]],
+    ['Pages monstre et troll', [
+      ['evenements_scriz', '\u00c9v\u00e9nements r\u00e9\u00e9crits au format SCIZ (jets, d\u00e9g\u00e2ts, r\u00e9sistance\u2026)'],
+      ['monstre_analyse', 'Analyse du monstre (dur\u00e9e du tour, peut rejouer, cumul)'],
+      ['monstre_aggro', 'Derni\u00e8re cible frapp\u00e9e sur la fiche du monstre'],
+      ['profil_kiki', 'Jauge Kiki Meter sur le profil']
+    ]],
+    ['Autres pages du jeu', [
+      ['turnstart_gowaps', 'Encart \u00ab Mes gowaps \u00bb sur la page de connexion'],
+      ['suivants_dla', 'DLA de chaque suivant (page Suivants)'],
+      ['ordres_tresors', 'Liste des tr\u00e9sors et \u00ab Aller chercher \u00bb (page Ordres des gowaps)'],
+      ['commandes', 'Commandes d\u2019enchantement : synchro et couleurs des composants']
+    ]],
+    ['Menu', [
+      ['menu_it', 'Bouton \u00ab IT \u00bb'],
+      ['menu_pistage', 'Image des points cardinaux (pistage)'],
+      ['menu_ecuyers', 'Liens vers les \u00e9cuyers']
+    ]]
+  ];
+  var FEAT_KEY = 'mhx-features', FEAT_URL = 'https://mh.percolouco.com/notif/prefs_features.php';
+  function featCache() { try { return JSON.parse(localStorage.getItem(FEAT_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function featOff(troll) { var c = featCache()[troll]; return Array.isArray(c) ? c : null; }
+  function featSetCache(troll, liste) { try { var c = featCache(); c[troll] = liste; localStorage.setItem(FEAT_KEY, JSON.stringify(c)); } catch (e) { /* stockage indisponible */ } }
+  function feat(k) { var t = currentTrollId(), l = t ? featOff(t) : null; return !(l && l.indexOf(k) !== -1); }
+  function featFetch(troll, cb) {
+    fetch(FEAT_URL + '?troll=' + troll, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      .then(function (j) { if (j && (Array.isArray(j.desactivees) || j.desactivees === null)) { featSetCache(troll, j.desactivees || []); cb(j.desactivees || []); } else cb(null); });
+  }
+  // d\u00e9marre tout de suite avec la copie locale (rafra\u00eechie en arri\u00e8re-plan) ; sans copie, attend le serveur 1,2 s au plus
+  function featLoad(cb) {
+    var t = currentTrollId();
+    if (!t) { cb(); return; }
+    if (featOff(t)) { cb(); featFetch(t, function () { /* appliqu\u00e9 \u00e0 la page suivante */ }); return; }
+    var fait = false, go = function () { if (!fait) { fait = true; cb(); } };
+    setTimeout(go, 1200);
+    featFetch(t, go);
+  }
+  // Page Options du jeu : bloc de cases \u00e0 cocher, une par fonctionnalit\u00e9
+  function addFeaturesOptions() {
+    if (!/\/Play_option\.php$/.test(location.pathname) || document.getElementById('mhx-features')) return;
+    var troll = currentTrollId();
+    var main = document.querySelector('main.play') || document.body;
+    if (!troll || !main) return;
+    var box = document.createElement('div'); box.id = 'mhx-features';
+    var h = document.createElement('h2'); h.className = 'titre2'; h.textContent = 'Am\u00e9liorations du proxy MH';
+    var intro = document.createElement('p'); intro.textContent = 'Choisis les fonctionnalit\u00e9s \u00e0 afficher. Le r\u00e9glage est enregistr\u00e9 sur le serveur pour ton troll : il te suit d\u2019un navigateur \u00e0 l\u2019autre. Il s\u2019applique \u00e0 l\u2019ouverture des pages suivantes.';
+    var tb = document.createElement('table'); tb.className = 'mh_tdborder'; tb.style.cssText = 'width:100%';
+    var boxes = [], statut = document.createElement('span'); statut.style.cssText = 'margin-left:10px;font-size:12px';
+    var lire = function () { return boxes.filter(function (b) { return !b.cb.checked; }).map(function (b) { return b.k; }); };
+    var sauve = function () {
+      var l = lire(); featSetCache(troll, l); statut.textContent = 'Enregistrement\u2026';
+      fetch(FEAT_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'troll=' + encodeURIComponent(troll) + '&desactivees=' + encodeURIComponent(l.join(',')), referrerPolicy: 'no-referrer' })
+        .then(function (r) { statut.textContent = r.ok ? 'Enregistr\u00e9 sur le serveur \u2713' : 'Enregistrement impossible (serveur MH)'; }, function () { statut.textContent = 'Enregistrement impossible (serveur MH)'; });
+    };
+    FEATURES.forEach(function (g) {
+      var tr = document.createElement('tr'), th = document.createElement('td'); th.className = 'mh_tdtitre'; th.colSpan = 2; th.textContent = g[0]; tr.appendChild(th); tb.appendChild(tr);
+      g[1].forEach(function (f) {
+        var r = document.createElement('tr'); r.className = 'mh_tdpage';
+        var td = document.createElement('td'); td.style.width = '28px'; td.style.textAlign = 'center';
+        var cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'mhx-f-' + f[0]; cb.checked = feat(f[0]);
+        cb.addEventListener('change', sauve);
+        td.appendChild(cb);
+        var lb = document.createElement('td'), lab = document.createElement('label'); lab.htmlFor = cb.id; lab.textContent = f[1]; lab.style.cursor = 'pointer'; lb.appendChild(lab);
+        r.appendChild(td); r.appendChild(lb); tb.appendChild(r); boxes.push({ k: f[0], cb: cb });
+      });
+    });
+    var bar = document.createElement('p');
+    [['Tout activer', true], ['Tout d\u00e9sactiver', false]].forEach(function (x) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'mh_form_submit'; b.textContent = x[0]; b.style.marginRight = '6px';
+      b.addEventListener('click', function () { boxes.forEach(function (y) { y.cb.checked = x[1]; }); sauve(); });
+      bar.appendChild(b);
+    });
+    bar.appendChild(statut);
+    box.appendChild(h); box.appendChild(intro); box.appendChild(bar); box.appendChild(tb);
+    var pied = document.getElementById('footer1');
+    if (pied && pied.parentNode === main) main.insertBefore(box, pied); else main.appendChild(box);
+    // reflete le dernier reglage du serveur (autre navigateur)
+    featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
+  }
+
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
