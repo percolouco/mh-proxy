@@ -1026,6 +1026,17 @@
     if (po) { res.x = po[1]; res.y = po[2]; res.n = po[3]; }
     return res;
   }
+  // Sortil\u00e8ge Sacrifice : soin de la cible, PV perdus par le lanceur et PV restants (lus dans la page de r\u00e9sultat)
+  var NOTIF_SACRIFICE_URL = 'https://mh.percolouco.com/notif/sacrifice_whatsapp.php';
+  function parseSacrifice(txt) {
+    if (!/Sortil\u00e8ge ?: ?Sacrifice/.test(txt) || !/R\u00c9USSI/.test(txt)) return null;
+    var so = /Vous avez soign\u00e9 (.+?) \((\d+)\) de (\d+) Points? de Vie/.exec(txt);
+    var pe = /Vous avez perdu (\d+) Points? de Vie/.exec(txt);
+    var vi = /Il vous reste actuellement (\d+) points? de vie \((\d+)\)/.exec(txt);
+    if (!so || !pe || !vi) return null;
+    var jet = /jet de (\d+) sur (\d+) ?%/.exec(txt);
+    return { cible_id: so[2], cible_nom: so[1], soin: parseInt(so[3], 10), perdus: parseInt(pe[1], 10), vie: parseInt(vi[1], 10), vie_max: parseInt(vi[2], 10), sig: jet ? jet[1] + '|' + jet[2] : '' };
+  }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
@@ -1033,6 +1044,13 @@
     if (fl && troll0) {
       mhdPost(NOTIF_FLASH_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify({ sig: fl.sig, effet: fl.effet || 'FA', cibles: fl.cibles })), function (ok) {
         mhdBadge(ok ? (fl.effet === 'HE' ? 'Hurlement' : 'Flash Aveuglant') + ' signal\u00e9 sur WhatsApp' : 'Envoi WhatsApp impossible', !ok);
+      });
+      return;
+    }
+    var sac = parseSacrifice(txt);
+    if (sac && troll0) {
+      mhdPost(NOTIF_SACRIFICE_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(sac)), function (ok) {
+        mhdBadge(ok ? 'Sacrifice signal\u00e9 sur WhatsApp' : 'Sacrifice : envoi WhatsApp impossible', !ok);
       });
       return;
     }
