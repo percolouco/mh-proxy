@@ -166,3 +166,6 @@ tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none
 
 /* Destination d'un portail de teleportation connu (vue) */
 .mhx-portail { color: #6a1b9a; font-weight: bold; }
+
+/* Nom reel d'un tresor identifie (vue) */
+.mhx-ident { color: #1b5e20; font-weight: bold; }
