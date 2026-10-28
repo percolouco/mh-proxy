@@ -2498,7 +2498,7 @@
   // num\u00e9ros (acteur, cible) pr\u00e9sents dans sa description. Lecture / affichage uniquement.
   var COMBATS_URL = 'https://mh.percolouco.com/evenements/api.php?combats=';
   function addEventDetails() {
-    if (!/\/(MonsterView|PJView)\.php$/.test(location.pathname)) return;
+    if (!/\/(MonsterView|PJView|PJView_Events)\.php$/.test(location.pathname)) return;
     var id = (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
     if (!id) return;
     var evs = null;
@@ -2515,6 +2515,11 @@
         : '<b><a href="javascript:PVT(\'' + id + '\')" class="troll">' + n + '</a></b>';
     };
     var phrase = function (e) {
+      if (e.kind === 'sort' || e.kind === 'competence') {
+        var dd = e.detail || {}, ss = esc(dd.nom || e.sujet) + ' de ' + etre(e.actor_nom, e.actor_id) + (e.target_id ? ' sur ' + etre(e.target_nom, e.target_id) : '');
+        if (e.degats != null) ss += ' : -' + e.degats + 'PV';
+        return ss + (e.px != null ? ' (px +' + e.px + ')' : '');
+      }
       var d = e.detail || {}, att = d.jet_att != null ? d.jet_att : d.destab, esq = d.jet_esq != null ? d.jet_esq : d.stab, resi = d.jet_res, sr = d.seuil_res, pv = e.degats;
       var bal = d.jet_att == null && d.destab != null;
       var typ = String(d.type || 'Attaque').replace(/\b(critique|mortelle?|esquiv\u00e9e|parfaitement|r\u00e9sist\u00e9e|par\u00e9e)\b/gi, '').replace(/\s+/g, ' ').trim();
@@ -2559,7 +2564,7 @@
         var c = tr.cells;
         if (!c || c.length < 3 || tr.getAttribute('data-mhx-ev')) return;
         var d = /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/.exec(c[0].textContent);
-        var kinds = /COMBAT/i.test(c[1].textContent) ? ['combat'] : /MONSTRE/i.test(c[1].textContent) ? ['pouvoir'] : null; // COMBAT : attaques ; MONSTRE : pouvoirs
+        var ty = c[1].textContent, kinds = /COMBAT/i.test(ty) ? ['combat'] : /MONSTRE/i.test(ty) ? ['pouvoir'] : /SORTIL/i.test(ty) ? ['sort'] : /COMP.TENCE/i.test(ty) ? ['competence'] : null; // COMBAT : attaques ; MONSTRE : pouvoirs ; SORTILEGE / COMPETENCE
         if (!d || !kinds) return;
         var ts = epoch(d, [null, d[4], d[5], d[6]]);
         var txt = c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, '');
@@ -2567,7 +2572,7 @@
           var m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(e.event_time || '');
           if (!m) return false;
           var te = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000;
-          return kinds.indexOf(e.kind) !== -1 && Math.abs(te - ts) <= 2 && e.actor_id && e.target_id && txt.indexOf('(' + e.actor_id + ')') !== -1 && txt.indexOf('(' + e.target_id + ')') !== -1;
+          return kinds.indexOf(e.kind) !== -1 && Math.abs(te - ts) <= 2 && (e.actor_id || e.target_id) && (!e.actor_id || txt.indexOf('(' + e.actor_id + ')') !== -1) && (!e.target_id || txt.indexOf('(' + e.target_id + ')') !== -1);
         });
         if (!found.length) return;
         // plusieurs mails pour le m\u00eame combat (attaquant et d\u00e9fenseur) : on garde le plus complet
