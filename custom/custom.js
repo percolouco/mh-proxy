@@ -2505,24 +2505,45 @@
     var epoch = function (d, t) { return Date.UTC(+d[3], +d[2] - 1, +d[1], +t[1], +t[2], +t[3]) / 1000; };
     var KEY = 'mhx-ev-reecrit', show = true;
     try { show = localStorage.getItem(KEY) !== 'no'; } catch (e) { /* stockage indisponible */ }
-    // phrase r\u00e9\u00e9crite \u00e0 partir du mail (principe SCIZ) : \u00e0 la place de la phrase du jeu, avec une ic\u00f4ne pour revenir \u00e0 l'original
+    // phrase r\u00e9\u00e9crite comme SCIZ (sciz_format.yaml, battleEvent) :
+    //   [MORT - ]Type [esquiv\u00e9(e) [parfaitement]] [critique] [r\u00e9sist\u00e9(e)] de ATTAQUANT sur D\u00c9FENSEUR : -NPV soin +N (reste NPV) (att A esq E deg D arm M resi R sr S (px +N))
+    // esquiv\u00e9 / parfaitement / critique / r\u00e9sist\u00e9 sont d\u00e9duits des jets comme dans SCIZ ; les noms sont des liens (monstre ou troll)
+    var esc = function (x) { return String(x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    var etre = function (nom, id) {
+      var n = esc(String(nom || '?').replace(/^une?\s/i, ''));
+      return String(id).length > 6 ? '<b><a href="/mountyhall/View/MonsterView.php?ai_IDPJ=' + id + '" class="monstre">' + n + '</a></b>'
+        : '<b><a href="javascript:PVT(\'' + id + '\')" class="troll">' + n + '</a></b>';
+    };
     var phrase = function (e) {
-      var d = e.detail || {}, p = [];
-      var qui = (e.actor_nom || '?') + ' ( ' + e.actor_id + ' )', cible = (e.target_nom || '?') + ' ( ' + e.target_id + ' )';
-      var s = qui + ' a ' + (d.mortel ? 'tu\u00e9 ' : '') + 'attaqu\u00e9 ' + cible + (d.type ? ' \u2014 ' + d.type : '');
-      if (d.jet_att != null && d.jet_esq != null) p.push("jet d'attaque " + d.jet_att + " contre une esquive de " + d.jet_esq);
-      else if (d.jet_att != null) p.push("jet d'attaque " + d.jet_att);
-      if (e.resultat) p.push(e.resultat === 'touch\u00e9' ? 'touch\u00e9' : e.resultat === 'rat\u00e9' ? 'rat\u00e9' : e.resultat);
-      if (d.jet_res != null) p.push('r\u00e9sistance ' + d.jet_res + (d.seuil_res != null ? ' pour un seuil de ' + d.seuil_res + ' %' : ''));
-      if (e.degats != null) p.push(e.degats + ' points de d\u00e9g\u00e2ts' + (d.role === 'def' ? ' subis' : ''));
-      if (d.pv_gagnes != null) p.push('+' + d.pv_gagnes + ' PV (vampirisme)');
-      return s + (p.length ? ' : ' + p.join(', ') : '') + '.';
+      var d = e.detail || {}, att = d.jet_att, esq = d.jet_esq, resi = d.jet_res, sr = d.seuil_res, pv = e.degats;
+      var typ = String(d.type || 'Attaque').replace(/\b(critique|mortelle?|esquiv\u00e9e|parfaitement|r\u00e9sist\u00e9e|par\u00e9e)\b/gi, '').replace(/\s+/g, ' ').trim();
+      var vie = d.vie != null ? d.vie : null;
+      var mort = d.mortel || (vie !== null && vie <= 0);
+      var esquive = att != null && esq != null && esq >= att, parfaite = esquive && esq > att * 2;
+      var crit = att != null && esq != null && att > esq * 2;
+      var resiste = /r\u00e9sist\u00e9e/i.test(d.type || '') || (resi != null && sr != null && resi <= sr);
+      var s = (mort ? 'MORT - ' : '') + esc(typ) + [esquive ? ' esquiv\u00e9(e)' : '', parfaite ? ' parfaitement' : '', crit ? ' critique' : '', resiste ? ' r\u00e9sist\u00e9(e)' : ''].join('') +
+        ' de ' + etre(e.actor_nom, e.actor_id) + ' sur ' + etre(e.target_nom, e.target_id);
+      var imp = [];
+      if (pv != null) imp.push('-' + pv + 'PV');
+      if (d.pv_gagnes != null) imp.push('soin +' + d.pv_gagnes);
+      if (vie !== null && vie > 0) imp.push('(reste ' + vie + 'PV)');
+      if (imp.length) s += ' : ' + imp.join(' ');
+      var car = [];
+      if (att != null) car.push('att ' + att);
+      if (esq != null) car.push('esq ' + esq);
+      if (d.jet_deg != null) { car.push('deg ' + d.jet_deg); if (pv != null && d.jet_deg - pv > 0) car.push('arm ' + (d.jet_deg - pv)); }
+      if (resi != null) car.push('resi ' + resi);
+      if (sr != null) car.push('sr ' + sr);
+      if (e.px != null) car.push('(px +' + e.px + ')');
+      if (car.length) s += ' (' + car.join(' ') + ')';
+      return s;
     };
     var rows = [];
     var render = function () {
       rows.forEach(function (r) {
         r.cell.innerHTML = '';
-        r.cell.appendChild(document.createTextNode(show ? r.nouv : r.orig));
+        if (show) r.cell.innerHTML = r.nouv; else r.cell.appendChild(document.createTextNode(r.orig));
         var sw = document.createElement('a'); sw.href = 'javascript:void(0)'; sw.className = 'mhx-evswitch';
         sw.title = show ? 'Voir la phrase du jeu' : 'Voir le d\u00e9tail (mails)'; sw.textContent = show ? ' \u21c4' : ' \u21c4 (d\u00e9tail)';
         sw.addEventListener('click', function (ev) { ev.preventDefault(); show = !show; try { localStorage.setItem(KEY, show ? 'yes' : 'no'); } catch (e) { /* ignore */ } render(); });
