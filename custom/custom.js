@@ -2458,7 +2458,42 @@
       .then(function (m) { map = m; paint(); setInterval(paint, 2000); }); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); addPortailDest(); }
+  // Page \u00ab Ma vue \u00bb : nom r\u00e9el des tr\u00e9sors d\u00e9j\u00e0 identifi\u00e9s (sort Identification des Tr\u00e9sors, lu dans les mails de la bo\u00eete MH par le serveur),
+  // affich\u00e9 apr\u00e8s le nom g\u00e9n\u00e9rique ; les effets en infobulle. Lecture / affichage uniquement.
+  var IDENT_URL = 'https://mh.percolouco.com/evenements/api.php?tresors=';
+  function addTresorsIdent() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var known = {}, asked = {};
+    var rows = function () {
+      var out = [];
+      document.querySelectorAll('#VUE_tresors tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), nom = ref && ref.nextElementSibling;
+        if (ref && nom && /^\d+$/.test(ref.textContent.trim())) out.push({ id: ref.textContent.trim(), nom: nom });
+      });
+      return out;
+    };
+    var paint = function () {
+      rows().forEach(function (r) {
+        var d = known[r.id];
+        if (!d || r.nom.querySelector('.mhx-ident')) return;
+        var sp = document.createElement('span'); sp.className = 'mhx-ident';
+        sp.textContent = ' \u2192 ' + d.nom;
+        sp.title = (d.effets || 'Identifi\u00e9') + (d.le ? ' (identifi\u00e9 le ' + d.le.slice(8, 10) + '/' + d.le.slice(5, 7) + ')' : '');
+        r.nom.appendChild(sp);
+      });
+    };
+    var load = function () {
+      var todo = rows().map(function (r) { return r.id; }).filter(function (id) { return !asked[id]; });
+      if (!todo.length) return;
+      var chunk = todo.slice(0, 200); // 300 identifiants maximum par appel serveur ; le reste au passage suivant
+      chunk.forEach(function (id) { asked[id] = true; });
+      fetch(IDENT_URL + chunk.join(','), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+        .then(function (m) { if (m) { Object.keys(m).forEach(function (k) { known[k] = m[k]; }); paint(); } });
+    };
+    setInterval(function () { load(); paint(); }, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
+  }
+
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); addPortailDest(); addTresorsIdent(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
