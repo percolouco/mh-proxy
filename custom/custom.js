@@ -2349,6 +2349,8 @@
       rows().forEach(function (r) {
         var c = cache[r.id], rose = !!c && c[1] >= 3 && c[2] >= 3 && !(perks && perks[r.id]);
         r.a.classList.toggle('mhx-gw-rose', rose);
+        var tr = r.a.closest('tr');
+        if (tr) tr.classList.toggle('mhx-gw-rose-row', rose);
         var t = rose ? '\u00c9brou\u00e9 ' + c[1] + ' fois, a ramass\u00e9 un tr\u00e9sor ' + c[2] + ' fois' : '';
         if (rose) r.a.title = t; else if (r.a.title && /^\u00c9brou\u00e9 \d+ fois/.test(r.a.title)) r.a.title = '';
       });
