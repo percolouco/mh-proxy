@@ -2515,7 +2515,8 @@
         : '<b><a href="javascript:PVT(\'' + id + '\')" class="troll">' + n + '</a></b>';
     };
     var phrase = function (e) {
-      var d = e.detail || {}, att = d.jet_att, esq = d.jet_esq, resi = d.jet_res, sr = d.seuil_res, pv = e.degats;
+      var d = e.detail || {}, att = d.jet_att != null ? d.jet_att : d.destab, esq = d.jet_esq != null ? d.jet_esq : d.stab, resi = d.jet_res, sr = d.seuil_res, pv = e.degats;
+      var bal = d.jet_att == null && d.destab != null;
       var typ = String(d.type || 'Attaque').replace(/\b(critique|mortelle?|esquiv\u00e9e|parfaitement|r\u00e9sist\u00e9e|par\u00e9e)\b/gi, '').replace(/\s+/g, ' ').trim();
       var vie = d.vie != null ? d.vie : null;
       var mort = d.mortel || (vie !== null && vie <= 0);
@@ -2528,10 +2529,12 @@
       if (pv != null) imp.push('-' + pv + 'PV');
       if (d.pv_gagnes != null) imp.push('soin +' + d.pv_gagnes);
       if (vie !== null && vie > 0) imp.push('(reste ' + vie + 'PV)');
+      if (d.capa_desc || d.capa_effet) imp.push('(' + esc((d.capa_desc ? d.capa_desc + ' ; ' : '') + (d.capa_effet || '') + (d.capa_tour != null ? ' pour ' + d.capa_tour + 'T' : '')) + ')');
+      if (d.fatigue != null) imp.push('fatigue +' + d.fatigue);
       if (imp.length) s += ' : ' + imp.join(' ');
       var car = [];
-      if (att != null) car.push('att ' + att);
-      if (esq != null) car.push('esq ' + esq);
+      if (att != null) car.push((bal ? 'destab ' : 'att ') + att);
+      if (esq != null) car.push((bal ? 'stab ' : 'esq ') + esq);
       if (d.jet_deg != null) { car.push('deg ' + d.jet_deg); if (pv != null && d.jet_deg - pv > 0) car.push('arm ' + (d.jet_deg - pv)); }
       if (resi != null) car.push('resi ' + resi);
       if (sr != null) car.push('sr ' + sr);
@@ -2557,14 +2560,15 @@
         var c = tr.cells;
         if (!c || c.length < 3 || tr.getAttribute('data-mhx-ev')) return;
         var d = /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/.exec(c[0].textContent);
-        if (!d || !/COMBAT/i.test(c[1].textContent)) return; // les lignes MONSTRE (pouvoirs...) ne sont pas des combats
+        var kinds = /COMBAT/i.test(c[1].textContent) ? ['combat'] : /MONSTRE/i.test(c[1].textContent) ? ['pouvoir'] : null; // COMBAT : attaques ; MONSTRE : pouvoirs
+        if (!d || !kinds) return;
         var ts = epoch(d, [null, d[4], d[5], d[6]]);
         var txt = c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, '');
         var found = evs.filter(function (e) {
           var m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(e.event_time || '');
           if (!m) return false;
           var te = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000;
-          return Math.abs(te - ts) <= 2 && e.actor_id && e.target_id && txt.indexOf('(' + e.actor_id + ')') !== -1 && txt.indexOf('(' + e.target_id + ')') !== -1;
+          return kinds.indexOf(e.kind) !== -1 && Math.abs(te - ts) <= 2 && e.actor_id && e.target_id && txt.indexOf('(' + e.actor_id + ')') !== -1 && txt.indexOf('(' + e.target_id + ')') !== -1;
         });
         if (!found.length) return;
         // plusieurs mails pour le m\u00eame combat (attaquant et d\u00e9fenseur) : on garde le plus complet
