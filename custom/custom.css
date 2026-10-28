@@ -160,3 +160,6 @@ tr.mhx-marque > td { background: #9fd0ee !important; background-image: none !imp
 
 /* Gowap (hors liste commune) avec au moins 3 ebrouements et 3 tresors ramasses : nom souligne en rose */
 a.monstre.mhx-gw-rose { text-decoration: underline; text-decoration-color: #ff4fa3; text-decoration-thickness: 3px; text-underline-offset: 3px; }
+
+/* Ligne entiere du gowap rose (3 ebrouements + 3 tresors) */
+tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none !important; }

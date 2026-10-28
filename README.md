@@ -159,3 +159,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.51.1 | 2026-10-27 | Gowaps roses : les lectures déjà faites dans le navigateur avant le partage (0.50.x) sont envoyées au serveur à la 1re ouverture de Ma vue. |
 | 0.51.2 | 2026-10-27 | Gowaps roses : la file de lecture est reconstruite toutes les 5 s (grosses vues dont le tableau arrive après le chargement : rien n'était lu). |
 | 0.52.0 | 2026-10-27 | Ma vue : bouton « Lancer la recherche des gowaps » au-dessus du tableau des monstres ; les lectures (gowaps hors liste commune, les plus proches d'abord, 1 à 10 s entre deux) ne démarrent plus seules, avec compteur et bouton « Arrêter la recherche ». Le rose et les lectures partagées s'affichent sans lancer la recherche. |
+| 0.52.1 | 2026-10-28 | Gowaps à 3 ébrouements + 3 trésors : toute la ligne du tableau passe en rose (comme la ligne du trésor en bleu), en plus du nom souligné. |
