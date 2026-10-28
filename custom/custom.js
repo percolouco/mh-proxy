@@ -2493,7 +2493,54 @@
     setInterval(function () { load(); paint(); }, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); addPortailDest(); addTresorsIdent(); }
+  // Pages monstre / troll (MonsterView, PJView) : d\u00e9tail des lignes COMBAT du tableau des \u00e9v\u00e9nements (jets, r\u00e9sultat, d\u00e9g\u00e2ts...), tir\u00e9 des mails de
+  // notification analys\u00e9s par le serveur MH (evenements/api.php?combats=). Une ligne est reli\u00e9e \u00e0 un mail par la m\u00eame date (\u00b12 s) et les deux
+  // num\u00e9ros (acteur, cible) pr\u00e9sents dans sa description. Lecture / affichage uniquement.
+  var COMBATS_URL = 'https://mh.percolouco.com/evenements/api.php?combats=';
+  function addEventDetails() {
+    if (!/\/(MonsterView|PJView)\.php$/.test(location.pathname)) return;
+    var id = (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
+    if (!id) return;
+    var evs = null;
+    var epoch = function (d, t) { return Date.UTC(+d[3], +d[2] - 1, +d[1], +t[1], +t[2], +t[3]) / 1000; };
+    var ligne = function (e) {
+      var d = e.detail || {}, p = [];
+      if (d.type) p.push(d.type);
+      if (d.role === 'def') { if (d.jet_att != null) p.push("jet d'attaque " + d.jet_att); if (d.jet_esq != null) p.push('esquive ' + d.jet_esq); }
+      else { if (d.jet_att != null) p.push('attaque ' + d.jet_att); if (d.jet_esq != null) p.push('esquive adverse ' + d.jet_esq); }
+      if (d.jet_res != null) p.push('r\u00e9sistance ' + d.jet_res + (d.seuil_res != null ? ' (seuil ' + d.seuil_res + ' %)' : ''));
+      if (e.resultat) p.push(e.resultat);
+      if (e.degats != null) p.push(e.degats + ' d\u00e9g\u00e2ts');
+      if (d.pv_gagnes != null) p.push('+' + d.pv_gagnes + ' PV (vampirisme)');
+      if (d.mortel) p.push('mortel');
+      return '\u2694\ufe0f ' + p.join(' \u00b7 ') + ' \u2014 mail de ' + (e.troll_nom || e.troll_id);
+    };
+    var paint = function () {
+      if (!evs) return;
+      document.querySelectorAll('#events tbody tr').forEach(function (tr) {
+        var c = tr.cells;
+        if (!c || c.length < 3 || tr.querySelector('.mhx-evdetail')) return;
+        var d = /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/.exec(c[0].textContent);
+        if (!d || !/COMBAT/i.test(c[1].textContent)) return; // les lignes MONSTRE (pouvoirs...) ne sont pas des combats
+        var tt = [null, d[4], d[5], d[6]], ts = epoch(d, tt);
+        var txt = c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, '');
+        var found = evs.filter(function (e) {
+          var m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(e.event_time || '');
+          if (!m) return false;
+          var te = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000;
+          return Math.abs(te - ts) <= 2 && e.actor_id && e.target_id && txt.indexOf('(' + e.actor_id + ')') !== -1 && txt.indexOf('(' + e.target_id + ')') !== -1;
+        });
+        if (!found.length) return;
+        var box = document.createElement('div'); box.className = 'mhx-evdetail';
+        found.forEach(function (e) { var l = document.createElement('div'); l.textContent = ligne(e); box.appendChild(l); });
+        c[c.length - 1].appendChild(box);
+      });
+    };
+    fetch(COMBATS_URL + id, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      .then(function (l) { evs = l; paint(); setInterval(paint, 2000); }); // le tableau est rempli par JavaScript apr\u00e8s le chargement
+  }
+
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); addPortailDest(); addTresorsIdent(); addEventDetails(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

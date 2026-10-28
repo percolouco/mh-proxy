@@ -169,3 +169,6 @@ tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none
 
 /* Nom reel d'un tresor identifie (vue) */
 .mhx-ident { color: #1b5e20; font-weight: bold; }
+
+/* Detail d'un evenement de combat (pages monstre / troll) */
+.mhx-evdetail { margin-top: 3px; font-size: 11px; color: #5d4037; }
