@@ -172,3 +172,5 @@ tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none
 
 /* Detail d'un evenement de combat (pages monstre / troll) */
 .mhx-evdetail { margin-top: 3px; font-size: 11px; color: #5d4037; }
+
+.mhx-evswitch { font-size: 11px; text-decoration: none; color: #6a1b9a; }

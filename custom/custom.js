@@ -2503,26 +2503,41 @@
     if (!id) return;
     var evs = null;
     var epoch = function (d, t) { return Date.UTC(+d[3], +d[2] - 1, +d[1], +t[1], +t[2], +t[3]) / 1000; };
-    var ligne = function (e) {
+    var KEY = 'mhx-ev-reecrit', show = true;
+    try { show = localStorage.getItem(KEY) !== 'no'; } catch (e) { /* stockage indisponible */ }
+    // phrase r\u00e9\u00e9crite \u00e0 partir du mail (principe SCIZ) : \u00e0 la place de la phrase du jeu, avec une ic\u00f4ne pour revenir \u00e0 l'original
+    var phrase = function (e) {
       var d = e.detail || {}, p = [];
-      if (d.type) p.push(d.type);
-      if (d.role === 'def') { if (d.jet_att != null) p.push("jet d'attaque " + d.jet_att); if (d.jet_esq != null) p.push('esquive ' + d.jet_esq); }
-      else { if (d.jet_att != null) p.push('attaque ' + d.jet_att); if (d.jet_esq != null) p.push('esquive adverse ' + d.jet_esq); }
-      if (d.jet_res != null) p.push('r\u00e9sistance ' + d.jet_res + (d.seuil_res != null ? ' (seuil ' + d.seuil_res + ' %)' : ''));
-      if (e.resultat) p.push(e.resultat);
-      if (e.degats != null) p.push(e.degats + ' d\u00e9g\u00e2ts');
+      var qui = (e.actor_nom || '?') + ' ( ' + e.actor_id + ' )', cible = (e.target_nom || '?') + ' ( ' + e.target_id + ' )';
+      var s = qui + ' a ' + (d.mortel ? 'tu\u00e9 ' : '') + 'attaqu\u00e9 ' + cible + (d.type ? ' \u2014 ' + d.type : '');
+      if (d.jet_att != null && d.jet_esq != null) p.push("jet d'attaque " + d.jet_att + " contre une esquive de " + d.jet_esq);
+      else if (d.jet_att != null) p.push("jet d'attaque " + d.jet_att);
+      if (e.resultat) p.push(e.resultat === 'touch\u00e9' ? 'touch\u00e9' : e.resultat === 'rat\u00e9' ? 'rat\u00e9' : e.resultat);
+      if (d.jet_res != null) p.push('r\u00e9sistance ' + d.jet_res + (d.seuil_res != null ? ' pour un seuil de ' + d.seuil_res + ' %' : ''));
+      if (e.degats != null) p.push(e.degats + ' points de d\u00e9g\u00e2ts' + (d.role === 'def' ? ' subis' : ''));
       if (d.pv_gagnes != null) p.push('+' + d.pv_gagnes + ' PV (vampirisme)');
-      if (d.mortel) p.push('mortel');
-      return '\u2694\ufe0f ' + p.join(' \u00b7 ') + ' \u2014 mail de ' + (e.troll_nom || e.troll_id);
+      return s + (p.length ? ' : ' + p.join(', ') : '') + '.';
+    };
+    var rows = [];
+    var render = function () {
+      rows.forEach(function (r) {
+        r.cell.innerHTML = '';
+        r.cell.appendChild(document.createTextNode(show ? r.nouv : r.orig));
+        var sw = document.createElement('a'); sw.href = 'javascript:void(0)'; sw.className = 'mhx-evswitch';
+        sw.title = show ? 'Voir la phrase du jeu' : 'Voir le d\u00e9tail (mails)'; sw.textContent = show ? ' \u21c4' : ' \u21c4 (d\u00e9tail)';
+        sw.addEventListener('click', function (ev) { ev.preventDefault(); show = !show; try { localStorage.setItem(KEY, show ? 'yes' : 'no'); } catch (e) { /* ignore */ } render(); });
+        r.cell.appendChild(sw);
+      });
     };
     var paint = function () {
       if (!evs) return;
+      var neuf = false;
       document.querySelectorAll('#events tbody tr').forEach(function (tr) {
         var c = tr.cells;
-        if (!c || c.length < 3 || tr.querySelector('.mhx-evdetail')) return;
+        if (!c || c.length < 3 || tr.getAttribute('data-mhx-ev')) return;
         var d = /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/.exec(c[0].textContent);
         if (!d || !/COMBAT/i.test(c[1].textContent)) return; // les lignes MONSTRE (pouvoirs...) ne sont pas des combats
-        var tt = [null, d[4], d[5], d[6]], ts = epoch(d, tt);
+        var ts = epoch(d, [null, d[4], d[5], d[6]]);
         var txt = c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, '');
         var found = evs.filter(function (e) {
           var m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(e.event_time || '');
@@ -2531,10 +2546,14 @@
           return Math.abs(te - ts) <= 2 && e.actor_id && e.target_id && txt.indexOf('(' + e.actor_id + ')') !== -1 && txt.indexOf('(' + e.target_id + ')') !== -1;
         });
         if (!found.length) return;
-        var box = document.createElement('div'); box.className = 'mhx-evdetail';
-        found.forEach(function (e) { var l = document.createElement('div'); l.textContent = ligne(e); box.appendChild(l); });
-        c[c.length - 1].appendChild(box);
+        // plusieurs mails pour le m\u00eame combat (attaquant et d\u00e9fenseur) : on garde le plus complet
+        found.sort(function (a, b) { return Object.keys(b.detail || {}).length - Object.keys(a.detail || {}).length; });
+        tr.setAttribute('data-mhx-ev', '1');
+        var cell = c[c.length - 1];
+        rows.push({ cell: cell, orig: cell.textContent.replace(/[\s\u00a0]+/g, ' ').trim(), nouv: phrase(found[0]) });
+        neuf = true;
       });
+      if (neuf) render();
     };
     fetch(COMBATS_URL + id, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
       .then(function (l) { evs = l; paint(); setInterval(paint, 2000); }); // le tableau est rempli par JavaScript apr\u00e8s le chargement
