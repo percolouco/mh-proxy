@@ -2627,6 +2627,253 @@
   }
 
 
+  // ===== Parcours de recolte (page Ordres d'un gowap) : repartit les tresors d'une zone entre les gowaps d'un meme troll =====
+  // Regles : diagonales permises, X / Y / N dans le meme pas ; cout = 1,5 x dn + max(0, max(dx, dy) - dn). Objectif : minimiser le temps du gowap
+  // le plus lent, puis la somme des couts. Parcours ouverts depuis la position de depart de chaque gowap. Heuristique (pas de preuve d'optimalite).
+  function pcCout(a, b) {
+    var dx = Math.abs(a[0] - b[0]), dy = Math.abs(a[1] - b[1]), dn = Math.abs(a[2] - b[2]);
+    return 1.5 * dn + Math.max(0, Math.max(dx, dy) - dn);
+  }
+  function pcRng(seed) { // mulberry32 : graine fixe = resultat reproductible
+    var a = seed >>> 0;
+    return function () { a += 0x6D2B79F5; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function pcCoutRoute(start, route, pts) {
+    var c = 0, prev = start;
+    for (var i = 0; i < route.length; i++) { c += pcCout(prev, pts[route[i]]); prev = pts[route[i]]; }
+    return c;
+  }
+  function pcScore(costs) { var m = 0, s = 0; costs.forEach(function (c) { if (c > m) m = c; s += c; }); return [m, s]; }
+  function pcMieux(a, b) { return a[0] < b[0] - 1e-9 || (Math.abs(a[0] - b[0]) <= 1e-9 && a[1] < b[1] - 1e-9); }
+  function pcResoudre(pts, starts, rnd) {
+    var G = starts.length, routes = [], costs = [], i, g, h;
+    for (g = 0; g < G; g++) { routes.push([]); costs.push(0); }
+    // 1. affectation : tresors dans un ordre aleatoire, chacun la ou il augmente le moins (temps du plus lent, puis somme)
+    var ordre = pts.map(function (_, k) { return k; });
+    for (i = ordre.length - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)), t = ordre[i]; ordre[i] = ordre[j]; ordre[j] = t; }
+    ordre.forEach(function (t) {
+      var best = null;
+      for (var g2 = 0; g2 < G; g2++) {
+        var r = routes[g2];
+        for (var pos = 0; pos <= r.length; pos++) {
+          var a = pos === 0 ? starts[g2] : pts[r[pos - 1]];
+          var add = pcCout(a, pts[t]) + (pos < r.length ? pcCout(pts[t], pts[r[pos]]) - pcCout(a, pts[r[pos]]) : 0);
+          var nc = costs.slice(); nc[g2] += add;
+          var sc = pcScore(nc);
+          if (!best || pcMieux(sc, best.sc)) best = { g: g2, pos: pos, sc: sc };
+        }
+      }
+      routes[best.g].splice(best.pos, 0, t);
+      costs[best.g] = pcCoutRoute(starts[best.g], routes[best.g], pts);
+    });
+    // 2. amelioration locale tant que (temps du plus lent, somme) diminue : 2-opt, deplacements, echanges entre parcours (variations de cout calculees sans refaire les parcours)
+    var cur = pcScore(costs);
+    var pt = function (gg, k) { return k === 0 ? starts[gg] : pts[routes[gg][k - 1]]; }; // k = 0 : depart ; k >= 1 : k-ieme tresor
+    var meilleur = function (gA, nA, gB, nB) { // nouveau score si les couts de gA (et gB) deviennent nA (nB) ?
+      var nc = costs.slice(); nc[gA] = nA; if (gB !== null) nc[gB] = nB;
+      var sc = pcScore(nc);
+      return pcMieux(sc, cur) ? sc : null;
+    };
+    var recalc = function () { for (var q = 0; q < G; q++) costs[q] = pcCoutRoute(starts[q], routes[q], pts); cur = pcScore(costs); };
+    var amelioree = true, garde = 0, k, kk, i1, j1;
+    while (amelioree && garde++ < 100) {
+      amelioree = false;
+      for (g = 0; g < G; g++) { // 2-opt : inversion des positions i..j d'un parcours
+        k = routes[g].length;
+        for (i1 = 1; i1 <= k; i1++) for (j1 = i1 + 1; j1 <= k; j1++) {
+          var d2 = pcCout(pt(g, i1 - 1), pt(g, j1)) - pcCout(pt(g, i1 - 1), pt(g, i1)) + (j1 < k ? pcCout(pt(g, i1), pt(g, j1 + 1)) - pcCout(pt(g, j1), pt(g, j1 + 1)) : 0);
+          if (d2 < -1e-9 && meilleur(g, costs[g] + d2, null, null)) {
+            var rv = routes[g]; routes[g] = rv.slice(0, i1 - 1).concat(rv.slice(i1 - 1, j1).reverse(), rv.slice(j1)); recalc(); amelioree = true;
+          }
+        }
+      }
+      for (g = 0; g < G; g++) { // deplacement d'un tresor : dans son parcours ou vers un autre
+        for (i1 = 1; i1 <= routes[g].length; i1++) {
+          k = routes[g].length;
+          var x = routes[g][i1 - 1], px = pts[x], prv = pt(g, i1 - 1);
+          var dA = i1 < k ? pcCout(prv, pt(g, i1 + 1)) - pcCout(prv, px) - pcCout(px, pt(g, i1 + 1)) : -pcCout(prv, px);
+          var fait = false;
+          for (h = 0; h < G && !fait; h++) {
+            if (h === g) { // meme parcours : on teste les autres positions en recalculant ce parcours
+              var rem = routes[g].slice(0, i1 - 1).concat(routes[g].slice(i1));
+              for (var p2 = 0; p2 <= rem.length; p2++) {
+                if (p2 === i1 - 1) continue;
+                var nr = rem.slice(0, p2).concat([x], rem.slice(p2)), nc2 = pcCoutRoute(starts[g], nr, pts);
+                if (nc2 < costs[g] - 1e-9 && meilleur(g, nc2, null, null)) { routes[g] = nr; recalc(); fait = true; break; }
+              }
+            } else {
+              kk = routes[h].length;
+              for (var p3 = 1; p3 <= kk + 1; p3++) {
+                var qa = pt(h, p3 - 1), dB = p3 <= kk ? pcCout(qa, px) + pcCout(px, pt(h, p3)) - pcCout(qa, pt(h, p3)) : pcCout(qa, px);
+                if (meilleur(g, costs[g] + dA, h, costs[h] + dB)) {
+                  routes[g] = routes[g].slice(0, i1 - 1).concat(routes[g].slice(i1)); routes[h] = routes[h].slice(0, p3 - 1).concat([x], routes[h].slice(p3 - 1)); recalc(); fait = true; break;
+                }
+              }
+            }
+          }
+          if (fait) { amelioree = true; i1--; }
+        }
+      }
+      for (g = 0; g < G; g++) for (h = g + 1; h < G; h++) { // echange de deux tresors entre deux parcours
+        for (i1 = 1; i1 <= routes[g].length; i1++) for (j1 = 1; j1 <= routes[h].length; j1++) {
+          var ka = routes[g].length, kb = routes[h].length, tx = pts[routes[g][i1 - 1]], ty = pts[routes[h][j1 - 1]];
+          var da = pcCout(pt(g, i1 - 1), ty) - pcCout(pt(g, i1 - 1), tx) + (i1 < ka ? pcCout(ty, pt(g, i1 + 1)) - pcCout(tx, pt(g, i1 + 1)) : 0);
+          var db = pcCout(pt(h, j1 - 1), tx) - pcCout(pt(h, j1 - 1), ty) + (j1 < kb ? pcCout(tx, pt(h, j1 + 1)) - pcCout(ty, pt(h, j1 + 1)) : 0);
+          if (meilleur(g, costs[g] + da, h, costs[h] + db)) {
+            var tmp = routes[g][i1 - 1]; routes[g][i1 - 1] = routes[h][j1 - 1]; routes[h][j1 - 1] = tmp; recalc(); amelioree = true;
+          }
+        }
+      }
+    }
+    return { routes: routes, costs: costs, score: cur };
+  }
+  function pcOptimiser(pts, starts, maxMs) {
+    var rnd = pcRng(20251028), best = null, t0 = Date.now(), essais = 0;
+    while (essais < 300 && (essais < 3 || Date.now() - t0 < maxMs)) {
+      var sol = pcResoudre(pts, starts, rnd); essais++;
+      if (!best || pcMieux(sol.score, best.score)) best = sol;
+    }
+    best.essais = essais;
+    return best;
+  }
+  function pcFmt(x) { return (Math.round(x * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, ''); }
+  function pcPos(p) { return p[0] + '/' + p[1] + '/' + p[2]; }
+
+  // memorise la position du troll lue sur Ma vue (\u00ab Ma position actuelle est : X = .. | Y = .. | N = .. \u00bb) pour la page Ordres
+  function rememberPosition() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var t0 = Date.now();
+    var lire = function () {
+      var m = /Ma position actuelle est\s*:\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec((document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' '));
+      var troll = currentTrollId();
+      if (m && troll) { try { localStorage.setItem('mhx-position-' + troll, JSON.stringify({ x: +m[1], y: +m[2], n: +m[3], t: Date.now() })); } catch (e) { /* stockage indisponible */ } return; }
+      if (Date.now() - t0 < 8000) setTimeout(lire, 1000);
+    };
+    lire();
+  }
+
+  function addParcoursRecolte() {
+    if (!/\/Play_a_Action\.php$/.test(location.pathname) || !/[?&]sub=ordres\b/.test(location.search)) return;
+    var me = aggroTroll();
+    if (!me) return;
+    var tries = 0;
+    (function run() {
+      var carte = document.getElementById('carte_trajet');
+      if (!carte && ++tries < 8) return setTimeout(run, 800);
+      if (!carte || document.getElementById('mhx-parcours')) return;
+      var box = document.createElement('div'); box.id = 'mhx-parcours';
+      var det = document.createElement('details'); det.open = false;
+      var sum = document.createElement('summary'); sum.textContent = 'Parcours de r\u00e9colte (r\u00e9partir les tr\u00e9sors entre mes gowaps)';
+      det.appendChild(sum);
+      var corps = document.createElement('div'); corps.className = 'mhx-pc-corps'; det.appendChild(corps); box.appendChild(det);
+      carte.parentNode.insertBefore(box, carte);
+      var champ = function (lab, id, val, w) { var l = document.createElement('label'); l.className = 'mhx-pc-champ'; l.appendChild(document.createTextNode(lab + ' ')); var i = document.createElement('input'); i.type = 'text'; i.id = id; i.value = val; i.size = w || 4; l.appendChild(i); return l; };
+      var pos = null;
+      try { pos = JSON.parse(localStorage.getItem('mhx-position-' + me) || 'null'); } catch (e) { pos = null; }
+      var ligne1 = document.createElement('div'); ligne1.className = 'mhx-pc-ligne';
+      var sel = document.createElement('select'); sel.id = 'mhx-pc-type';
+      [['Gigots de Gob', '^Gigots?\\s+de\\s+Gob'], ['Parchemin', '^Parchemin'], ['Composant', '^Composant'], ['Tous les tr\u00e9sors', '.']].forEach(function (f) { var o = document.createElement('option'); o.value = f[1]; o.textContent = f[0]; sel.appendChild(o); });
+      var lt = document.createElement('label'); lt.className = 'mhx-pc-champ'; lt.appendChild(document.createTextNode('Tr\u00e9sors : ')); lt.appendChild(sel);
+      ligne1.appendChild(lt);
+      ligne1.appendChild(champ('Ma position X', 'mhx-pc-x', pos ? pos.x : '')); ligne1.appendChild(champ('Y', 'mhx-pc-y', pos ? pos.y : '')); ligne1.appendChild(champ('N', 'mhx-pc-n', pos ? pos.n : ''));
+      var ligne2 = document.createElement('div'); ligne2.className = 'mhx-pc-ligne';
+      var selm = document.createElement('select'); selm.id = 'mhx-pc-mode';
+      [['separe', 'Port\u00e9e s\u00e9par\u00e9e (cases / niveaux)'], ['cout', 'Port\u00e9e en co\u00fbt unique']].forEach(function (f) { var o = document.createElement('option'); o.value = f[0]; o.textContent = f[1]; selm.appendChild(o); });
+      ligne2.appendChild(selm);
+      ligne2.appendChild(champ('Cases', 'mhx-pc-cases', '44')); ligne2.appendChild(champ('Niveaux', 'mhx-pc-niv', '20')); ligne2.appendChild(champ('Co\u00fbt max', 'mhx-pc-cout', '44'));
+      var ligne3 = document.createElement('div'); ligne3.className = 'mhx-pc-ligne'; ligne3.id = 'mhx-pc-gowaps'; ligne3.textContent = 'Chargement de mes gowaps\u2026';
+      var go = document.createElement('button'); go.type = 'button'; go.className = 'mh_form_submit mhx-tfiltre'; go.textContent = 'Calculer les parcours'; go.disabled = true;
+      var info = document.createElement('span'); info.className = 'mhx-pc-info';
+      var res = document.createElement('div'); res.className = 'mhx-pc-res';
+      [ligne1, ligne2, ligne3].forEach(function (x) { corps.appendChild(x); });
+      var lb = document.createElement('div'); lb.className = 'mhx-pc-ligne'; lb.appendChild(go); lb.appendChild(info); corps.appendChild(lb); corps.appendChild(res);
+      var gowaps = [], items = null;
+      // gowaps du troll connecte (cases cochees dans la liste commune) avec leur derniere position lue
+      mineCall(me, '', function (d) {
+        ligne3.textContent = '';
+        if (!d || !d.gowaps) { ligne3.textContent = 'Serveur MH injoignable.'; return; }
+        d.gowaps.forEach(function (g) {
+          var l = g.live || {}, ok = typeof l.x === 'number' && typeof l.y === 'number' && typeof l.n === 'number';
+          var lab = document.createElement('label'); lab.className = 'mhx-pc-champ';
+          var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = ok; cb.disabled = !ok;
+          var nom = String(l.nom || '').replace(/^\s*une?\s+/i, '').replace(/\(\d+\)\s*$/, '').replace(/^Gowap Apprivois\S*\s*(\[[^\]]*\])?\s*/i, '').trim();
+          lab.appendChild(cb); lab.appendChild(document.createTextNode(' ' + (nom || 'Gowap') + ' (' + g.gowap_id + ')' + (ok ? ' : ' + l.x + '/' + l.y + '/' + l.n : ' : position inconnue')));
+          ligne3.appendChild(lab);
+          gowaps.push({ id: String(g.gowap_id), nom: nom, start: ok ? [l.x, l.y, l.n] : null, cb: cb });
+        });
+        if (!d.gowaps.length) ligne3.textContent = 'Aucun gowap rattach\u00e9 \u00e0 ton troll (coche \u00ab Mes gowaps \u00bb dans la liste commune des suivants).';
+        go.disabled = false;
+      });
+      fetch(TRESORS_URL + '?troll=' + me, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { items = d && d.items ? d.items : []; }, function () { items = []; });
+      go.addEventListener('click', function () {
+        res.textContent = '';
+        var v = function (id) { var x = parseInt(document.getElementById(id).value, 10); return isNaN(x) ? null : x; };
+        var ref = [v('mhx-pc-x'), v('mhx-pc-y'), v('mhx-pc-n')], haveRef = ref.every(function (x) { return x !== null; });
+        var mode = selm.value, cases = v('mhx-pc-cases'), niv = v('mhx-pc-niv'), cmax = parseFloat(document.getElementById('mhx-pc-cout').value.replace(',', '.'));
+        var re = new RegExp(sel.value, 'i');
+        var choisis = gowaps.filter(function (g) { return g.cb.checked && g.start; });
+        var msg = function (t) { info.textContent = t; };
+        if (!items) { msg('Tr\u00e9sors pas encore charg\u00e9s, r\u00e9essaie.'); return; }
+        if (!choisis.length) { msg('Aucun gowap coch\u00e9.'); return; }
+        var vus = {}, dups = [], tres = [];
+        items.forEach(function (it) { if (!re.test(it.nom)) return; if (vus[it.ref]) { dups.push(it.ref); return; } vus[it.ref] = 1; tres.push(it); });
+        var departs = choisis.map(function (g) { return g.start; });
+        var refPos = haveRef ? ref : null;
+        var retenus = [], exclus = [], limite = [];
+        tres.forEach(function (it) {
+          var p = [it.x, it.y, it.n];
+          if (!refPos) { retenus.push(it); return; }
+          var dx = Math.abs(p[0] - refPos[0]), dy = Math.abs(p[1] - refPos[1]), dn = Math.abs(p[2] - refPos[2]);
+          if (mode === 'cout') {
+            var c = pcCout(refPos, p);
+            if (c <= cmax) { retenus.push(it); if (cmax - c < 2) limite.push([it, 'retenu, co\u00fbt ' + pcFmt(c) + ' pour ' + pcFmt(cmax)]); }
+            else { exclus.push([it, 'trop loin (co\u00fbt ' + pcFmt(c) + ' > ' + pcFmt(cmax) + ')']); if (c - cmax < 2) limite.push([it, 'exclu, co\u00fbt ' + pcFmt(c)]); }
+          } else {
+            var mx = Math.max(dx, dy);
+            if (mx <= cases && dn <= niv) { retenus.push(it); if (cases - mx < 2 || niv - dn < 2) limite.push([it, 'retenu, ' + mx + ' cases / ' + dn + ' niveaux']); }
+            else { exclus.push([it, dn > niv ? 'trop loin en N (' + dn + ' > ' + niv + ')' : 'trop loin en X/Y (' + mx + ' > ' + cases + ')']); if (mx - cases < 3 && dn - niv < 3) limite.push([it, 'exclu, ' + mx + ' cases / ' + dn + ' niveaux']); }
+          }
+        });
+        var pts = retenus.map(function (it) { return [it.x, it.y, it.n]; });
+        var t0 = Date.now();
+        var sol = pts.length ? pcOptimiser(pts, departs, 2500) : { routes: departs.map(function () { return []; }), costs: departs.map(function () { return 0; }), score: [0, 0], essais: 0 };
+        var txt = [];
+        var out = function (s) { txt.push(s); };
+        var nomT = /gigots/i.test(sel.options[sel.selectedIndex].textContent) ? 'gigots' : 'tr\u00e9sors';
+        out('Filtrage : ' + retenus.length + ' retenus, ' + exclus.length + ' exclus sur ' + tres.length + ' ' + nomT + (refPos ? ' (r\u00e9f. ' + pcPos(refPos) + ', ' + (mode === 'cout' ? 'co\u00fbt \u2264 ' + pcFmt(cmax) : cases + ' cases / ' + niv + ' niveaux, mode s\u00e9par\u00e9') + ')' : ' (pas de position de r\u00e9f\u00e9rence : aucun filtrage)') + '.');
+        if (dups.length) out('Doublons d\u2019ID ignor\u00e9s : ' + dups.join(', '));
+        exclus.forEach(function (x) { out('  exclu ' + x[0].ref + ' (' + pcPos([x[0].x, x[0].y, x[0].n]) + ') : ' + x[1]); });
+        if (limite.length) { out('\u00c0 la limite :'); limite.forEach(function (x) { out('  ' + x[0].ref + ' (' + pcPos([x[0].x, x[0].y, x[0].n]) + ') : ' + x[1]); }); }
+        out('');
+        var lignesId = [], rep = [];
+        choisis.forEach(function (g, gi) {
+          var r = sol.routes[gi], cum = 0, prev = g.start, lib = (g.nom || 'Gowap') + ' (' + g.id + ')';
+          out('## ' + lib + ', d\u00e9part ' + pcPos(g.start) + ', co\u00fbt ' + pcFmt(sol.costs[gi]) + ', ' + r.length + ' ' + nomT);
+          out('| # | Id | Position | Pas | Cumul |'); out('|---|---|---|---|---|');
+          r.forEach(function (ti, k) { var p = pts[ti], st = pcCout(prev, p); cum += st; prev = p; out('| ' + (k + 1) + ' | ' + retenus[ti].ref + ' | ' + pcPos(p) + ' | ' + pcFmt(st) + ' | ' + pcFmt(cum) + ' |'); });
+          out('');
+          lignesId.push((g.nom || g.id) + ' : ' + r.map(function (ti) { return retenus[ti].ref; }).join(', '));
+          rep.push((g.nom || g.id) + ' ' + pcFmt(sol.costs[gi]) + ' (' + r.length + ')');
+        });
+        out('Ordres d\u2019ID \u00e0 copier :'); lignesId.forEach(function (l) { out(l); });
+        out('');
+        out('R\u00e9capitulatif : ' + rep.join(' ; ') + '. Le plus lent : ' + pcFmt(sol.score[0]) + ' (somme ' + pcFmt(sol.score[1]) + ').');
+        var nb = choisis.map(function (_, gi) { return sol.routes[gi].length; });
+        if (Math.max.apply(null, nb) - Math.min.apply(null, nb) > 3) out('R\u00e9partition d\u00e9s\u00e9quilibr\u00e9e en nombre de ' + nomT + ' : le temps est \u00e9quilibr\u00e9, pas le nombre (points isol\u00e9s ou grappes proches).');
+        out('Hypoth\u00e8ses : co\u00fbt = 1,5 \u00d7 dn + max(0, max(dx, dy) \u2212 dn), parcours ouverts, ' + sol.essais + ' essais (graine fixe), heuristique sans preuve d\u2019optimalit\u00e9. Positions des gowaps : derni\u00e8re lecture.');
+        var pre = document.createElement('pre'); pre.className = 'mhx-pc-texte'; pre.textContent = txt.join('\n');
+        var cp = document.createElement('button'); cp.type = 'button'; cp.className = 'mh_form_submit mhx-tfiltre'; cp.textContent = 'Copier le r\u00e9sultat';
+        cp.addEventListener('click', function () {
+          var t = txt.join('\n'), ok = function () { cp.textContent = 'Copi\u00e9 \u2713'; };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, function () { /* presse-papiers refuse : texte selectionnable ci-dessous */ });
+          else { var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) { /* ignore */ } document.body.removeChild(ta); }
+        });
+        res.appendChild(cp); res.appendChild(pre);
+        msg(pts.length + ' ' + nomT + ' r\u00e9partis en ' + Math.round(Date.now() - t0) + ' ms.');
+      });
+    })();
+  }
+
   // ===== Fonctionnalit\u00e9s \u00e0 afficher ou non, par troll, gard\u00e9es sur le serveur MH (suivent le joueur d'un navigateur \u00e0 l'autre) =====
   // Une copie locale sert au d\u00e9marrage imm\u00e9diat des pages ; elle est rafra\u00eechie depuis le serveur \u00e0 chaque page (effet \u00e0 la page suivante).
   var FEATURES = [
@@ -2653,6 +2900,7 @@
       ['turnstart_gowaps', 'Encart \u00ab Mes gowaps \u00bb sur la page de connexion'],
       ['suivants_dla', 'DLA de chaque suivant (page Suivants)'],
       ['ordres_tresors', 'Liste des tr\u00e9sors et \u00ab Aller chercher \u00bb (page Ordres des gowaps)'],
+      ['ordres_parcours', 'Parcours de r\u00e9colte : r\u00e9partir les tr\u00e9sors entre mes gowaps (page Ordres)'],
       ['commandes', 'Commandes d\u2019enchantement : synchro et couleurs des composants']
     ]],
     ['Menu', [
@@ -2722,7 +2970,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
