@@ -2434,7 +2434,31 @@
     setInterval(function () { ensureBtn(); paint(); }, 2000); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
   }
 
-  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); }
+  // Page \u00ab Ma vue \u00bb : destination des Portails de T\u00e9l\u00e9portation connus (relev\u00e9e dans le r\u00e9sultat du sortil\u00e8ge, stock\u00e9e sur le serveur MH),
+  // ajout\u00e9e apr\u00e8s le nom du portail dans le tableau des lieux. Lecture / affichage uniquement.
+  var PORTAILS_URL = 'https://mh.percolouco.com/notif/portails.php';
+  function addPortailDest() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var map = null;
+    var paint = function () {
+      if (!map) return;
+      document.querySelectorAll('#VUE_lieux tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), nom = ref && ref.nextElementSibling;
+        var p = ref && map[ref.textContent.trim()];
+        if (!p || !nom || nom.querySelector('.mhx-portail')) return;
+        var sg = function (a) { return a >= 0 ? '+' + a : String(a); };
+        var sp = document.createElement('span'); sp.className = 'mhx-portail';
+        sp.textContent = ' \u2192 X=' + p.d[0] + ' Y=' + p.d[1] + ' N=' + p.d[2];
+        sp.title = 'Destination du portail (erreur de calcul : X=' + sg(p.e[0]) + ' Y=' + sg(p.e[1]) + ' N=' + sg(p.e[2]) + ') \u2014 cr\u00e9\u00e9 par le troll ' + p.troll +
+          ' il y a ' + (p.age >= 86400 ? Math.floor(p.age / 86400) + ' j' : Math.max(1, Math.floor(p.age / 3600)) + ' h');
+        nom.appendChild(sp);
+      });
+    };
+    fetch(PORTAILS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      .then(function (m) { map = m; paint(); setInterval(paint, 2000); }); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
+  }
+
+  function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { addMonsterPv(); addAggroCol(); colorVueGowaps(); colorVueMarks(); addTresorFilters(); addEffectIcons(); addTrollEtat(); addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); addItButton(); addPistageImage(); addEcuyers(); sendBonusMalus(); majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); sendKiki(); addKikiMeter(); addFollowerDla(); sendMission(); sendTrollInfo(); addMonsterAnalysis(); addMonsterAggro(); sendTresorsVue(); addTresorsOrdres(); addGowapVue(); addAllerChercherPopup(); addCommandesSync(); addGowapEvents(); addPortailDest(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

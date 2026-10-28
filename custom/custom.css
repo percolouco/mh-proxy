@@ -163,3 +163,6 @@ a.monstre.mhx-gw-rose { text-decoration: underline; text-decoration-color: #ff4f
 
 /* Ligne entiere du gowap rose (3 ebrouements + 3 tresors) */
 tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none !important; }
+
+/* Destination d'un portail de teleportation connu (vue) */
+.mhx-portail { color: #6a1b9a; font-weight: bold; }
