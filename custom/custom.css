@@ -179,3 +179,11 @@ tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none
 #mhx-gwsearch .mhx-tfiltre { min-height: 26px; cursor: pointer; }
 #mhx-gwsearch .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
 tr.mhx-gwfiltre-cache { display: none !important; }
+
+/* Parcours de recolte (page Ordres) */
+#mhx-parcours { margin: 8px 0; border: 1px solid #8a6d3b; background: rgba(255, 248, 225, 0.6); padding: 4px 8px; }
+#mhx-parcours summary { cursor: pointer; font-weight: bold; }
+#mhx-parcours .mhx-pc-ligne { margin: 6px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+#mhx-parcours .mhx-pc-champ { white-space: nowrap; }
+#mhx-parcours .mhx-pc-info { font-size: 12px; }
+#mhx-parcours .mhx-pc-texte { white-space: pre-wrap; font-size: 12px; background: #fff; border: 1px solid #aaa; padding: 6px; max-height: 480px; overflow: auto; }
