@@ -2535,7 +2535,6 @@
       var car = [];
       if (att != null) car.push((bal ? 'destab ' : 'att ') + att);
       if (esq != null) car.push((bal ? 'stab ' : 'esq ') + esq);
-      if (d.jet_deg != null) { car.push('deg ' + d.jet_deg); if (pv != null && d.jet_deg - pv > 0) car.push('arm ' + (d.jet_deg - pv)); }
       if (resi != null) car.push('resi ' + resi);
       if (sr != null) car.push('sr ' + sr);
       if (e.px != null) car.push('(px +' + e.px + ')');
