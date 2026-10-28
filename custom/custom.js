@@ -2533,7 +2533,11 @@
     var phrase = function (e) {
       if (e.kind === 'sort' || e.kind === 'competence') {
         var dd = e.detail || {}, ss = esc(dd.nom || e.sujet) + ' de ' + etre(e.actor_nom, e.actor_id) + (e.target_id ? ' sur ' + etre(e.target_nom, e.target_id) : '');
-        if (e.degats != null) ss += ' : -' + e.degats + 'PV';
+        var im = [];
+        if (dd.pv_perdus != null) im.push('-' + dd.pv_perdus + 'PV'); else if (e.degats != null) im.push('-' + e.degats + 'PV');
+        if (dd.soin != null) im.push('soin +' + dd.soin);
+        if (dd.vie != null && dd.vie > 0) im.push('(reste ' + dd.vie + 'PV)');
+        if (im.length) ss += ' : ' + im.join(' ');
         return ss + (e.px != null ? ' (px +' + e.px + ')' : '');
       }
       var d = e.detail || {}, att = d.jet_att != null ? d.jet_att : d.destab, esq = d.jet_esq != null ? d.jet_esq : d.stab, resi = d.jet_res, sr = d.seuil_res, pv = e.degats;
