@@ -206,7 +206,7 @@
             try { j = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
             if (!j || !list[j.id]) return; // seulement les gowaps de la liste commune
             var bloc = h3.parentNode && h3.parentNode.parentNode, t = (bloc ? bloc.textContent : '').replace(/[\s ]+/g, ' ');
-            var pos = /X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(t), poids = /poids\s+port\S*\s*:\s*(\d+\s*minutes)/i.exec(t);
+            var pos = /X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(t), poids = /poids\s+port\S*\s*:\s*(\d+\s*minutes?)/i.exec(t);
             var d = { nom: h3.textContent.replace(/[\s ]+/g, ' ').trim(), dla: j.dla, pa: j.pa, pv: j.pv, pvmax: j.pvmax, vue: j.vue, tour: j.tour,
                       ordres: (j.ordres || []).slice(0, 8).map(function (o) { return o.ordre; }) };
             if (pos) { d.x = parseInt(pos[1], 10); d.y = parseInt(pos[2], 10); d.n = parseInt(pos[3], 10); }
@@ -1269,7 +1269,10 @@
     var entetes = document.querySelectorAll('.portlet-header');
     if (!entetes.length) return;
     perksCall('', function (list) {
-      fetch('/mountyhall/MH_Play/Play_e_follo.php?type=F', { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+      // gowaps des autres trolls du groupe : dernier poids / dur\u00e9e du tour enregistr\u00e9s sur le serveur MH (m\u00e0j \u00e0 la connexion de leur propri\u00e9taire)
+      var serveur = {};
+      fetch(INFOS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (sv) { serveur = sv || {}; })
+        .then(function () { return fetch('/mountyhall/MH_Play/Play_e_follo.php?type=F', { credentials: 'same-origin', referrerPolicy: 'no-referrer' }); })
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
         .then(function (b) {
           var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html'), infos = {};
@@ -1284,11 +1287,17 @@
             if (!m || h.querySelector('.mhx-poids-tb')) return;
             var c = list && list[m[1]], pt = h.closest('.portlet');
             if (c && PERK_COLORS[c] && pt) pt.style.setProperty('background', PERK_COLORS[c], 'important');
-            var i = infos[m[1]];
-            if (!i) return;
+            var i = infos[m[1]], vieux = '';
+            if (!i) { // pas un de mes suivants : derni\u00e8re valeur connue du serveur
+              var sv = serveur[m[1]], ps = sv && /(\d+)\s*minute/i.exec(sv.poids || '');
+              if (!ps || !(sv.tour > 0)) return;
+              i = { poids: parseInt(ps[1], 10), tour: sv.tour };
+              var mj = /^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(sv.maj || '');
+              vieux = mj ? ' (relev\u00e9 le ' + mj[2] + '/' + mj[1] + ' \u00e0 ' + mj[3] + ')' : ' (valeur du serveur)';
+            }
             var el = document.createElement('div');
             el.className = 'mhx-poids-tb';
-            el.textContent = 'poids port\u00e9 : ' + i.poids + ' minutes' + (i.tour > 0 ? ' / ' + Math.max(0, Math.round(i.tour / 2) - i.poids) + ' minutes restantes' : '');
+            el.textContent = 'poids port\u00e9 : ' + i.poids + ' minutes' + (i.tour > 0 ? ' / ' + Math.max(0, Math.round(i.tour / 2) - i.poids) + ' minutes restantes' : '') + vieux;
             h.appendChild(el);
           });
         })
