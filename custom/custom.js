@@ -1923,7 +1923,8 @@
         tr.style.cursor = 'pointer';
         if (it.age > 3600) { tr.style.opacity = '0.75'; }
         var vuIl = it.age >= 3600 ? Math.floor(it.age / 3600) + ' h' : Math.floor(it.age / 60) + ' min';
-        tr.title = '(vu il y a ' + vuIl + ') Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00ab Se d\u00e9placer vers \u00bb sa position puis \u00ab Arr\u00eat \u00bb';
+        var reste = Math.max(0, 24 * 3600 - it.age), resteTxt = reste >= 3600 ? Math.floor(reste / 3600) + ' h' : Math.max(1, Math.floor(reste / 60)) + ' min'; // le serveur garde les tr\u00e9sors 24 h (TRESORS_CONSERVES_HEURES)
+        tr.title = '(vu il y a ' + vuIl + ' - visible encore ' + resteTxt + ') Cliquer : \u00ab Aller chercher \u00bb si le tr\u00e9sor est dans la vue du suivant, sinon \u00ab Se d\u00e9placer vers \u00bb sa position puis \u00ab Arr\u00eat \u00bb';
         tr.addEventListener('click', function () { if (allerChercher(it, function (t) { info.textContent = t; })) return; if (prefillDeplacement(it.x, it.y, it.n)) info.textContent = '\u00c9tape pr\u00e9-remplie (X=' + it.x + ' Y=' + it.y + ' N=' + it.n + ') \u2014 v\u00e9rifie puis valide l\u2019ordre toi-m\u00eame'; });
         cols.forEach(function (c) {
           var td = tr.insertCell();
