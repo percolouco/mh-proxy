@@ -1037,6 +1037,19 @@
     var jet = /jet de (\d+) sur (\d+) ?%/.exec(txt);
     return { cible_id: so[2], cible_nom: so[1], soin: parseInt(so[3], 10), perdus: parseInt(pe[1], 10), vie: parseInt(vi[1], 10), vie_max: parseInt(vi[2], 10), sig: jet ? jet[1] + '|' + jet[2] : '' };
   }
+  // Potion ou Parchemin utilis\u00e9 : tr\u00e9sor, effet, dur\u00e9e, effet imm\u00e9diat et PA (lus dans la page de r\u00e9sultat)
+  var NOTIF_TRESOR_URL = 'https://mh.percolouco.com/notif/tresor_whatsapp.php';
+  function parseTresorUtilise(txt) {
+    var t = /Vous avez utilis\u00e9 un tr\u00e9sor ?: ?\[(\d+)\] (.+?) Son effet est le suivant ?:/.exec(txt);
+    if (!t) return null;
+    var fin = '(?= Effet imm\u00e9diat| Vous avez | L\u2019effet se fera| L\'effet se fera| Cette action|$)';
+    var ef = new RegExp('Son effet est le suivant ?: ?(.+?)' + fin).exec(txt);
+    var im = new RegExp('Effet imm\u00e9diat ?: ?(.+?)' + fin.replace('| Effet imm\u00e9diat', '')).exec(txt);
+    var pa = /Cette action vous a co\u00fbt\u00e9 (\d+) PA/.exec(txt);
+    var effet = ef ? ef[1] : '', du = /\|? ?Dur\u00e9e ?: ?(\d+) tours?/.exec(effet);
+    if (du) effet = effet.replace(du[0], '').replace(/[\s|]+$/, '');
+    return { tresor_id: t[1], tresor_nom: t[2], effet: effet, tours: du ? parseInt(du[1], 10) : 0, immediat: im ? im[1] : '', pa: pa ? parseInt(pa[1], 10) : null };
+  }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
@@ -1051,6 +1064,13 @@
     if (sac && troll0) {
       mhdPost(NOTIF_SACRIFICE_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(sac)), function (ok) {
         mhdBadge(ok ? 'Sacrifice signal\u00e9 sur WhatsApp' : 'Sacrifice : envoi WhatsApp impossible', !ok);
+      });
+      return;
+    }
+    var tre = parseTresorUtilise(txt);
+    if (tre && troll0) {
+      mhdPost(NOTIF_TRESOR_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(tre)), function (ok) {
+        mhdBadge(ok ? 'Tr\u00e9sor utilis\u00e9 signal\u00e9 sur WhatsApp' : 'Tr\u00e9sor : envoi WhatsApp impossible', !ok);
       });
       return;
     }
