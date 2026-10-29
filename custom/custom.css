@@ -187,3 +187,4 @@ tr.mhx-gwfiltre-cache { display: none !important; }
 #mhx-parcours .mhx-pc-champ { white-space: nowrap; }
 #mhx-parcours .mhx-pc-info { font-size: 12px; }
 #mhx-parcours .mhx-pc-texte { white-space: pre-wrap; font-size: 12px; background: #fff; border: 1px solid #aaa; padding: 6px; max-height: 480px; overflow: auto; }
+.mhx-poids-tb { font-size: 0.85em; font-weight: normal; }
