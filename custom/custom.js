@@ -1262,6 +1262,39 @@
       addGowapPanel(list);
     });
   }
+  // Page Transbahuter, destination « ses suivants » (Play_a_Action.php?type=A&id=58) : chaque gowap garde sa couleur de la liste commune
+  // et affiche « poids porté : X minutes / Y minutes restantes » (Y = moitié de la durée du tour - X), lus sur la page Suivants (simple GET).
+  function addTransbahuterGowaps() {
+    if (!/\/Play_a_Action\.php$/.test(location.pathname) || !document.body || document.body.id !== 'p_transbahuter') return;
+    var entetes = document.querySelectorAll('.portlet-header');
+    if (!entetes.length) return;
+    perksCall('', function (list) {
+      fetch('/mountyhall/MH_Play/Play_e_follo.php?type=F', { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+        .then(function (b) {
+          var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html'), infos = {};
+          doc.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
+            var j = null;
+            try { j = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
+            var pw = h3.nextElementSibling, px = pw && /poids\s+port\S*\s*:\s*(\d+)\s*minute/i.exec(pw.textContent);
+            if (j && px) infos[j.id] = { poids: parseInt(px[1], 10), tour: j.tour };
+          });
+          entetes.forEach(function (h) {
+            var m = /\((\d+)\)/.exec(h.textContent);
+            if (!m || h.querySelector('.mhx-poids-tb')) return;
+            var c = list && list[m[1]], pt = h.closest('.portlet');
+            if (c && PERK_COLORS[c] && pt) pt.style.setProperty('background', PERK_COLORS[c], 'important');
+            var i = infos[m[1]];
+            if (!i) return;
+            var el = document.createElement('div');
+            el.className = 'mhx-poids-tb';
+            el.textContent = 'poids port\u00e9 : ' + i.poids + ' minutes' + (i.tour > 0 ? ' / ' + Math.max(0, Math.round(i.tour / 2) - i.poids) + ' minutes restantes' : '');
+            h.appendChild(el);
+          });
+        })
+        .catch(function () { /* silencieux : la page reste utilisable sans ces infos */ });
+    });
+  }
   // ---------------------------------------------------------------------------
   // Fonctions du script MHD (ex-userscripts Firefox/Chrome), intégrées à la surcouche :
   // lecture de la page affichée uniquement, envoi des infos à mh.percolouco.com
@@ -2919,6 +2952,7 @@
     ['Autres pages du jeu', [
       ['turnstart_gowaps', 'Encart \u00ab Mes gowaps \u00bb sur la page de connexion'],
       ['suivants_dla', 'DLA de chaque suivant (page Suivants)'],
+      ['transbahuter_gowaps', 'Couleur et poids port\u00e9 des gowaps (page Transbahuter)'],
       ['ordres_tresors', 'Liste des tr\u00e9sors et \u00ab Aller chercher \u00bb (page Ordres des gowaps)'],
       ['ordres_parcours', 'Parcours de r\u00e9colte : r\u00e9partir les tr\u00e9sors entre mes gowaps (page Ordres)'],
       ['commandes', 'Commandes d\u2019enchantement : synchro et couleurs des composants']
@@ -2990,7 +3024,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
