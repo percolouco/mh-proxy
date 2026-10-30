@@ -2954,7 +2954,7 @@
       var m = /Ma position actuelle est\s*:\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec((document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' '));
       var troll = currentTrollId();
       var txtV = (document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' ');
-      var mv = /affichage est limit\u00e9 \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txtV) || /vue porte actuellement \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txtV);
+      var mv = /vue porte actuellement \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txtV); // « Ma vue porte actuellement \u00e0 66 cases horizontalement et 33 verticalement » (pas la limite d'affichage)
       if (m && troll) { try { localStorage.setItem('mhx-position-' + troll, JSON.stringify({ x: +m[1], y: +m[2], n: +m[3], h: mv ? +mv[1] : null, v: mv ? +mv[2] : null, t: Date.now() })); } catch (e) { /* stockage indisponible */ } return; }
       if (Date.now() - t0 < 8000) setTimeout(lire, 1000);
     };
