@@ -1747,39 +1747,36 @@
     if (carte && carte.scrollIntoView) carte.scrollIntoView({ block: 'nearest' });
     return true;
   }
-  // Page Ordres : distance entre le gowap et son objectif (derni\u00e8re \u00e9tape renseign\u00e9e) et nombre de DLA estim\u00e9.
+  // Page Ordres : sur chaque ligne d'ordre « D\u00e9placement vers X=.. | Y=.. | N=.. », estimation du co\u00fbt en PA et du nombre de DLA
+  // (\u00ab \u2014 ~51 PA \u2248 9 DLA \u00bb). Le trajet part de la position du gowap puis suit les ordres de d\u00e9placement dans l'ordre d'affichage.
   // Co\u00fbt d'un pas = pcCout (1,5 x dn + max(0, max(dx, dy) - dn)), un gowap a 6 PA par DLA. Estimation, affichage seulement.
   var GOWAP_PA_DLA = 6;
   function addOrdreDistance() {
     if (!/\/Play_a_Action\.php$/.test(location.pathname) || !/[?&]sub=ordres\b/.test(location.search)) return;
+    var re = /D\u00e9placement vers\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/i;
+    var fmt = function (c) { return (Math.round(c * 10) / 10).toString().replace('.', ','); };
     var maj = function () {
-      var carte = document.getElementById('carte_trajet'), g = gowapPos();
-      if (!carte || !g) return;
-      var pts = [];
-      document.querySelectorAll('#liste_etapes input[id^="etape_"][id$="_x"]').forEach(function (ix) {
-        var b = ix.id.slice(0, -2), iy = document.getElementById(b + '_y'), inn = document.getElementById(b + '_n');
-        var v = [ix.value, iy && iy.value, inn && inn.value].map(function (t) { return /^\s*-?\d+\s*$/.test(t || '') ? parseInt(t, 10) : null; });
-        if (v.indexOf(null) < 0) pts.push(v);
+      var g = gowapPos();
+      if (!g || !document.body) return;
+      var cur = [g.x, g.y, g.n], cumul = 0, n = 0;
+      document.querySelectorAll('body *').forEach(function (el) {
+        if (el.children.length || el.closest('#carte_trajet, #liste_etapes, script, style, select, option, textarea') || el.classList.contains('mhx-ordre-pa')) return;
+        var m = re.exec(el.firstChild && el.childNodes.length === 1 ? el.textContent : '');
+        if (!m) return;
+        var q = [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)], cout = pcCout(cur, q);
+        cumul += cout; cur = q; n++;
+        var sp = el.querySelector('.mhx-ordre-pa');
+        if (!sp) { sp = document.createElement('span'); sp.className = 'mhx-ordre-pa'; el.appendChild(sp); }
+        var txt = ' \u2014 ' + (cout === 0 ? 'd\u00e9j\u00e0 sur place' : '~' + fmt(cout) + ' PA \u2248 ' + Math.ceil(cout / GOWAP_PA_DLA - 1e-9) + ' DLA') +
+          (n > 1 && cout > 0 ? ' (cumul ' + Math.ceil(cumul / GOWAP_PA_DLA - 1e-9) + ' DLA)' : '');
+        if (sp.textContent !== txt) sp.textContent = txt;
+        sp.title = 'Estimation depuis ' + (n > 1 ? 'l\'ordre pr\u00e9c\u00e9dent' : 'la position du gowap') + ' : co\u00fbt d\'un pas = 1,5 \u00d7 dN + max(0, max(dX, dY) \u2212 dN), ' + GOWAP_PA_DLA + ' PA par DLA.';
       });
-      var box = document.getElementById('mhx-ordre-dist');
-      if (!box) {
-        box = document.createElement('div'); box.id = 'mhx-ordre-dist';
-        carte.parentNode.insertBefore(box, carte);
-      }
-      if (!pts.length) { box.textContent = ''; box.style.display = 'none'; return; }
-      var o = pts[pts.length - 1], cur = [g.x, g.y, g.n], cout = 0;
-      pts.forEach(function (q) { cout += pcCout(cur, q); cur = q; });
-      var dx = Math.abs(o[0] - g.x), dy = Math.abs(o[1] - g.y), dn = Math.abs(o[2] - g.n), dist = Math.max(dx, dy, dn);
-      var dla = Math.ceil(cout / GOWAP_PA_DLA - 1e-9), cf = (Math.round(cout * 10) / 10).toString().replace('.', ',');
-      var txt = 'Objectif X=' + o[0] + ' Y=' + o[1] + ' N=' + o[2] + ' : distance ' + dist + ' case' + (dist > 1 ? 's' : '') + ' (\u0394X ' + dx + ', \u0394Y ' + dy + ', \u0394N ' + dn + ')' +
-        ' \u2014 ' + (cout === 0 ? 'd\u00e9j\u00e0 sur place' : '~' + cf + ' PA \u2248 ' + dla + ' DLA');
-      if (box.textContent !== txt) box.textContent = txt;
-      box.title = 'Estimation : co\u00fbt d\'un pas = 1,5 \u00d7 dN + max(0, max(dX, dY) \u2212 dN), ' + GOWAP_PA_DLA + ' PA par DLA, ' + pts.length + ' \u00e9tape' + (pts.length > 1 ? 's' : '') + ' (tout le trajet saisi).';
-      box.style.display = '';
     };
-    setInterval(maj, 1000);
+    setInterval(maj, 1500);
     maj();
   }
+
   // distance au suivant (meme calcul que la colonne Dist. de Ma vue : plus grand ecart sur X, Y ou N)
   // portee de vue d'un suivant : horizontalement (X, Y) la valeur de sa Vue, verticalement (N) la moitie arrondie a l'inferieur (6 -> 3, 5 -> 2)
   function dansVueSuivant(it, g, portee) {
