@@ -1764,9 +1764,11 @@
       if (!g || !document.body) return;
       var cur = [g.x, g.y, g.n], cumul = 0, n = 0;
       document.querySelectorAll('body *').forEach(function (el) {
-        if (el.children.length || el.closest('#carte_trajet, #liste_etapes, script, style, select, option, textarea') || el.classList.contains('mhx-ordre-pa')) return;
-        var m = re.exec(el.firstChild && el.childNodes.length === 1 ? el.textContent : '');
-        if (!m) return;
+        if (el.closest('#carte_trajet, #liste_etapes, script, style, select, option, textarea') || el.classList.contains('mhx-ordre-pa')) return;
+        var sans = function (t) { return t.replace(/\s*\u2014 [^\u2014]*$/, ''); }; // texte sans notre suffixe
+        var m = re.exec(sans(el.textContent.replace(/[\s\u00a0]+/g, ' ')));
+        if (!m || el.textContent.length > 200) return;
+        for (var k = 0; k < el.children.length; k++) if (re.test(el.children[k].textContent.replace(/[\s\u00a0]+/g, ' '))) return; // on prend l'\u00e9l\u00e9ment le plus interne (la cellule)
         var q = [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)], cout = pcCout(cur, q);
         cumul += cout; cur = q; n++;
         var sp = el.querySelector('.mhx-ordre-pa');
