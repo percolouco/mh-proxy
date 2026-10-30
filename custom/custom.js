@@ -1090,6 +1090,7 @@
       mhdBadge(ok ? 'Action signal\u00e9e sur WhatsApp' : 'Action : envoi WhatsApp impossible', !ok);
     });
     var cb = res.monstres && res.monstres[0];
+    if (feat('vue_chasse') && cb && cb.mort && /^\d+$/.test(cb.id || '')) chassePost('action=cible_del&monstre=' + cb.id, function () {}); // cible tu\u00e9e : retir\u00e9e de la chasse
     if (/hypnotisme/i.test(res.nom || '') && cb && cb.etat !== undefined && /^\d+$/.test(cb.id || '')) { // monstre hypnotis\u00e9 : ligne violette sur Ma vue jusqu'\u00e0 son prochain tour
       mhdPost(HYPNO_URL, 'action=set&troll=' + troll + '&monstre=' + cb.id + '&nom=' + encodeURIComponent(cb.nom || ''), function () {});
     }
@@ -2743,6 +2744,172 @@
     setInterval(function () { checked = {}; load(); }, 300000);
   }
 
+  // ===== Gestion de la chasse (Ma vue) : cibles prioritaires (5 max) et positions de chasse (3 max), partagées par tout le groupe =====
+  // Stockées sur le serveur MH (notif/chasse.php). Les cibles sont colorées dans la vue de chaque membre et retirées à leur mort ;
+  // pour chaque position, les monstres à 10 cases ou moins sont ceux de la dernière observation (vues de l'IT, ou Ma vue d'un membre qui couvre la zone).
+  // Lecture / affichage seulement : rien n'est envoyé au jeu.
+  var CHASSE_URL = 'https://mh.percolouco.com/notif/chasse.php';
+  var CHASSE_RAYON = 10;
+  function chassePost(body, cb) {
+    var me = aggroTroll();
+    if (!me) { if (cb) cb(null); return; }
+    fetch(CHASSE_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'troll=' + me + '&' + body })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) { if (cb) cb(j || {}); }, function () { if (cb) cb(null); });
+  }
+  function addChasse() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var data = { cibles: [], positions: [] }, t0 = Date.now(), box = null, body = null, msg = null, ouvertes = {}, observe = {}, fileMort = [], verifie = false;
+    var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    var ensure = function () {
+      if (box && box.parentNode) return true;
+      var cible = document.getElementById('monstres');
+      if (!cible || !cible.parentNode) return false;
+      box = el('details'); box.id = 'mhx-chasse'; // replié par défaut
+      var sm = el('summary', null, 'Gestion de la chasse'); box.appendChild(sm);
+      body = el('div', 'mhx-chasse-corps'); box.appendChild(body);
+      cible.parentNode.insertBefore(box, cible);
+      return true;
+    };
+    var champ = function (ph, w) { var i = el('input'); i.type = 'text'; i.placeholder = ph; i.size = w; i.className = 'mhx-chasse-in'; return i; };
+    var bouton = function (txt, titre, fn) { var b = el('button', 'mh_form_submit mhx-chasse-btn', txt); b.type = 'button'; if (titre) b.title = titre; b.addEventListener('click', fn); return b; };
+    var erreur = function (j) { msg.textContent = j && j.error ? j.error : (j ? '' : 'Serveur injoignable.'); };
+    var itLien = function (p) {
+      var me = aggroTroll();
+      return 'https://mh.percolouco.com/tactique/tactique.php?view_id=' + (me || '') + '&origin_x=' + p.x + '&origin_y=' + p.y + '&origin_n=' + p.n + '&portee=' + CHASSE_RAYON;
+    };
+    var render = function () {
+      if (!ensure()) return;
+      body.textContent = '';
+      msg = el('div', 'mhx-chasse-msg');
+      // --- cibles
+      body.appendChild(el('h4', null, '🎯 Cibles prioritaires (' + data.cibles.length + '/5)'));
+      var ul = el('div', 'mhx-chasse-liste');
+      if (!data.cibles.length) ul.appendChild(el('div', 'mhx-chasse-vide', 'Aucune cible.'));
+      data.cibles.forEach(function (c) {
+        var l = el('div', 'mhx-chasse-ligne');
+        l.appendChild(el('span', null, '[' + c.monstre + '] ' + (c.nom || 'monstre')));
+        l.appendChild(bouton('✖', 'Retirer cette cible', function () { chassePost('action=cible_del&monstre=' + c.monstre, function (j) { erreur(j); load(); }); }));
+        ul.appendChild(l);
+      });
+      body.appendChild(ul);
+      var fc = el('div', 'mhx-chasse-form'), ic = champ('ID du monstre', 12);
+      fc.appendChild(ic);
+      fc.appendChild(bouton('Ajouter la cible', '', function () {
+        var v = ic.value.trim().replace(/^\[|\]$/g, '');
+        if (!/^\d+$/.test(v)) { msg.textContent = 'ID de monstre invalide.'; return; }
+        var nom = '';
+        document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) { var r = tr.querySelector('td.ref'), a = tr.querySelector('td a.monstre'); if (r && a && r.textContent.trim() === v) nom = a.textContent.trim(); });
+        chassePost('action=cible_add&monstre=' + v + (nom ? '&nom=' + encodeURIComponent(nom) : ''), function (j) { erreur(j); if (j && j.ok) ic.value = ''; load(); });
+      }));
+      body.appendChild(fc);
+      // --- positions
+      body.appendChild(el('h4', null, '📍 Positions de chasse (' + data.positions.length + '/3, monstres à ' + CHASSE_RAYON + ' cases ou moins)'));
+      if (!data.positions.length) body.appendChild(el('div', 'mhx-chasse-vide', 'Aucune position.'));
+      data.positions.forEach(function (p) {
+        var d = el('details', 'mhx-chasse-pos'); d.open = !!ouvertes[p.id];
+        d.addEventListener('toggle', function () { ouvertes[p.id] = d.open; });
+        var sm = el('summary', null, 'X=' + p.x + ' Y=' + p.y + ' N=' + p.n + ' — ' + p.monstres.length + ' monstre' + (p.monstres.length > 1 ? 's' : '') + (p.obs ? ' (observé le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')' : ''));
+        d.appendChild(sm);
+        var actions = el('div', 'mhx-chasse-ligne');
+        var a = el('a', null, '🗺️ Ouvrir dans l\'IT'); a.href = itLien(p); a.target = '_blank'; a.rel = 'noopener';
+        actions.appendChild(a);
+        actions.appendChild(bouton('✖ Supprimer la position', '', function () { chassePost('action=pos_del&id=' + p.id, function (j) { erreur(j); load(); }); }));
+        d.appendChild(actions);
+        var mons = p.monstres.slice().sort(function (m1, m2) { return (m2.star - m1.star) || (Math.max(Math.abs(m1.x - p.x), Math.abs(m1.y - p.y), Math.abs(m1.n - p.n)) - Math.max(Math.abs(m2.x - p.x), Math.abs(m2.y - p.y), Math.abs(m2.n - p.n))); });
+        mons.forEach(function (m) {
+          var l = el('div', 'mhx-chasse-ligne' + (m.star ? ' mhx-chasse-star' : ''));
+          var st = el('button', 'mhx-chasse-etoile', m.star ? '⭐' : '☆'); st.type = 'button'; st.title = 'Mettre en avant / retirer la mise en avant';
+          st.addEventListener('click', function () { chassePost('action=star&id=' + p.id + '&monstre=' + m.id, function (j) { erreur(j); load(); }); });
+          l.appendChild(st);
+          l.appendChild(el('span', null, '[' + m.id + '] ' + (m.nom || 'monstre') + ' — X=' + m.x + ' Y=' + m.y + ' N=' + m.n + ' (dist. ' + Math.max(Math.abs(m.x - p.x), Math.abs(m.y - p.y), Math.abs(m.n - p.n)) + ')'));
+          d.appendChild(l);
+        });
+        body.appendChild(d);
+      });
+      var fp = el('div', 'mhx-chasse-form'), ix = champ('X', 5), iy = champ('Y', 5), inn = champ('N', 5);
+      fp.appendChild(ix); fp.appendChild(iy); fp.appendChild(inn);
+      fp.appendChild(bouton('Ajouter la position', '', function () {
+        var v = [ix.value, iy.value, inn.value].map(function (t) { return t.trim(); });
+        if (!v.every(function (t) { return /^-?\d+$/.test(t); })) { msg.textContent = 'Coordonnées invalides.'; return; }
+        chassePost('action=pos_add&x=' + v[0] + '&y=' + v[1] + '&n=' + v[2], function (j) { erreur(j); if (j && j.ok) { ix.value = iy.value = inn.value = ''; } load(); });
+      }));
+      body.appendChild(fp);
+      body.appendChild(msg);
+    };
+    var load = function () {
+      fetch(CHASSE_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j || !j.cibles) return;
+        var ancien = JSON.stringify(data);
+        data = j;
+        if (JSON.stringify(data) !== ancien || !box) render();
+        paint();
+        if (!verifie) { verifie = true; fileMort = data.cibles.map(function (c) { return c.monstre; }); suiteMort(); }
+        planObs();
+      }, function () {});
+    };
+    // cibles : ligne colorée + picto dans la vue
+    var paint = function () {
+      var ids = {};
+      data.cibles.forEach(function (c) { ids[String(c.monstre)] = c; });
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre');
+        if (!ref || !nom) return;
+        var c = ids[ref.textContent.trim()], pic = tr.querySelector('.mhx-cible-pic');
+        if (!c) { tr.classList.remove('mhx-cible'); if (pic) pic.parentNode.removeChild(pic); return; }
+        tr.classList.add('mhx-cible');
+        if (!pic) { pic = el('span', 'mhx-cible-pic', ' 🎯'); pic.title = 'Cible prioritaire du groupe'; nom.parentNode.insertBefore(pic, nom.nextSibling); }
+      });
+    };
+    // mort : la page du monstre dit « Ce Monstre n'existe pas ou a été Tué » (relue en arrière-plan, au plus une fois par 10 min et par cible)
+    var suiteMort = function () {
+      if (!fileMort.length) return;
+      var id = fileMort.shift(), cle = 'mhx-chasse-chk-' + id, last = 0;
+      try { last = parseInt(localStorage.getItem(cle) || '0', 10) || 0; } catch (e) { last = 0; }
+      if (Date.now() - last < 600000) return suiteMort();
+      try { localStorage.setItem(cle, String(Date.now())); } catch (e) { /* stockage indisponible */ }
+      fetch('/mountyhall/View/MonsterView.php?ai_IDPJ=' + id, { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (buf) {
+          if (!buf) return;
+          var txt = new TextDecoder('iso-8859-1').decode(buf);
+          if (/n.existe pas ou a .{1,8}t.{1,8} Tu/i.test(txt) && txt.length < 5000) chassePost('action=cible_del&monstre=' + id, function () { load(); });
+        })
+        .catch(function () { /* ignore */ })
+        .then(function () { setTimeout(suiteMort, 1000 + Math.random() * 4000); });
+    };
+    // observation : si ma vue couvre toute la zone (rayon 10) d'une position, la liste de ses monstres est remplacée par ce que je vois
+    var planObs = function () {
+      if (!data.positions.length) return;
+      setTimeout(function () { observer(); }, Math.max(0, 8000 - (Date.now() - t0)));
+    };
+    var observer = function () {
+      var txt = (document.body ? document.body.textContent : '').replace(/[\s ]+/g, ' ');
+      var mp = /Ma position actuelle est\s*:\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(txt);
+      var mv = /vue porte actuellement à\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txt);
+      if (!mp || !mv) return;
+      var me = { x: +mp[1], y: +mp[2], n: +mp[3] }, h = +mv[1], v = +mv[2];
+      var rows = [];
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), a = tr.querySelector('td a.monstre'), x = tr.querySelector('td.x'), y = tr.querySelector('td.y'), n = tr.querySelector('td.n');
+        if (!ref || !a || !x || !y || !n || /^\s*(?:Gowap Apprivois|Familier)/i.test(a.textContent)) return;
+        rows.push({ id: ref.textContent.trim(), nom: a.textContent.replace(/[\s ]+/g, ' ').trim(), x: parseInt(x.textContent, 10), y: parseInt(y.textContent, 10), n: parseInt(n.textContent, 10) });
+      });
+      if (!rows.length) return; // vue pas encore remplie : on ne vide rien
+      data.positions.forEach(function (p) {
+        if (observe[p.id] && Date.now() - observe[p.id] < 300000) return;
+        if (Math.abs(p.x - me.x) + CHASSE_RAYON > h || Math.abs(p.y - me.y) + CHASSE_RAYON > h || Math.abs(p.n - me.n) + CHASSE_RAYON > v) return; // zone pas entièrement dans ma vue
+        observe[p.id] = Date.now();
+        var l = rows.filter(function (m) { return Math.abs(m.x - p.x) <= CHASSE_RAYON && Math.abs(m.y - p.y) <= CHASSE_RAYON && Math.abs(m.n - p.n) <= CHASSE_RAYON; });
+        chassePost('action=pos_obs&id=' + p.id + '&data=' + encodeURIComponent(JSON.stringify(l)), function () { load(); });
+      });
+    };
+    var essai = 0;
+    (function attend() { if (ensure() || ++essai > 20) { render(); load(); } else setTimeout(attend, 500); })();
+    setInterval(paint, 2000);
+    setInterval(load, 60000);
+  }
+
   // Page \u00ab Ma vue \u00bb : nom r\u00e9el des tr\u00e9sors d\u00e9j\u00e0 identifi\u00e9s (sort Identification des Tr\u00e9sors, lu dans les mails de la bo\u00eete MH par le serveur),
   // affich\u00e9 apr\u00e8s le nom g\u00e9n\u00e9rique ; les effets en infobulle. Lecture / affichage uniquement.
   var IDENT_URL = 'https://mh.percolouco.com/evenements/api.php?tresors=';
@@ -3142,6 +3309,7 @@
       ['vue_portails_sorties', 'Sorties de portail : vert (TP du groupe) / rouge (inconnue \u00e0 5 cases) + alerte \u00e0 la connexion'],
       ['vue_effets', 'Ic\u00f4nes des effets (Flash Aveuglant) sur les monstres'],
       ['vue_hypno', 'Monstres hypnotis\u00e9s : ligne violette + picto'],
+      ['vue_chasse', 'Gestion de la chasse : cibles prioritaires et positions de chasse du groupe'],
       ['vue_trolls_etat', 'Colonnes PA / PV / DLA des trolls'],
       ['vue_sacro', 'Clic sur les PV d\u2019un troll pour demander un sacro']
     ]],
@@ -3230,7 +3398,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
