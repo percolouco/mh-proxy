@@ -264,6 +264,14 @@
         var l = document.createElement('b');
         l.textContent = (g.type || 'Gowap') + ' (' + g.gowap_id + ')';
         c.appendChild(l);
+        // poids port\u00e9 > moiti\u00e9 de sa dur\u00e9e de tour : surcharg\u00e9 / immobilis\u00e9 (alerte visuelle)
+        var pmin = lv && lv.poids ? parseInt(lv.poids, 10) : NaN;
+        if (!isNaN(pmin) && lv.tour > 0 && pmin > lv.tour / 2) {
+          c.classList.add('mhx-mg-surcharge');
+          var al = document.createElement('span'); al.className = 'mhx-mg-alerte'; al.textContent = ' \u26a0 SURCHARG\u00c9 / IMMOBILIS\u00c9';
+          al.title = 'Poids port\u00e9 : ' + pmin + ' minutes, plus de la moiti\u00e9 de son tour (' + Math.round(lv.tour / 2) + ' minutes)';
+          c.appendChild(al);
+        }
         var lignes = [], resume = [];
         if (g.pv_actuel !== null) resume.push('PV ' + g.pv_actuel + (g.pv_max ? ' / ' + g.pv_max : ''), g.pa_restant + ' PA', 'DLA ' + fmt(g.dla));
         if (g.pos_x !== null) resume.push('Position X=' + g.pos_x + ' Y=' + g.pos_y + ' N=' + g.pos_n);
@@ -1739,6 +1747,39 @@
     if (carte && carte.scrollIntoView) carte.scrollIntoView({ block: 'nearest' });
     return true;
   }
+  // Page Ordres : distance entre le gowap et son objectif (derni\u00e8re \u00e9tape renseign\u00e9e) et nombre de DLA estim\u00e9.
+  // Co\u00fbt d'un pas = pcCout (1,5 x dn + max(0, max(dx, dy) - dn)), un gowap a 6 PA par DLA. Estimation, affichage seulement.
+  var GOWAP_PA_DLA = 6;
+  function addOrdreDistance() {
+    if (!/\/Play_a_Action\.php$/.test(location.pathname) || !/[?&]sub=ordres\b/.test(location.search)) return;
+    var maj = function () {
+      var carte = document.getElementById('carte_trajet'), g = gowapPos();
+      if (!carte || !g) return;
+      var pts = [];
+      document.querySelectorAll('#liste_etapes input[id^="etape_"][id$="_x"]').forEach(function (ix) {
+        var b = ix.id.slice(0, -2), iy = document.getElementById(b + '_y'), inn = document.getElementById(b + '_n');
+        var v = [ix.value, iy && iy.value, inn && inn.value].map(function (t) { return /^\s*-?\d+\s*$/.test(t || '') ? parseInt(t, 10) : null; });
+        if (v.indexOf(null) < 0) pts.push(v);
+      });
+      var box = document.getElementById('mhx-ordre-dist');
+      if (!box) {
+        box = document.createElement('div'); box.id = 'mhx-ordre-dist';
+        carte.parentNode.insertBefore(box, carte);
+      }
+      if (!pts.length) { box.textContent = ''; box.style.display = 'none'; return; }
+      var o = pts[pts.length - 1], cur = [g.x, g.y, g.n], cout = 0;
+      pts.forEach(function (q) { cout += pcCout(cur, q); cur = q; });
+      var dx = Math.abs(o[0] - g.x), dy = Math.abs(o[1] - g.y), dn = Math.abs(o[2] - g.n), dist = Math.max(dx, dy, dn);
+      var dla = Math.ceil(cout / GOWAP_PA_DLA - 1e-9), cf = (Math.round(cout * 10) / 10).toString().replace('.', ',');
+      var txt = 'Objectif X=' + o[0] + ' Y=' + o[1] + ' N=' + o[2] + ' : distance ' + dist + ' case' + (dist > 1 ? 's' : '') + ' (\u0394X ' + dx + ', \u0394Y ' + dy + ', \u0394N ' + dn + ')' +
+        ' \u2014 ' + (cout === 0 ? 'd\u00e9j\u00e0 sur place' : '~' + cf + ' PA \u2248 ' + dla + ' DLA');
+      if (box.textContent !== txt) box.textContent = txt;
+      box.title = 'Estimation : co\u00fbt d\'un pas = 1,5 \u00d7 dN + max(0, max(dX, dY) \u2212 dN), ' + GOWAP_PA_DLA + ' PA par DLA, ' + pts.length + ' \u00e9tape' + (pts.length > 1 ? 's' : '') + ' (tout le trajet saisi).';
+      box.style.display = '';
+    };
+    setInterval(maj, 1000);
+    maj();
+  }
   // distance au suivant (meme calcul que la colonne Dist. de Ma vue : plus grand ecart sur X, Y ou N)
   // portee de vue d'un suivant : horizontalement (X, Y) la valeur de sa Vue, verticalement (N) la moitie arrondie a l'inferieur (6 -> 3, 5 -> 2)
   function dansVueSuivant(it, g, portee) {
@@ -3180,7 +3221,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails') && addTpAlerte(); feat('vue_effets') && addHypnoVue(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails') && addTpAlerte(); feat('vue_effets') && addHypnoVue(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
