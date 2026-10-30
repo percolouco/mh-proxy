@@ -266,7 +266,7 @@
         c.appendChild(l);
         // poids port\u00e9 > moiti\u00e9 de sa dur\u00e9e de tour : surcharg\u00e9 / immobilis\u00e9 (alerte visuelle)
         var pmin = lv && lv.poids ? parseInt(lv.poids, 10) : NaN;
-        if (!isNaN(pmin) && lv.tour > 0 && pmin > lv.tour / 2) {
+        if (feat('turnstart_surcharge') && !isNaN(pmin) && lv.tour > 0 && pmin > lv.tour / 2) {
           c.classList.add('mhx-mg-surcharge');
           var al = document.createElement('span'); al.className = 'mhx-mg-alerte'; al.textContent = ' \u26a0 SURCHARG\u00c9 / IMMOBILIS\u00c9';
           al.title = 'Poids port\u00e9 : ' + pmin + ' minutes, plus de la moiti\u00e9 de son tour (' + Math.round(lv.tour / 2) + ' minutes)';
@@ -1269,7 +1269,7 @@
       (poids && poids.tagName === 'DIV' ? poids : box).appendChild(el);
 
       // \u00ab (Vue : N cases) \u00bb apr\u00e8s le nom (comme sur la page Ordres) + picto si le gowap est hors de la vue de son troll
-      if (!h3.querySelector('.mhx-gvue') && d.vue > 0) {
+      if (feat('suivants_vue') && !h3.querySelector('.mhx-gvue') && d.vue > 0) {
         var gv = document.createElement('span'); gv.className = 'mhx-gvue';
         gv.textContent = ' (Vue : ' + d.vue + ' case' + (d.vue > 1 ? 's' : '') + ')';
         gv.title = 'Port\u00e9e de vue du suivant';
@@ -1278,7 +1278,7 @@
       var tt = (box.parentNode ? box.parentNode.textContent : box.textContent).replace(/[\s\u00a0]+/g, ' ');
       var gp = /X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(tt), tp = null, me = aggroTroll();
       try { tp = me ? JSON.parse(localStorage.getItem('mhx-position-' + me) || 'null') : null; } catch (e) { tp = null; }
-      if (gp && tp && tp.h !== null && tp.h !== undefined && !h3.querySelector('.mhx-hvue')) {
+      if (feat('suivants_hors_vue') && gp && tp && tp.h !== null && tp.h !== undefined && !h3.querySelector('.mhx-hvue')) {
         var ddx = Math.abs(+gp[1] - tp.x), ddy = Math.abs(+gp[2] - tp.y), ddn = Math.abs(+gp[3] - tp.n);
         if (ddx > tp.h || ddy > tp.h || ddn > tp.v) {
           var hv = document.createElement('span'); hv.className = 'mhx-hvue'; hv.textContent = ' \ud83d\udeab';
@@ -2632,7 +2632,7 @@
           nom.appendChild(sp);
           return;
         }
-        if (!/^Sortie de Portail/i.test(txt)) return;
+        if (!/^Sortie de Portail/i.test(txt) || !feat('vue_portails_sorties')) return;
         var cx = tr.querySelector('td.x'), cy = tr.querySelector('td.y'), cn = tr.querySelector('td.n');
         var x = cx ? parseInt(cx.textContent, 10) : NaN, y = cy ? parseInt(cy.textContent, 10) : NaN, n = cn ? parseInt(cn.textContent, 10) : NaN;
         if (isNaN(x + y + n)) return;
@@ -3139,7 +3139,9 @@
       ['vue_filtres_tresors', 'Filtres des tr\u00e9sors (Parchemin, Composant, Gigots de Gob\u2026) et piles'],
       ['vue_tresors_ident', 'Nom r\u00e9el des tr\u00e9sors identifi\u00e9s'],
       ['vue_portails', 'Destination des portails de t\u00e9l\u00e9portation'],
+      ['vue_portails_sorties', 'Sorties de portail : vert (TP du groupe) / rouge (inconnue \u00e0 5 cases) + alerte \u00e0 la connexion'],
       ['vue_effets', 'Ic\u00f4nes des effets (Flash Aveuglant) sur les monstres'],
+      ['vue_hypno', 'Monstres hypnotis\u00e9s : ligne violette + picto'],
       ['vue_trolls_etat', 'Colonnes PA / PV / DLA des trolls'],
       ['vue_sacro', 'Clic sur les PV d\u2019un troll pour demander un sacro']
     ]],
@@ -3152,6 +3154,10 @@
     ['Autres pages du jeu', [
       ['turnstart_gowaps', 'Encart \u00ab Mes gowaps \u00bb sur la page de connexion'],
       ['suivants_dla', 'DLA de chaque suivant (page Suivants)'],
+      ['suivants_vue', 'Port\u00e9e de vue de chaque suivant (page Suivants)'],
+      ['suivants_hors_vue', 'Picto \u00ab hors de la vue du troll \u00bb sur les suivants (page Suivants)'],
+      ['turnstart_surcharge', 'Alerte gowap surcharg\u00e9 / immobilis\u00e9 (page de connexion)'],
+      ['ordres_dla', 'PA et DLA estim\u00e9s sur les ordres de d\u00e9placement (page Ordres)'],
       ['transbahuter_gowaps', 'Couleur et poids port\u00e9 des gowaps (page Transbahuter)'],
       ['ordres_tresors', 'Liste des tr\u00e9sors et \u00ab Aller chercher \u00bb (page Ordres des gowaps)'],
       ['ordres_parcours', 'Parcours de r\u00e9colte : r\u00e9partir les tr\u00e9sors entre mes gowaps (page Ordres)'],
@@ -3224,7 +3230,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails') && addTpAlerte(); feat('vue_effets') && addHypnoVue(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
