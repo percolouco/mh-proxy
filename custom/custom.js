@@ -1721,6 +1721,10 @@
   function gowapPos() {
     var dep = document.getElementById('etape_depart');
     var m = dep ? /X\s*=\s*(-?\d+)\D+Y\s*=\s*(-?\d+)\D+N\s*=\s*(-?\d+)/.exec(dep.textContent) : null;
+    if (!m && document.body) { // repli : en-t\u00eate du suivant \u00ab 6 PA - X = -62 | Y = 28 | N = -92 | D = 108|12 \u00bb
+      var ent = document.querySelector('.monstre-entete'), zone = ent && ent.parentNode ? ent.parentNode : document.body;
+      m = /\d+\s*PA\s*-\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(zone.textContent.replace(/[\s\u00a0]+/g, ' '));
+    }
     return m ? { x: parseInt(m[1], 10), y: parseInt(m[2], 10), n: parseInt(m[3], 10) } : null;
   }
   function prefillDeplacement(x, y, n) {
