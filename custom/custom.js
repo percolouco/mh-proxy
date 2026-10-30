@@ -1259,6 +1259,25 @@
       // dans le bloc \u00ab poids port\u00e9 \u00bb (2e enfant) pour ne pas d\u00e9caler la mise en page de l'encart
       var poids = h3.nextElementSibling;
       (poids && poids.tagName === 'DIV' ? poids : box).appendChild(el);
+
+      // \u00ab (Vue : N cases) \u00bb apr\u00e8s le nom (comme sur la page Ordres) + picto si le gowap est hors de la vue de son troll
+      if (!h3.querySelector('.mhx-gvue') && d.vue > 0) {
+        var gv = document.createElement('span'); gv.className = 'mhx-gvue';
+        gv.textContent = ' (Vue : ' + d.vue + ' case' + (d.vue > 1 ? 's' : '') + ')';
+        gv.title = 'Port\u00e9e de vue du suivant';
+        h3.appendChild(gv);
+      }
+      var tt = (box.parentNode ? box.parentNode.textContent : box.textContent).replace(/[\s\u00a0]+/g, ' ');
+      var gp = /X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(tt), tp = null, me = aggroTroll();
+      try { tp = me ? JSON.parse(localStorage.getItem('mhx-position-' + me) || 'null') : null; } catch (e) { tp = null; }
+      if (gp && tp && tp.h !== null && tp.h !== undefined && !h3.querySelector('.mhx-hvue')) {
+        var ddx = Math.abs(+gp[1] - tp.x), ddy = Math.abs(+gp[2] - tp.y), ddn = Math.abs(+gp[3] - tp.n);
+        if (ddx > tp.h || ddy > tp.h || ddn > tp.v) {
+          var hv = document.createElement('span'); hv.className = 'mhx-hvue'; hv.textContent = ' \ud83d\udeab';
+          hv.title = 'Hors de ta vue (vue de ' + tp.h + ' cases / ' + tp.v + ' en vertical) \u2014 ' + ddx + ' en X, ' + ddy + ' en Y, ' + ddn + ' en N. Position du troll relev\u00e9e sur Ma vue le ' + new Date(tp.t).toLocaleString('fr-FR');
+          h3.appendChild(hv);
+        }
+      }
     });
     perksCall('', function (list) {
       if (!list) return;
@@ -2934,7 +2953,9 @@
     var lire = function () {
       var m = /Ma position actuelle est\s*:\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec((document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' '));
       var troll = currentTrollId();
-      if (m && troll) { try { localStorage.setItem('mhx-position-' + troll, JSON.stringify({ x: +m[1], y: +m[2], n: +m[3], t: Date.now() })); } catch (e) { /* stockage indisponible */ } return; }
+      var txtV = (document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' ');
+      var mv = /affichage est limit\u00e9 \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txtV) || /vue porte actuellement \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txtV);
+      if (m && troll) { try { localStorage.setItem('mhx-position-' + troll, JSON.stringify({ x: +m[1], y: +m[2], n: +m[3], h: mv ? +mv[1] : null, v: mv ? +mv[2] : null, t: Date.now() })); } catch (e) { /* stockage indisponible */ } return; }
       if (Date.now() - t0 < 8000) setTimeout(lire, 1000);
     };
     lire();
