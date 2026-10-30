@@ -2538,32 +2538,55 @@
   function addPortailDest() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var map = null;
+    var sg = function (a) { return a >= 0 ? '+' + a : String(a); };
+    var age = function (p) { return p.age >= 86400 ? Math.floor(p.age / 86400) + ' j' : Math.max(1, Math.floor(p.age / 3600)) + ' h'; };
+    // la sortie est connue si elle est sur la destination d'un TP du groupe, avec ou sans l'erreur de calcul
+    var trouveTp = function (x, y, n) {
+      for (var id in map) {
+        var p = map[id];
+        if (p.d[2] !== n && p.d[2] + p.e[2] !== n) continue;
+        if ((p.d[0] === x && p.d[1] === y) || (p.d[0] + p.e[0] === x && p.d[1] + p.e[1] === y)) return p;
+      }
+      return null;
+    };
     var paint = function () {
       if (!map) return;
       var inconnus = [];
       document.querySelectorAll('#VUE_lieux tbody tr').forEach(function (tr) {
         var ref = tr.querySelector('td.ref'), nom = ref && ref.nextElementSibling;
-        if (!ref || !nom || !/^Portail de T/i.test(nom.textContent.replace(/[\s\u00a0]+/g, ' ').trim())) return;
+        if (!ref || !nom) return;
+        var txt = nom.textContent.replace(/[\s\u00a0]+/g, ' ').trim();
         var p = map[ref.textContent.trim()];
-        if (!p) { // portail que le groupe n'a pas cr\u00e9\u00e9 : rouge s'il est proche
-          var dc = tr.querySelector('td.dist'), dist = dc ? parseInt(dc.textContent, 10) : NaN;
-          if (isNaN(dist) || dist > TP_RAYON) return;
-          var x = tr.querySelector('td.x'), y = tr.querySelector('td.y'), n = tr.querySelector('td.n');
-          inconnus.push({ ref: ref.textContent.trim(), dist: dist, x: x ? x.textContent.trim() : '?', y: y ? y.textContent.trim() : '?', n: n ? n.textContent.trim() : '?' });
-          if (!nom.querySelector('.mhx-portail-inconnu')) {
-            var r = document.createElement('span'); r.className = 'mhx-portail-inconnu';
-            r.textContent = ' \u26a0 Sortie de TP pas du groupe (\u00e0 ' + dist + ' case' + (dist > 1 ? 's' : '') + ')';
-            nom.appendChild(r);
+        if (/^Portail de T/i.test(txt)) { // portail cr\u00e9\u00e9 par le groupe : destination apr\u00e8s le nom
+          if (!p || nom.querySelector('.mhx-portail')) return;
+          var sp = document.createElement('span'); sp.className = 'mhx-portail';
+          sp.textContent = ' \u2192 X=' + p.d[0] + ' Y=' + p.d[1] + ' N=' + p.d[2];
+          sp.title = 'Destination du portail (erreur de calcul : X=' + sg(p.e[0]) + ' Y=' + sg(p.e[1]) + ' N=' + sg(p.e[2]) + ') \u2014 cr\u00e9\u00e9 par le troll ' + p.troll + ' il y a ' + age(p);
+          nom.appendChild(sp);
+          return;
+        }
+        if (!/^Sortie de Portail/i.test(txt)) return;
+        var cx = tr.querySelector('td.x'), cy = tr.querySelector('td.y'), cn = tr.querySelector('td.n');
+        var x = cx ? parseInt(cx.textContent, 10) : NaN, y = cy ? parseInt(cy.textContent, 10) : NaN, n = cn ? parseInt(cn.textContent, 10) : NaN;
+        if (isNaN(x + y + n)) return;
+        var tp = trouveTp(x, y, n);
+        if (tp) { // arriv\u00e9e d'un TP du groupe : ligne verte
+          tr.classList.add('mhx-sortie-ok'); tr.classList.remove('mhx-sortie-ko');
+          if (!nom.querySelector('.mhx-sortie-lib')) {
+            var l = document.createElement('span'); l.className = 'mhx-sortie-lib'; l.textContent = ' \u2014 Sortie de TP fait par le groupe';
+            l.title = 'Portail n\u00b0' + (Object.keys(map).filter(function (k) { return map[k] === tp; })[0] || '?') + ' cr\u00e9\u00e9 par le troll ' + tp.troll + ' il y a ' + age(tp);
+            nom.appendChild(l);
           }
           return;
         }
-        if (nom.querySelector('.mhx-portail')) return;
-        var sg = function (a) { return a >= 0 ? '+' + a : String(a); };
-        var sp = document.createElement('span'); sp.className = 'mhx-portail';
-        sp.textContent = ' Sortie de TP fait par le groupe \u2192 X=' + p.d[0] + ' Y=' + p.d[1] + ' N=' + p.d[2];
-        sp.title = 'Destination du portail (erreur de calcul : X=' + sg(p.e[0]) + ' Y=' + sg(p.e[1]) + ' N=' + sg(p.e[2]) + ') \u2014 cr\u00e9\u00e9 par le troll ' + p.troll +
-          ' il y a ' + (p.age >= 86400 ? Math.floor(p.age / 86400) + ' j' : Math.max(1, Math.floor(p.age / 3600)) + ' h');
-        nom.appendChild(sp);
+        var dc = tr.querySelector('td.dist'), dist = dc ? parseInt(dc.textContent, 10) : NaN;
+        if (isNaN(dist) || dist > TP_RAYON) return;
+        tr.classList.add('mhx-sortie-ko'); tr.classList.remove('mhx-sortie-ok');
+        inconnus.push({ ref: ref.textContent.trim(), dist: dist, x: x, y: y, n: n });
+        if (!nom.querySelector('.mhx-sortie-lib')) {
+          var r = document.createElement('span'); r.className = 'mhx-sortie-lib'; r.textContent = ' \u2014 \u26a0 Sortie de TP pas du groupe (\u00e0 ' + dist + ' case' + (dist > 1 ? 's' : '') + ')';
+          nom.appendChild(r);
+        }
       });
       var troll = currentTrollId();
       if (troll) { try { localStorage.setItem('mhx-tp-alerte-' + troll, JSON.stringify({ t: Date.now(), l: inconnus })); } catch (e) { /* stockage indisponible */ } }
@@ -2581,7 +2604,7 @@
     if (!d || !d.l || !d.l.length || Date.now() - d.t > 7200000) return;
     var box = document.createElement('div'); box.id = 'mhx-tp-alerte';
     box.textContent = '\u26a0 Attention : sortie de TP pas du groupe \u00e0 moins de ' + TP_RAYON + ' cases \u2014 ' + d.l.map(function (q) {
-      return 'portail ' + q.ref + ' en X=' + q.x + ' Y=' + q.y + ' N=' + q.n + ' (' + q.dist + ' case' + (q.dist > 1 ? 's' : '') + ')';
+      return 'sortie ' + q.ref + ' en X=' + q.x + ' Y=' + q.y + ' N=' + q.n + ' (' + q.dist + ' case' + (q.dist > 1 ? 's' : '') + ')';
     }).join(', ');
     var h = document.querySelector('h1, h2, h3');
     if (h && h.parentNode) h.parentNode.insertBefore(box, h.nextSibling); else document.body.insertBefore(box, document.body.firstChild);
