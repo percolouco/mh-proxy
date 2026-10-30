@@ -202,3 +202,19 @@ tr.mhx-hypno > td { background: #d1b3e8 !important; background-image: none !impo
 .mhx-ordre-pa { color: #6a1b9a; font-weight: bold; cursor: help; }
 #mhx-mesgowaps .mhx-mg-surcharge { border-left-color: #d32f2f; box-shadow: 0 0 0 2px #d32f2f inset; }
 .mhx-mg-alerte { color: #fff; background: #d32f2f; padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+
+/* Gestion de la chasse (vue) */
+#mhx-chasse { margin: 8px 0; border: 1px solid #8d6e63; background: rgba(255,255,255,.55); }
+#mhx-chasse > summary { cursor: pointer; padding: 6px 10px; font-weight: bold; background: #d7ccc8; }
+.mhx-chasse-corps { padding: 6px 10px; font-size: 13px; }
+.mhx-chasse-corps h4 { margin: 8px 0 4px; }
+.mhx-chasse-ligne { display: flex; gap: 8px; align-items: center; margin: 2px 0; }
+.mhx-chasse-form { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+.mhx-chasse-in { padding: 2px 4px; }
+.mhx-chasse-pos { margin: 4px 0; padding-left: 6px; border-left: 4px solid #8d6e63; }
+.mhx-chasse-vide { color: #777; font-style: italic; }
+.mhx-chasse-msg { color: #b71c1c; font-weight: bold; min-height: 1em; }
+.mhx-chasse-etoile { background: none; border: 0; cursor: pointer; font-size: 1.1em; padding: 0; }
+.mhx-chasse-star { font-weight: bold; background: rgba(255,213,79,.35); }
+tr.mhx-cible > td { background: #ffcc80 !important; background-image: none !important; }
+.mhx-cible-pic { font-size: 1.2em; vertical-align: middle; cursor: help; }
