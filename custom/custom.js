@@ -1081,6 +1081,10 @@
     mhdPost(NOTIF_LANCER_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(res)), function (ok) {
       mhdBadge(ok ? 'Action signal\u00e9e sur WhatsApp' : 'Action : envoi WhatsApp impossible', !ok);
     });
+    var cb = res.monstres && res.monstres[0];
+    if (/hypnotisme/i.test(res.nom || '') && cb && cb.etat !== undefined && /^\d+$/.test(cb.id || '')) { // monstre hypnotis\u00e9 : ligne violette sur Ma vue jusqu'\u00e0 son prochain tour
+      mhdPost(HYPNO_URL, 'action=set&troll=' + troll + '&monstre=' + cb.id + '&nom=' + encodeURIComponent(cb.nom || ''), function () {});
+    }
   }
   function sendPortalNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
@@ -2610,6 +2614,72 @@
     if (h && h.parentNode) h.parentNode.insertBefore(box, h.nextSibling); else document.body.insertBefore(box, document.body.firstChild);
   }
 
+  // Page Ma vue : monstres hypnotis\u00e9s (Hypnotisme lu par le proxy, stock\u00e9 sur le serveur MH) : ligne violette + picto apr\u00e8s le nom.
+  // Le monstre redevient normal d\u00e8s qu'il a jou\u00e9 : sa page est relue en arri\u00e8re-plan (lecture seule, comme l'aggro) \u00e0 chaque ouverture
+  // de la vue et, s'il a un \u00e9v\u00e9nement de sa part apr\u00e8s l'hypnotisme, l'hypno est marqu\u00e9e termin\u00e9e sur le serveur.
+  var HYPNO_URL = 'https://mh.percolouco.com/notif/hypno.php';
+  function addHypnoVue() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var hyp = null, checked = {}, running = false;
+    var paint = function () {
+      if (!hyp) return;
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), nom = tr.querySelector('td a.monstre');
+        if (!ref || !nom) return;
+        var h = hyp[ref.textContent.trim()], pic = tr.querySelector('.mhx-hypno-pic');
+        if (!h) { tr.classList.remove('mhx-hypno'); if (pic) pic.parentNode.removeChild(pic); return; }
+        tr.classList.add('mhx-hypno');
+        if (!pic) {
+          pic = document.createElement('span'); pic.className = 'mhx-hypno-pic'; pic.textContent = ' \ud83d\ude34';
+          nom.parentNode.insertBefore(pic, nom.nextSibling);
+        }
+        pic.title = 'Hypnotis\u00e9 depuis ' + h.depuis + ' \u2014 jusqu\'\u00e0 son prochain tour';
+      });
+    };
+    var iso = function (d) { var m = /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2}:\d{2})/.exec(d); return m ? m[3] + '-' + m[2] + '-' + m[1] + ' ' + m[4] : ''; };
+    var queue = [];
+    var step = function (me) {
+      if (running || !queue.length) return;
+      running = true;
+      var id = queue.shift();
+      fetch('/mountyhall/View/MonsterView.php?ai_IDPJ=' + id, { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (buf) {
+          if (!buf) return;
+          var raw = new TextDecoder('iso-8859-1').decode(buf);
+          var evts = aggroEvents(new DOMParser().parseFromString(raw, 'text/html'), raw);
+          if (!evts) return; // page inattendue : on ne touche \u00e0 rien
+          var re = new RegExp('^\\s*(?:un|une)\\s.*?\\(\\s*' + id + '\\s*\\)');
+          var joue = evts.some(function (e) { // \u00e9v\u00e9nement du monstre lui-m\u00eame, apr\u00e8s l'hypno (hors \u00ab a \u00e9t\u00e9 influenc\u00e9 / hypnotis\u00e9 \u00bb)
+            var t = e.descr.replace(/[\s\u00a0]+/g, ' ');
+            return re.test(t) && !/influenc|hypnot|a \u00e9t\u00e9/i.test(t) && iso(e.date) > hyp[id].depuis;
+          });
+          if (joue) {
+            mhdPost(HYPNO_URL, 'action=clear&troll=' + me + '&monstre=' + id, function () {});
+            delete hyp[id]; paint();
+          }
+        })
+        .catch(function () { /* ignore */ })
+        .then(function () { running = false; setTimeout(function () { step(me); }, 1000 + Math.random() * 4000); });
+    };
+    var load = function () {
+      fetch(HYPNO_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (l) {
+        if (!l) return;
+        hyp = l; paint();
+        var me = aggroTroll();
+        if (!me) return;
+        document.querySelectorAll('#VUE_monstres tbody tr td.ref').forEach(function (td) {
+          var id = td.textContent.trim();
+          if (hyp[id] && !checked[id]) { checked[id] = true; queue.push(id); }
+        });
+        step(me);
+      }, function () {});
+    };
+    load();
+    setInterval(paint, 2000);
+    setInterval(function () { checked = {}; load(); }, 300000);
+  }
+
   // Page \u00ab Ma vue \u00bb : nom r\u00e9el des tr\u00e9sors d\u00e9j\u00e0 identifi\u00e9s (sort Identification des Tr\u00e9sors, lu dans les mails de la bo\u00eete MH par le serveur),
   // affich\u00e9 apr\u00e8s le nom g\u00e9n\u00e9rique ; les effets en infobulle. Lecture / affichage uniquement.
   var IDENT_URL = 'https://mh.percolouco.com/evenements/api.php?tresors=';
@@ -3089,7 +3159,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails') && addTpAlerte(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails') && addTpAlerte(); feat('vue_effets') && addHypnoVue(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
