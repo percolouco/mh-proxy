@@ -1,7 +1,7 @@
 // Surcouche perso MountyHall — chargée dans chaque page via le proxy.
 // Ne fait que de l'affichage / lecture : jamais d'action automatique dans le jeu.
 (function () {
-  if (window.__mhx) return; // la page peut être injectée deux fois (voir nginx.conf)
+  if (window.__mhx) return; // la page peut \u00eatre inject\u00e9e deux fois (voir nginx.conf)
   window.__mhx = true;
 
   // Bouton « IT » dans le menu de gauche (sous « Ma vue ») : ouvre la page
@@ -14,7 +14,7 @@
     a.href = 'https://mh.percolouco.com/tactique/tactique.php';
     a.className = 'interface-it';
     a.textContent = 'IT';
-    var br = vue.nextElementSibling; // le <br> qui suit « Ma vue »
+    var br = vue.nextElementSibling; // le <br> qui suit \u00ab Ma vue \u00bb
     var after = (br && br.tagName === 'BR') ? br : vue;
     after.parentNode.insertBefore(a, after.nextSibling);
     a.parentNode.insertBefore(document.createElement('br'), a.nextSibling);
@@ -92,7 +92,7 @@
       d.textContent = (nom || 'Troll') + ' \u2014 ' + m[1] + '/' + m[2] + ' PV';
       var st = document.createElement('div');
       st.className = 'mhx-sacro-st';
-      var rg = document.createElement('div'); // régén moyenne, lue sur le serveur (simulation, rien n'est envoyé)
+      var rg = document.createElement('div'); // r\u00e9g\u00e9n moyenne, lue sur le serveur (simulation, rien n'est envoy\u00e9)
       rg.className = 'mhx-sacro-who';
       var mp = document.createElement('div'); // malus PV (bonus/malus enregistr\u00e9s), sur sa propre ligne
       mp.className = 'mhx-sacro-who';
@@ -189,14 +189,14 @@
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
         .then(function (b) {
           var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html');
-          var envois = [], objets = {}; // objets : par gowap, lus dans les tableaux repliables « [+] » de la page (n°, nom, detail, etat, poids)
+          var envois = [], objets = {}; // objets : par gowap, lus dans les tableaux repliables \u00ab [+] \u00bb de la page (n\u00b0, nom, detail, etat, poids)
           doc.querySelectorAll('table.toggle').forEach(function (tb) {
             var m = /(?:^|\s)(\d+)_\S+/.exec(tb.className), cells = tb.querySelectorAll('td'), cible = tb.nextElementSibling;
             if (!m || cells.length < 2 || !cible) return;
             var type = cells[1].textContent.trim();
             cible.querySelectorAll('tbody tr').forEach(function (tr) {
               var td = tr.querySelectorAll('td');
-              if (td.length < 5) return; // 6e colonne « Autre » : ex. [En gueule]
+              if (td.length < 5) return; // 6e colonne \u00ab Autre \u00bb : ex. [En gueule]
               var t = function (i) { return (td[i].textContent || '').replace(/[\s\u00a0]+/g, ' ').trim(); };
               (objets[m[1]] = objets[m[1]] || []).push([type, t(1), t(2), t(3), t(4), td.length > 5 ? t(5) : '']);
             });
@@ -205,9 +205,9 @@
             var j = null;
             try { j = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
             if (!j || !list[j.id]) return; // seulement les gowaps de la liste commune
-            var bloc = h3.parentNode && h3.parentNode.parentNode, t = (bloc ? bloc.textContent : '').replace(/[\s ]+/g, ' ');
+            var bloc = h3.parentNode && h3.parentNode.parentNode, t = (bloc ? bloc.textContent : '').replace(/[\s\u00a0]+/g, ' ');
             var pos = /X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(t), poids = /poids\s+port\S*\s*:\s*(\d+\s*minutes?)/i.exec(t);
-            var d = { nom: h3.textContent.replace(/[\s ]+/g, ' ').trim(), dla: j.dla, pa: j.pa, pv: j.pv, pvmax: j.pvmax, vue: j.vue, tour: j.tour,
+            var d = { nom: h3.textContent.replace(/[\s\u00a0]+/g, ' ').trim(), dla: j.dla, pa: j.pa, pv: j.pv, pvmax: j.pvmax, vue: j.vue, tour: j.tour,
                       ordres: (j.ordres || []).slice(0, 8).map(function (o) { return o.ordre; }) };
             if (pos) { d.x = parseInt(pos[1], 10); d.y = parseInt(pos[2], 10); d.n = parseInt(pos[3], 10); }
             if (poids) d.poids = poids[1];
@@ -280,11 +280,11 @@
         if (resume.length) lignes.push(resume.join(' \u2022 '));
         if (lv && lv.poids) lignes.push('Poids port\u00e9 : ' + lv.poids);
         if (lv && lv.ordres && lv.ordres.length) lignes.push('Ordres : ' + lv.ordres.join(' \u2192 '));
-        if (g.dernier_deces) lignes.push('Dernier décès : ' + g.dernier_deces);
+        if (g.dernier_deces) lignes.push('Dernier d\u00e9c\u00e8s : ' + g.dernier_deces);
         lignes.forEach(function (t) { var p = document.createElement('div'); p.textContent = t; c.appendChild(p); });
         var objs = lv && lv.objets ? lv.objets : null; // [type, nom, detail, etat, poids] lus dans le jeu ; [] = vide, on n'affiche pas l'ancienne liste du serveur
         if (objs && objs.length) {
-          var gueule = objs.filter(function (x) { return x[5]; }); // objets avec une mention « Autre » (ex. [En gueule]) : liste directe, sans clic
+          var gueule = objs.filter(function (x) { return x[5]; }); // objets avec une mention \u00ab Autre \u00bb (ex. [En gueule]) : liste directe, sans clic
           if (gueule.length) {
             var tg = document.createElement('div');
             tg.className = 'mhx-mg-type';
@@ -351,7 +351,7 @@
     var titreAttente = null;
     document.querySelectorAll('h2, h3').forEach(function (h) { if (/Pas encore actifs/i.test(h.textContent)) titreAttente = h; });
     var titreActifs = document.getElementById('BMEncours');
-    if (!titreActifs && !titreAttente && !/Bonus et Malus|Bonus-Malus/i.test(document.body.textContent)) return; // page inattendue : rien envoyé
+    if (!titreActifs && !titreAttente && !/Bonus et Malus|Bonus-Malus/i.test(document.body.textContent)) return; // page inattendue : rien envoy\u00e9
     var data = { actifs: lire(titreActifs), attente: lire(titreAttente) };
     mhdPost(NOTIF_BM_URL, 'troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
   }
@@ -560,7 +560,7 @@
       apply();
     };
     build();
-    [800, 2000, 5000, 9000].forEach(function (d) { setTimeout(function () { build(); apply(); }, d); }); // le tableau est retravaillé après le chargement
+    [800, 2000, 5000, 9000].forEach(function (d) { setTimeout(function () { build(); apply(); }, d); }); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
   }
 
   // Page Ma vue : réglages par troll, enregistrés sur le serveur MH (notif/prefs_vue.php) avec une copie dans le navigateur
@@ -609,7 +609,7 @@
     var touche = false;
     document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.collapsible-wrap > label, .collapsible-wrap > input.toggle')) touche = true; }, true);
     setBlocs(false);
-    setTimeout(function () { if (!touche) setBlocs(false); }, 1500); // la page est retravaillée après le chargement
+    setTimeout(function () { if (!touche) setBlocs(false); }, 1500); // la page est retravaill\u00e9e apr\u00e8s le chargement
   }
   function mkSwitch(on, titreOn, titreOff, clic) {
     var b = document.createElement('button');
@@ -651,7 +651,7 @@
       this.setAttribute('aria-checked', blocs ? 'true' : 'false');
       this.title = blocs ? 'Blocs ouverts \u00e0 l\'ouverture : cliquer pour les fermer' : 'Blocs ferm\u00e9s \u00e0 l\'ouverture : cliquer pour les ouvrir';
       lab2.textContent = 'Blocs ouverts \u00e0 l\'ouverture : ' + (blocs ? 'OUI' : 'NON');
-      setBlocs(blocs); // appliqué tout de suite, sans recharger
+      setBlocs(blocs); // appliqu\u00e9 tout de suite, sans recharger
       vueSave('blocs=' + (blocs ? '1' : '0'), function () {});
     });
     var li2 = mkLi('mhx-vueblocs', 'Blocs ouverts \u00e0 l\'ouverture : ' + (blocs ? 'OUI' : 'NON'), sw2);
@@ -822,7 +822,7 @@
         });
       };
       paint();
-      [1500, 4000, 8000].forEach(function (d) { setTimeout(paint, d); }); // le tableau est retravaillé après le chargement
+      [1500, 4000, 8000].forEach(function (d) { setTimeout(paint, d); }); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
     });
   }
 
@@ -1141,7 +1141,7 @@
       var th = document.querySelector('#VUE_monstres thead tr td.ref, #VUE_monstres thead tr th.ref');
       if (th && !th.parentNode.querySelector('.mhx-pvh')) {
         var h = document.createElement(th.tagName.toLowerCase());
-        h.className = 'mhx-pvh'; // sans style propre : il reprend celui des autres en-têtes du tableau
+        h.className = 'mhx-pvh'; // sans style propre : il reprend celui des autres en-t\u00eates du tableau
         h.textContent = 'PV';
         h.style.cssText = 'width: 80px; display: table-cell;';
         th.parentNode.insertBefore(h, th);
@@ -1151,7 +1151,7 @@
         if (!ref || tr.querySelector('td.mhx-pvcol')) return;
         var td = document.createElement('td');
         td.className = 'mhx-pvcol';
-        td.style.cssText = 'width: 80px; display: table-cell;'; // footable masque les cellules qu'il ne connaît pas
+        td.style.cssText = 'width: 80px; display: table-cell;'; // footable masque les cellules qu'il ne conna\u00eet pas
         ref.parentNode.insertBefore(td, ref);
       });
     };
@@ -1178,7 +1178,7 @@
         if (/^Famille$/i.test(lab) && /^\s*Familier/i.test(c[1].textContent)) familier = true;
         if (/^Points de Vie$/i.test(lab)) {
           var td = c[1].cloneNode(true);
-          var doute = td.querySelector('span') !== null; // intervalle de confiance à 80 % (jaune)
+          var doute = td.querySelector('span') !== null; // intervalle de confiance \u00e0 80 % (jaune)
           td.querySelectorAll('span').forEach(function (x) { x.remove(); });
           var t = td.textContent.replace(/[\s\u00a0]+/g, ' ');
           var m = /(\d+)\s*-\s*(\d+)\s*\u2192\s*(\d+(?:[.,]\d+)?)/.exec(t);
@@ -1467,7 +1467,7 @@
     }
 
     var p = new URLSearchParams();
-    p.append('update_equipe', type === 'equipe' ? '1' : '0'); // en premier, au cas où le payload serait tronqué
+    p.append('update_equipe', type === 'equipe' ? '1' : '0'); // en premier, au cas o\u00f9 le payload serait tronqu\u00e9
     p.append('missionNumber', m[1]);
     p.append('stages', stages.trim());
     p.append('rewards', rewards.trim());
@@ -1552,7 +1552,7 @@
       for (var n = 0; n < sans.length;) {
         var d = sans[n];
         if (d < med * 0.75 && n + 1 < sans.length && Math.abs(d + sans[n + 1] - med) < med * 0.25) {
-          valid.push(d + sans[n + 1]); // un événement manquant a coupé un tour en deux
+          valid.push(d + sans[n + 1]); // un \u00e9v\u00e9nement manquant a coup\u00e9 un tour en deux
           n += 2;
           continue;
         }
@@ -1592,7 +1592,7 @@
     (function run() {
       if (document.querySelector('.mhx-monstre')) return;
       var cdm = monsterCdmTurn();
-      if (!cdm && ++tries < 6) return setTimeout(run, 800); // la CDM peut arriver après le reste de la page
+      if (!cdm && ++tries < 6) return setTimeout(run, 800); // la CDM peut arriver apr\u00e8s le reste de la page
       var dates = [], all = [];
       document.querySelectorAll('#events tbody tr').forEach(function (tr) {
         var txt = tr.textContent.replace(/\s+/g, ' ');
@@ -1835,7 +1835,7 @@
     // cree un ordre : formulaire d'ordre, puis formulaire de confirmation (« Action ») avec ses champs caches ; ref = tresor a choisir
     var confirmer = function (doc, ref, souple) {
         var form = doc.getElementById('ActionForm');
-        if (!form && souple) return doc; // ordre sans ecran de confirmation (ex. « Arret »)
+        if (!form && souple) return doc; // ordre sans ecran de confirmation (ex. \u00ab Arret \u00bb)
         if (!form) throw new Error('\u00e9cran de confirmation introuvable');
         var champs = new URLSearchParams();
         form.querySelectorAll('input[name], select[name]').forEach(function (f) { if (f.type !== 'button' && f.type !== 'submit') champs.set(f.name, f.value); });
@@ -1859,10 +1859,10 @@
           return post('/mountyhall/MH_Play/Play_a_ActionResult.php', 'type=F&id=-4&id_target=' + id + '&gus_top=' + encodeURIComponent(tops[tops.length - 1].value));
         });
     };
-    if (/^Gigots?\s+de\s+Gob/i.test(it.nom)) { // Gigots de Gob : « Se secouer » sur leur case, puis « Aller chercher » (dans la vue) ou « Se deplacer vers » (hors vue), puis « Arret »
+    if (/^Gigots?\s+de\s+Gob/i.test(it.nom)) { // Gigots de Gob : \u00ab Se secouer \u00bb sur leur case, puis \u00ab Aller chercher \u00bb (dans la vue) ou \u00ab Se deplacer vers \u00bb (hors vue), puis \u00ab Arret \u00bb
       var pos = { x: it.x, y: it.y, n: it.n };
       var etapes = [['Arr\u00eat', '5', null], [hors ? 'Se d\u00e9placer vers' : 'Aller chercher', hors ? '1' : '8', hors ? pos : it.ref], ['Se secouer', '7', pos]];
-      if (hors) etapes.splice(1, 1); // hors vue : pas de deplacement, « Se secouer » sur la case suffit // crees dans l'ordre inverse : chacun remonte en premier
+      if (hors) etapes.splice(1, 1); // hors vue : pas de deplacement, \u00ab Se secouer \u00bb sur la case suffit // crees dans l'ordre inverse : chacun remonte en premier
       var chaine = Promise.resolve();
       etapes.forEach(function (e, i) {
         chaine = chaine.then(function () { say((i + 1) + '/' + etapes.length + ' ' + e[0] + '\u2026'); return creer(e[1], e[2], e[1] === '5'); })
@@ -1870,7 +1870,7 @@
       });
       return chaine.then(function () { return 'Termin\u00e9 : se secouer' + (hors ? '' : ', aller chercher ' + it.nom + ' (' + it.ref + ')') + ', puis arr\u00eat.'; });
     }
-    if (hors) { // tresor hors de vue : ordre « Arret » (5) puis « Se deplacer vers » (1) sa position, remonte en premier
+    if (hors) { // tresor hors de vue : ordre \u00ab Arret \u00bb (5) puis \u00ab Se deplacer vers \u00bb (1) sa position, remonte en premier
       say('1/5 Arr\u00eat\u2026');
       return creer('5', null, true).then(function () { say('2/5 Ordre remont\u00e9 en premier\u2026'); return remonter(); })
         .then(function () { return wait(1000); })
@@ -2000,7 +2000,7 @@
           if (c[1] === 'Actions') {
             if (marks[it.ref] && String(marks[it.ref]) === String(moiM)) { // seul celui qui a pose la marque peut la retirer
               var x = document.createElement('a');
-              x.href = '#'; x.textContent = '\u2715'; x.className = 'mhx-marque-x'; x.title = 'Retirer la marque (trésor plus en cours de récupération)';
+              x.href = '#'; x.textContent = '\u2715'; x.className = 'mhx-marque-x'; x.title = 'Retirer la marque (tr\u00e9sor plus en cours de r\u00e9cup\u00e9ration)';
               x.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); delete marks[it.ref]; draw(); marksCall('action=del&ref=' + it.ref + '&troll=' + moiM, function (m) { if (m) { marks = m; draw(); } }); });
               td.appendChild(x);
             }
@@ -2173,7 +2173,7 @@
       if (!hr) return;
       var tard = Date.now() - t0 > 6000; // si la colonne PV n'apparait pas (colonne Niv. du jeu absente...), on se place avant R\u00e9f. sans l'attendre
       var hRef = hr.querySelector('.mhx-pvh') || (tard ? hr.querySelector('.ref') : null);
-      if (hRef && !hr.querySelector('.mhx-aggroh')) { // juste apr\u00e8s PV (ou avant R\u00e9f.), donc avant « R\u00e9f. » (apr\u00e8s PV, ajout\u00e9 par addMonsterPv)
+      if (hRef && !hr.querySelector('.mhx-aggroh')) { // juste apr\u00e8s PV (ou avant R\u00e9f.), donc avant \u00ab R\u00e9f. \u00bb (apr\u00e8s PV, ajout\u00e9 par addMonsterPv)
         var h = document.createElement(hRef.tagName.toLowerCase());
         h.className = 'mhx-aggroh';
         h.textContent = 'Aggro';
@@ -2358,7 +2358,7 @@
           var mn = Math.floor(rest / 60), now = new Date();
           dt = (e.dla_estimee ? '~' : '') + (d.toDateString() === now.toDateString() ? '' : p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + ' ') + p2(d.getHours()) + 'h' + p2(d.getMinutes());
           tip = 'Dans ' + Math.floor(mn / 60) + 'h' + p2(mn % 60) + (e.dla_estimee ? ' (estimation)' : '');
-          if (e.duree_tour > 0) { // cumul d'après (approximatif) = prochaine DLA + une durée de tour
+          if (e.duree_tour > 0) { // cumul d'apr\u00e8s (approximatif) = prochaine DLA + une dur\u00e9e de tour
             var c = new Date(Date.now() + (rest + e.duree_tour) * 1000);
             tip += '\nCumul : ~' + (c.toDateString() === now.toDateString() ? '' : p2(c.getDate()) + '/' + p2(c.getMonth() + 1) + ' ') + p2(c.getHours()) + 'h' + p2(c.getMinutes());
           }
@@ -2765,7 +2765,7 @@
       if (box && box.parentNode) return true;
       var cible = document.getElementById('monstres');
       if (!cible || !cible.parentNode) return false;
-      box = el('details'); box.id = 'mhx-chasse'; // replié par défaut
+      box = el('details'); box.id = 'mhx-chasse'; // repli\u00e9 par d\u00e9faut
       var sm = el('summary', null, 'Gestion de la chasse'); box.appendChild(sm);
       body = el('div', 'mhx-chasse-corps'); box.appendChild(body);
       cible.parentNode.insertBefore(box, cible);
@@ -2783,13 +2783,13 @@
       body.textContent = '';
       msg = el('div', 'mhx-chasse-msg');
       // --- cibles
-      body.appendChild(el('h4', null, '🎯 Cibles prioritaires (' + data.cibles.length + '/5)'));
+      body.appendChild(el('h4', null, '\ud83c\udfaf Cibles prioritaires (' + data.cibles.length + '/5)'));
       var ul = el('div', 'mhx-chasse-liste');
       if (!data.cibles.length) ul.appendChild(el('div', 'mhx-chasse-vide', 'Aucune cible.'));
       data.cibles.forEach(function (c) {
         var l = el('div', 'mhx-chasse-ligne');
         l.appendChild(el('span', null, '[' + c.monstre + '] ' + (c.nom || 'monstre')));
-        l.appendChild(bouton('✖', 'Retirer cette cible', function () { chassePost('action=cible_del&monstre=' + c.monstre, function (j) { erreur(j); load(); }); }));
+        l.appendChild(bouton('\u2716', 'Retirer cette cible', function () { chassePost('action=cible_del&monstre=' + c.monstre, function (j) { erreur(j); load(); }); }));
         ul.appendChild(l);
       });
       body.appendChild(ul);
@@ -2804,25 +2804,25 @@
       }));
       body.appendChild(fc);
       // --- positions
-      body.appendChild(el('h4', null, '📍 Positions de chasse (' + data.positions.length + '/3, monstres à ' + CHASSE_RAYON + ' cases ou moins)'));
+      body.appendChild(el('h4', null, '\ud83d\udccd Positions de chasse (' + data.positions.length + '/3, monstres \u00e0 ' + CHASSE_RAYON + ' cases ou moins)'));
       if (!data.positions.length) body.appendChild(el('div', 'mhx-chasse-vide', 'Aucune position.'));
       data.positions.forEach(function (p) {
         var d = el('details', 'mhx-chasse-pos'); d.open = !!ouvertes[p.id];
         d.addEventListener('toggle', function () { ouvertes[p.id] = d.open; });
-        var sm = el('summary', null, 'X=' + p.x + ' Y=' + p.y + ' N=' + p.n + ' — ' + p.monstres.length + ' monstre' + (p.monstres.length > 1 ? 's' : '') + (p.obs ? ' (observé le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')' : ''));
+        var sm = el('summary', null, 'X=' + p.x + ' Y=' + p.y + ' N=' + p.n + ' \u2014 ' + p.monstres.length + ' monstre' + (p.monstres.length > 1 ? 's' : '') + (p.obs ? ' (observ\u00e9 le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')' : ''));
         d.appendChild(sm);
         var actions = el('div', 'mhx-chasse-ligne');
-        var a = el('a', null, '🗺️ Ouvrir dans l\'IT'); a.href = itLien(p); a.target = '_blank'; a.rel = 'noopener';
+        var a = el('a', null, '\ud83d\uddfa\ufe0f Ouvrir dans l\'IT'); a.href = itLien(p); a.target = '_blank'; a.rel = 'noopener';
         actions.appendChild(a);
-        actions.appendChild(bouton('✖ Supprimer la position', '', function () { chassePost('action=pos_del&id=' + p.id, function (j) { erreur(j); load(); }); }));
+        actions.appendChild(bouton('\u2716 Supprimer la position', '', function () { chassePost('action=pos_del&id=' + p.id, function (j) { erreur(j); load(); }); }));
         d.appendChild(actions);
         var mons = p.monstres.slice().sort(function (m1, m2) { return (m2.star - m1.star) || (Math.max(Math.abs(m1.x - p.x), Math.abs(m1.y - p.y), Math.abs(m1.n - p.n)) - Math.max(Math.abs(m2.x - p.x), Math.abs(m2.y - p.y), Math.abs(m2.n - p.n))); });
         mons.forEach(function (m) {
           var l = el('div', 'mhx-chasse-ligne' + (m.star ? ' mhx-chasse-star' : ''));
-          var st = el('button', 'mhx-chasse-etoile', m.star ? '⭐' : '☆'); st.type = 'button'; st.title = 'Mettre en avant / retirer la mise en avant';
+          var st = el('button', 'mhx-chasse-etoile', m.star ? '\u2b50' : '\u2606'); st.type = 'button'; st.title = 'Mettre en avant / retirer la mise en avant';
           st.addEventListener('click', function () { chassePost('action=star&id=' + p.id + '&monstre=' + m.id, function (j) { erreur(j); load(); }); });
           l.appendChild(st);
-          l.appendChild(el('span', null, '[' + m.id + '] ' + (m.nom || 'monstre') + ' — X=' + m.x + ' Y=' + m.y + ' N=' + m.n + ' (dist. ' + Math.max(Math.abs(m.x - p.x), Math.abs(m.y - p.y), Math.abs(m.n - p.n)) + ')'));
+          l.appendChild(el('span', null, '[' + m.id + '] ' + (m.nom || 'monstre') + ' \u2014 X=' + m.x + ' Y=' + m.y + ' N=' + m.n + ' (dist. ' + Math.max(Math.abs(m.x - p.x), Math.abs(m.y - p.y), Math.abs(m.n - p.n)) + ')'));
           d.appendChild(l);
         });
         body.appendChild(d);
@@ -2831,7 +2831,7 @@
       fp.appendChild(ix); fp.appendChild(iy); fp.appendChild(inn);
       fp.appendChild(bouton('Ajouter la position', '', function () {
         var v = [ix.value, iy.value, inn.value].map(function (t) { return t.trim(); });
-        if (!v.every(function (t) { return /^-?\d+$/.test(t); })) { msg.textContent = 'Coordonnées invalides.'; return; }
+        if (!v.every(function (t) { return /^-?\d+$/.test(t); })) { msg.textContent = 'Coordonn\u00e9es invalides.'; return; }
         chassePost('action=pos_add&x=' + v[0] + '&y=' + v[1] + '&n=' + v[2], function (j) { erreur(j); if (j && j.ok) { ix.value = iy.value = inn.value = ''; } load(); });
       }));
       body.appendChild(fp);
@@ -2858,7 +2858,7 @@
         var c = ids[ref.textContent.trim()], pic = tr.querySelector('.mhx-cible-pic');
         if (!c) { tr.classList.remove('mhx-cible'); if (pic) pic.parentNode.removeChild(pic); return; }
         tr.classList.add('mhx-cible');
-        if (!pic) { pic = el('span', 'mhx-cible-pic', ' 🎯'); pic.title = 'Cible prioritaire du groupe'; nom.parentNode.insertBefore(pic, nom.nextSibling); }
+        if (!pic) { pic = el('span', 'mhx-cible-pic', ' \ud83c\udfaf'); pic.title = 'Cible prioritaire du groupe'; nom.parentNode.insertBefore(pic, nom.nextSibling); }
       });
     };
     // mort : la page du monstre dit « Ce Monstre n'existe pas ou a été Tué » (relue en arrière-plan, au plus une fois par 10 min et par cible)
@@ -2884,21 +2884,21 @@
       setTimeout(function () { observer(); }, Math.max(0, 8000 - (Date.now() - t0)));
     };
     var observer = function () {
-      var txt = (document.body ? document.body.textContent : '').replace(/[\s ]+/g, ' ');
+      var txt = (document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' ');
       var mp = /Ma position actuelle est\s*:\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(txt);
-      var mv = /vue porte actuellement à\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txt);
+      var mv = /vue porte actuellement \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txt);
       if (!mp || !mv) return;
       var me = { x: +mp[1], y: +mp[2], n: +mp[3] }, h = +mv[1], v = +mv[2];
       var rows = [];
       document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
         var ref = tr.querySelector('td.ref'), a = tr.querySelector('td a.monstre'), x = tr.querySelector('td.x'), y = tr.querySelector('td.y'), n = tr.querySelector('td.n');
         if (!ref || !a || !x || !y || !n || /^\s*(?:Gowap Apprivois|Familier)/i.test(a.textContent)) return;
-        rows.push({ id: ref.textContent.trim(), nom: a.textContent.replace(/[\s ]+/g, ' ').trim(), x: parseInt(x.textContent, 10), y: parseInt(y.textContent, 10), n: parseInt(n.textContent, 10) });
+        rows.push({ id: ref.textContent.trim(), nom: a.textContent.replace(/[\s\u00a0]+/g, ' ').trim(), x: parseInt(x.textContent, 10), y: parseInt(y.textContent, 10), n: parseInt(n.textContent, 10) });
       });
       if (!rows.length) return; // vue pas encore remplie : on ne vide rien
       data.positions.forEach(function (p) {
         if (observe[p.id] && Date.now() - observe[p.id] < 300000) return;
-        if (Math.abs(p.x - me.x) + CHASSE_RAYON > h || Math.abs(p.y - me.y) + CHASSE_RAYON > h || Math.abs(p.n - me.n) + CHASSE_RAYON > v) return; // zone pas entièrement dans ma vue
+        if (Math.abs(p.x - me.x) + CHASSE_RAYON > h || Math.abs(p.y - me.y) + CHASSE_RAYON > h || Math.abs(p.n - me.n) + CHASSE_RAYON > v) return; // zone pas enti\u00e8rement dans ma vue
         observe[p.id] = Date.now();
         var l = rows.filter(function (m) { return Math.abs(m.x - p.x) <= CHASSE_RAYON && Math.abs(m.y - p.y) <= CHASSE_RAYON && Math.abs(m.n - p.n) <= CHASSE_RAYON; });
         chassePost('action=pos_obs&id=' + p.id + '&data=' + encodeURIComponent(JSON.stringify(l)), function () { load(); });
@@ -3165,7 +3165,7 @@
       var m = /Ma position actuelle est\s*:\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec((document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' '));
       var troll = currentTrollId();
       var txtV = (document.body ? document.body.textContent : '').replace(/[\s\u00a0]+/g, ' ');
-      var mv = /vue porte actuellement \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txtV); // « Ma vue porte actuellement \u00e0 66 cases horizontalement et 33 verticalement » (pas la limite d'affichage)
+      var mv = /vue porte actuellement \u00e0\s*(\d+) cases horizontalement et (\d+) verticalement/i.exec(txtV); // \u00ab Ma vue porte actuellement \u00e0 66 cases horizontalement et 33 verticalement \u00bb (pas la limite d'affichage)
       if (m && troll) { try { localStorage.setItem('mhx-position-' + troll, JSON.stringify({ x: +m[1], y: +m[2], n: +m[3], h: mv ? +mv[1] : null, v: mv ? +mv[2] : null, t: Date.now() })); } catch (e) { /* stockage indisponible */ } return; }
       if (Date.now() - t0 < 8000) setTimeout(lire, 1000);
     };
