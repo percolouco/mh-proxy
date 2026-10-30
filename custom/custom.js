@@ -2534,25 +2534,57 @@
   // Page \u00ab Ma vue \u00bb : destination des Portails de T\u00e9l\u00e9portation connus (relev\u00e9e dans le r\u00e9sultat du sortil\u00e8ge, stock\u00e9e sur le serveur MH),
   // ajout\u00e9e apr\u00e8s le nom du portail dans le tableau des lieux. Lecture / affichage uniquement.
   var PORTAILS_URL = 'https://mh.percolouco.com/notif/portails.php';
+  var TP_RAYON = 5; // rayon (en cases) de l'alerte sur les sorties de TP qui ne sont pas du groupe
   function addPortailDest() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var map = null;
     var paint = function () {
       if (!map) return;
+      var inconnus = [];
       document.querySelectorAll('#VUE_lieux tbody tr').forEach(function (tr) {
         var ref = tr.querySelector('td.ref'), nom = ref && ref.nextElementSibling;
-        var p = ref && map[ref.textContent.trim()];
-        if (!p || !nom || nom.querySelector('.mhx-portail')) return;
+        if (!ref || !nom || !/^Portail de T/i.test(nom.textContent.replace(/[\s\u00a0]+/g, ' ').trim())) return;
+        var p = map[ref.textContent.trim()];
+        if (!p) { // portail que le groupe n'a pas cr\u00e9\u00e9 : rouge s'il est proche
+          var dc = tr.querySelector('td.dist'), dist = dc ? parseInt(dc.textContent, 10) : NaN;
+          if (isNaN(dist) || dist > TP_RAYON) return;
+          var x = tr.querySelector('td.x'), y = tr.querySelector('td.y'), n = tr.querySelector('td.n');
+          inconnus.push({ ref: ref.textContent.trim(), dist: dist, x: x ? x.textContent.trim() : '?', y: y ? y.textContent.trim() : '?', n: n ? n.textContent.trim() : '?' });
+          if (!nom.querySelector('.mhx-portail-inconnu')) {
+            var r = document.createElement('span'); r.className = 'mhx-portail-inconnu';
+            r.textContent = ' \u26a0 Sortie de TP pas du groupe (\u00e0 ' + dist + ' case' + (dist > 1 ? 's' : '') + ')';
+            nom.appendChild(r);
+          }
+          return;
+        }
+        if (nom.querySelector('.mhx-portail')) return;
         var sg = function (a) { return a >= 0 ? '+' + a : String(a); };
         var sp = document.createElement('span'); sp.className = 'mhx-portail';
-        sp.textContent = ' \u2192 X=' + p.d[0] + ' Y=' + p.d[1] + ' N=' + p.d[2];
+        sp.textContent = ' Sortie de TP fait par le groupe \u2192 X=' + p.d[0] + ' Y=' + p.d[1] + ' N=' + p.d[2];
         sp.title = 'Destination du portail (erreur de calcul : X=' + sg(p.e[0]) + ' Y=' + sg(p.e[1]) + ' N=' + sg(p.e[2]) + ') \u2014 cr\u00e9\u00e9 par le troll ' + p.troll +
           ' il y a ' + (p.age >= 86400 ? Math.floor(p.age / 86400) + ' j' : Math.max(1, Math.floor(p.age / 3600)) + ' h');
         nom.appendChild(sp);
       });
+      var troll = currentTrollId();
+      if (troll) { try { localStorage.setItem('mhx-tp-alerte-' + troll, JSON.stringify({ t: Date.now(), l: inconnus })); } catch (e) { /* stockage indisponible */ } }
     };
     fetch(PORTAILS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
       .then(function (m) { map = m; paint(); setInterval(paint, 2000); }); // le tableau est retravaill\u00e9 apr\u00e8s le chargement
+  }
+
+  // Page de connexion (TurnStart.php) : alerte si la derni\u00e8re vue relev\u00e9e montrait une sortie de TP pas du groupe \u00e0 moins de TP_RAYON cases.
+  // Lecture / affichage uniquement (donn\u00e9e m\u00e9moris\u00e9e par addPortailDest sur Ma vue, valable 2 h).
+  function addTpAlerte() {
+    if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body || document.getElementById('mhx-tp-alerte')) return;
+    var troll = currentTrollId(), d = null;
+    try { d = JSON.parse(localStorage.getItem('mhx-tp-alerte-' + troll) || 'null'); } catch (e) { d = null; }
+    if (!d || !d.l || !d.l.length || Date.now() - d.t > 7200000) return;
+    var box = document.createElement('div'); box.id = 'mhx-tp-alerte';
+    box.textContent = '\u26a0 Attention : sortie de TP pas du groupe \u00e0 moins de ' + TP_RAYON + ' cases \u2014 ' + d.l.map(function (q) {
+      return 'portail ' + q.ref + ' en X=' + q.x + ' Y=' + q.y + ' N=' + q.n + ' (' + q.dist + ' case' + (q.dist > 1 ? 's' : '') + ')';
+    }).join(', ');
+    var h = document.querySelector('h1, h2, h3');
+    if (h && h.parentNode) h.parentNode.insertBefore(box, h.nextSibling); else document.body.insertBefore(box, document.body.firstChild);
   }
 
   // Page \u00ab Ma vue \u00bb : nom r\u00e9el des tr\u00e9sors d\u00e9j\u00e0 identifi\u00e9s (sort Identification des Tr\u00e9sors, lu dans les mails de la bo\u00eete MH par le serveur),
@@ -3034,7 +3066,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails') && addTpAlerte(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
