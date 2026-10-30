@@ -1,5 +1,26 @@
 /* Surcouche perso MountyHall — chargée dans chaque page via le proxy. */
 
+/* Palette commune (reprend celle du jeu : parchemin, bandeaux bruns, bordeaux, police Trebuchet 12 px) */
+:root {
+    --mhx-brun: #a47e3c;          /* bordures et bandeaux (identique aux tableaux du jeu) */
+    --mhx-bordeaux: #6b1f1f;      /* boutons actifs, interrupteurs */
+    --mhx-fond: rgba(255, 255, 204, .55);   /* fond des encarts : parchemin du jeu translucide */
+    --mhx-texte: #333;
+    --mhx-police: "Trebuchet MS", "Times New Roman", Times, serif;
+    --mhx-ok: #b8eeb8;            /* vert : bon / du groupe */
+    --mhx-ko: #f5b5b5;            /* rouge clair : danger / inconnu */
+    --mhx-alerte: #b00020;        /* rouge vif : texte et bordure d'alerte */
+    --mhx-info: #6a1b9a;          /* violet : valeur calculée / estimée */
+    --mhx-hypno: #d1b3e8;
+    --mhx-cible: #ffcc80;
+    --mhx-picto: 1.2em;
+}
+/* Encart du script : même cadre partout (bordure brune, coins 7 px, parchemin translucide, police du jeu) */
+#mhx-gowaps, .mhx-monstre, #mhx-tresors-ordres, #mhx-tresors-ordres2, #mhx-parcours, #mhx-chasse {
+    border: 1px solid var(--mhx-brun); border-radius: 7px; background: var(--mhx-fond);
+    font: 12px var(--mhx-police); color: var(--mhx-texte);
+}
+
 /* Bouton « IT » du menu de gauche : mêmes images que les autres boutons (normal + survol) */
 a.interface-it,
 a.interface-it:link,
@@ -24,7 +45,7 @@ a.interface-it::after {
 }
 
 /* Page Suivants : DLA affichée dans l'encart de chaque suivant */
-#mhx-gowaps { margin: 15px; padding: 8px; background: #f4efe0; border: 1px solid #8a6d3b; border-radius: 4px; font: 13px Arial, sans-serif; color: #333; }
+#mhx-gowaps { margin: 15px; padding: 8px; }
 #mhx-gowaps div { margin-top: 4px; }
 #mhx-gowaps span { padding: 1px 6px; border-radius: 3px; }
 .mhx-dla { font-size: 0.9em; }
@@ -32,11 +53,11 @@ a.interface-it::after {
 .mhx-dla-past { color: #b00020; font-weight: bold; }
 
 /* Script MHD : pastille de statut (envoi mission) et analyse tactique d'un monstre */
-#mhx-badge { position: fixed; top: 15px; right: 15px; z-index: 999999; padding: 10px 15px; border-radius: 6px; color: #fff; font: bold 13px Arial, sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,.3); pointer-events: none; transition: opacity .4s ease-in-out; }
+#mhx-badge { position: fixed; top: 15px; right: 15px; z-index: 999999; padding: 10px 15px; border-radius: 6px; color: #fff; font: bold 13px var(--mhx-police); box-shadow: 0 4px 6px rgba(0,0,0,.3); pointer-events: none; transition: opacity .4s ease-in-out; }
 #mhx-badge.mhx-badge-ok { background: #2e7d32; }
 #mhx-badge.mhx-badge-err { background: #d32f2f; }
-.mhx-monstre { margin: 15px auto; padding: 10px; background: #fcf8e3; border: 1px solid #8a6d3b; border-radius: 4px; width: 80%; text-align: center; color: #8a6d3b; font-family: Arial, sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,.2); }
-.mhx-monstre h4 { margin: 0 0 8px 0; color: #a94442; }
+.mhx-monstre { margin: 15px auto; padding: 10px; width: 80%; text-align: center; }
+.mhx-monstre h4 { margin: 0 0 8px 0; color: var(--mhx-alerte); }
 
 /* Page Ma vue : colonne PV entre « Niv. » et « Réf. » */
 .mhx-pvcol { white-space: nowrap; font-weight: bold; font-size: 12px; text-align: right; padding-left: 1px; padding-right: 2px; }
@@ -49,7 +70,7 @@ body.mhx-pv-lecture [id^="popupCDM"] { visibility: hidden !important; }
 /* Page Ma vue : colonnes PA et PV des trolls (mêmes couleurs que le récap tactique) */
 .mhx-pacol, .mhx-pah, .mhx-pvth, .mhx-dlah, .mhx-dlacol { text-align: center !important; }
 .mhx-pvcol2 { text-align: center !important; white-space: nowrap; }
-.mhx-pa-vert { background-color: #b8eeb8 !important; background-image: none !important; }
+.mhx-pa-vert { background-color: var(--mhx-ok) !important; background-image: none !important; }
 .mhx-pvbar { height: 8px; margin-top: 4px; border: 1px solid #000; }
 .mhx-pvbar > div { height: 100%; }
 .mhx-pvfill-vert { background: #22c55e; }
@@ -70,7 +91,7 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 
 /* Popup « demande de sacro » : look de l'interface MH (parchemin, bandeau marron, boutons du jeu), utilisable au doigt */
 #mhx-sacro-pop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(0,0,0,.5); }
-.mhx-sacro-box { width: 100%; max-width: 340px; border: 2px solid #a47e3c; border-radius: 9px; overflow: hidden; background: url(/mountyhall/MH_Packs/packMH_parchemin/fond/fond2.jpg); font: 14px "Trebuchet MS", "Times New Roman", Times, serif; color: #333; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+.mhx-sacro-box { width: 100%; max-width: 340px; border: 2px solid var(--mhx-brun); border-radius: 9px; overflow: hidden; background: url(/mountyhall/MH_Packs/packMH_parchemin/fond/fond2.jpg); font: 14px "Trebuchet MS", "Times New Roman", Times, serif; color: #333; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
 .mhx-sacro-head { display: flex; align-items: center; justify-content: flex-end; font-weight: bold; font-size: 14px; padding: 2px 6px; min-height: 0; border-radius: 0; }
 .mhx-sacro-x { min-width: 36px; height: 32px; padding: 0; border: 0; background: transparent; color: #333; font-size: 26px; line-height: 28px; cursor: pointer; }
 .mhx-sacro-body { padding: 14px 12px 12px; }
@@ -79,13 +100,13 @@ td.mhx-pvcol2:not(:empty) { cursor: pointer; }
 .mhx-sacro-btn { margin: 0 6px; min-width: 96px; min-height: 36px; font-size: 14px; cursor: pointer; }
 
 /* Pictos d'effets (FA, HE) à côté du nom des monstres */
-.mhx-fa { font-size: 1.35em; line-height: 1; vertical-align: middle; cursor: help; }
+.mhx-fa { font-size: var(--mhx-picto); line-height: 1; vertical-align: middle; cursor: help; }
 .mhx-sacro-who { margin-top: 2px; }
 
 /* Page Ma vue, Trésors : boutons de filtre (Parchemin / Composant / Gigots de Gob), additionnables */
 #mhx-tfiltres { margin: 4px 0 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 #mhx-tfiltres .mhx-tfiltre { min-height: 26px; cursor: pointer; }
-#mhx-tfiltres .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
+#mhx-tfiltres .mhx-tfiltre.mhx-actif { background: var(--mhx-bordeaux); color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
 #mhx-tfiltres .mhx-tinfo { font-size: 12px; margin-left: 4px; }
 tr.mhx-tfiltre-cache { display: none !important; }
 #mhx-tfiltres.mhx-tfiltres-ligne { display: inline-flex; margin: 0 0 0 5px; vertical-align: middle; }
@@ -95,7 +116,7 @@ tr.mhx-tfiltre-cache { display: none !important; }
 #mhx-vueswitch .mhx-vueopt { display: inline-flex; align-items: center; gap: 8px; }
 .mhx-switch { position: relative; width: 30px; height: 16px; padding: 0; border: 1px solid #3a0f0f; border-radius: 8px; background: #8a8a8a; cursor: pointer; transition: background .2s; }
 .mhx-switch > span { position: absolute; top: 1px; left: 1px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .2s; }
-.mhx-switch.mhx-on { background: #6b1f1f; }
+.mhx-switch.mhx-on { background: var(--mhx-bordeaux); }
 .mhx-switch.mhx-on > span { left: 15px; }
 
 /* Mon Profil : bloc Kiki Meter */
@@ -103,46 +124,46 @@ tr.mhx-tfiltre-cache { display: none !important; }
 .mhx-kikitab th, .mhx-kikitab td { padding: 4px 8px; border-bottom: 1px solid rgba(0,0,0,.2); text-align: center; font-size: 12px; }
 .mhx-kikitab thead th { background: rgba(164,126,60,.35); }
 .mhx-kikitab tbody th { text-align: left; white-space: nowrap; }
-.mhx-kikitab td.mhx-kiki-vert { background: #b8eeb8; font-weight: bold; }
-.mhx-kikitab td.mhx-kiki-rouge { background: #f5b5b5; font-weight: bold; }
+.mhx-kikitab td.mhx-kiki-vert { background: var(--mhx-ok); font-weight: bold; }
+.mhx-kikitab td.mhx-kiki-rouge { background: var(--mhx-ko); font-weight: bold; }
 .mhx-kikinote { margin-top: 6px; font-size: 11px; font-style: italic; }
 #mhx-kiki { grid-column: 1 / -1; }
 #mhx-tfiltres .mhx-tdist { min-height: 26px; font-size: 12px; max-width: 110px; }
 
 /* Trésors : liste des plus grosses piles (2e ligne sous le titre) */
-#mhx-tpiles { margin: 2px 0 6px; font: 12px "Trebuchet MS", Arial, sans-serif; }
+#mhx-tpiles { margin: 2px 0 6px; font: 12px var(--mhx-police); }
 #mhx-tpiles .mhx-piles-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-#mhx-tpiles .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
+#mhx-tpiles .mhx-tfiltre.mhx-actif { background: var(--mhx-bordeaux); color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
 #mhx-tpiles .mhx-piles-liste { display: none; margin-top: 4px; }
 #mhx-tpiles.mhx-piles-on .mhx-piles-liste { display: block; }
 .mhx-piles-tete { font-style: italic; margin-bottom: 2px; }
-.mhx-pile { padding: 2px 6px; margin: 1px 0; border: 1px solid #a47e3c; border-radius: 3px; background: rgba(255,255,255,.35); cursor: pointer; }
+.mhx-pile { padding: 2px 6px; margin: 1px 0; border: 1px solid var(--mhx-brun); border-radius: 3px; background: rgba(255,255,255,.35); cursor: pointer; }
 .mhx-pile:hover { background: rgba(255,215,0,.35); }
 .mhx-pile.mhx-pile-sel { background: #f3d25c; font-weight: bold; }
 tr.mhx-pile-hl > td { background: #f3d25c !important; }
 
 /* Menu : liens vers les ecuyers */
-#mhx-ecuyers { display: grid; grid-template-columns: repeat(2, auto); gap: 4px 18px; justify-content: center; text-align: center; padding: 4px 6px; font: bold 12px "Trebuchet MS", Arial, sans-serif; }
-#mhx-ecuyers a { color: #6b1f1f; text-decoration: underline; }
+#mhx-ecuyers { display: grid; grid-template-columns: repeat(2, auto); gap: 4px 18px; justify-content: center; text-align: center; padding: 4px 6px; font: bold 12px var(--mhx-police); }
+#mhx-ecuyers a { color: var(--mhx-bordeaux); text-decoration: underline; }
 
 /* Page Ma vue : colonne Aggro des monstres */
 .mhx-aggrocol { white-space: nowrap; font-size: 12px; text-align: center; padding-left: 1px; padding-right: 2px; }
 .mhx-aggroh { text-align: center !important; }
 
 /* Page Ordres d'un suivant : tresors de la derniere vue, au-dessus de la carte du trajet */
-#mhx-tresors-ordres { margin: 10px 0; padding: 8px; border: 1px solid #a47e3c; border-radius: 6px; background: rgba(255,255,255,.3); font: 13px "Trebuchet MS", Arial, sans-serif; }
+#mhx-tresors-ordres { margin: 10px 0; padding: 8px; }
 #mhx-tresors-ordres .mhx-to-titre { font-weight: bold; margin-bottom: 4px; }
 #mhx-tresors-ordres .mhx-to-info { font-size: 12px; font-style: italic; margin-bottom: 6px; }
 #mhx-tresors-ordres .mhx-to-vieux { color: #b00020; font-weight: bold; }
 #mhx-tresors-ordres .mhx-to-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
 #mhx-tresors-ordres .mhx-to-bar input[type=text] { min-height: 26px; }
-#mhx-tresors-ordres .mhx-to-bar .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
+#mhx-tresors-ordres .mhx-to-bar .mhx-tfiltre.mhx-actif { background: var(--mhx-bordeaux); color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
 #mhx-tresors-ordres .mhx-to-tab { max-height: 260px; overflow-y: auto; }
 #mhx-tresors-ordres table { width: 100%; border-collapse: collapse; }
 #mhx-tresors-ordres td { padding: 2px 6px; }
 #mhx-tresors-ordres tr.mhx-to-ligne { cursor: pointer; }
 #mhx-tresors-ordres tr.mhx-to-ligne:hover > td { background: rgba(255,215,0,.35); }
-#mhx-tresors-ordres2 { margin: 10px 0; padding: 8px; border: 1px solid #a47e3c; border-radius: 6px; background: rgba(255,255,255,.3); font: 13px "Trebuchet MS", Arial, sans-serif; }
+#mhx-tresors-ordres2 { margin: 10px 0; padding: 8px; }
 #mhx-tresors-ordres2 .mhx-to2-titre { padding: 2px 6px; margin-bottom: 4px; }
 #mhx-tresors-ordres2 .mhx-to2-titre h3 { margin: 0; font-size: 1.1em; }
 #mhx-tresors-ordres2 .horizontal-scroll { max-height: 420px; overflow-y: auto; }
@@ -150,7 +171,7 @@ tr.mhx-pile-hl > td { background: #f3d25c !important; }
 .mhx-hvue { cursor: help; }
 .mhx-gvue { font-weight: normal; font-size: .85em; cursor: help; }
 #mhx-mesgowaps { margin: 8px 0; }
-#mhx-mesgowaps .mhx-mg { margin: 4px 0; padding: 4px 8px; border-left: 5px solid #8fcf9a; background: rgba(0,0,0,.04); font-size: 13px; }
+#mhx-mesgowaps .mhx-mg { margin: 4px 0; padding: 4px 8px; border-left: 5px solid var(--mhx-ok); background: rgba(0,0,0,.04); font-size: 12px; }
 #mhx-gowaps input[type=checkbox] { margin-right: 4px; vertical-align: middle; }
 #mhx-mesgowaps details { margin-top: 3px; }
 #mhx-mesgowaps summary { cursor: pointer; }
@@ -166,11 +187,12 @@ a.monstre.mhx-gw-rose { text-decoration: underline; text-decoration-color: #ff4f
 tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none !important; }
 
 /* Destination d'un portail de teleportation connu (vue) */
-.mhx-portail { color: #6a1b9a; font-weight: bold; }
-#VUE_lieux tr.mhx-sortie-ok td { background: #c8e6c9 !important; }
-#VUE_lieux tr.mhx-sortie-ko td { background: #ef9a9a !important; }
+.mhx-portail { color: var(--mhx-info); font-weight: bold; }
+#VUE_lieux tr.mhx-sortie-ok td { background: var(--mhx-ok) !important; background-image: none !important; }
+#VUE_lieux tr.mhx-sortie-ko td { background: var(--mhx-ko) !important; background-image: none !important; }
 .mhx-sortie-lib { font-weight: bold; }
-#mhx-tp-alerte { margin: 8px 0; padding: 8px 12px; border: 2px solid #d32f2f; background: #fdecea; color: #b71c1c; font-weight: bold; }
+/* alertes (sortie de TP inconnue, gowap surchargé) : même style */
+#mhx-tp-alerte { margin: 8px 0; padding: 6px 10px; border: 2px solid var(--mhx-alerte); border-radius: 7px; background: var(--mhx-ko); color: #7a0010; font: bold 12px var(--mhx-police); }
 
 /* Nom reel d'un tresor identifie (vue) */
 .mhx-ident { color: #1b5e20; font-weight: bold; }
@@ -178,15 +200,15 @@ tr.mhx-gw-rose-row > td { background: #ffb3d9 !important; background-image: none
 /* Detail d'un evenement de combat (pages monstre / troll) */
 .mhx-evdetail { margin-top: 3px; font-size: 11px; color: #5d4037; }
 
-.mhx-evswitch { font-size: 11px; text-decoration: none; color: #6a1b9a; }
+.mhx-evswitch { font-size: 11px; text-decoration: none; color: var(--mhx-info); }
 
 /* Filtre gowaps ramasseurs (Ma vue) : meme design que les boutons de filtre des tresors */
 #mhx-gwsearch .mhx-tfiltre { min-height: 26px; cursor: pointer; }
-#mhx-gwsearch .mhx-tfiltre.mhx-actif { background: #6b1f1f; color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
+#mhx-gwsearch .mhx-tfiltre.mhx-actif { background: var(--mhx-bordeaux); color: #f3e6c8; border-color: #3a0f0f; font-weight: bold; }
 tr.mhx-gwfiltre-cache { display: none !important; }
 
 /* Parcours de recolte (page Ordres) */
-#mhx-parcours { margin: 8px 0; border: 1px solid #8a6d3b; background: rgba(255, 248, 225, 0.6); padding: 4px 8px; }
+#mhx-parcours { margin: 8px 0; padding: 4px 8px; }
 #mhx-parcours summary { cursor: pointer; font-weight: bold; }
 #mhx-parcours .mhx-pc-ligne { margin: 6px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 #mhx-parcours .mhx-pc-champ { white-space: nowrap; }
@@ -195,26 +217,27 @@ tr.mhx-gwfiltre-cache { display: none !important; }
 .mhx-poids-tb { font-size: 0.85em; font-weight: normal; }
 
 /* Monstre hypnotise (vue) : ligne violette jusqu'a son prochain tour */
-tr.mhx-hypno > td { background: #d1b3e8 !important; background-image: none !important; }
-.mhx-hypno-pic { font-size: 1.2em; vertical-align: middle; cursor: help; }
+tr.mhx-hypno > td { background: var(--mhx-hypno) !important; background-image: none !important; }
+.mhx-hypno-pic { font-size: var(--mhx-picto); vertical-align: middle; cursor: help; }
 
 /* Ordres : distance / DLA jusqu'a l'objectif ; Bienvenue : gowap surcharge */
-.mhx-ordre-pa { color: #6a1b9a; font-weight: bold; cursor: help; }
-#mhx-mesgowaps .mhx-mg-surcharge { border-left-color: #d32f2f; box-shadow: 0 0 0 2px #d32f2f inset; }
-.mhx-mg-alerte { color: #fff; background: #d32f2f; padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+.mhx-ordre-pa { color: var(--mhx-info); font-weight: bold; cursor: help; }
+#mhx-mesgowaps .mhx-mg-surcharge { border-left-color: var(--mhx-alerte); box-shadow: 0 0 0 2px var(--mhx-alerte) inset; }
+.mhx-mg-alerte { color: #7a0010; background: var(--mhx-ko); border: 1px solid var(--mhx-alerte); padding: 0 6px; border-radius: 3px; font-weight: bold; }
 
 /* Gestion de la chasse (vue) */
-#mhx-chasse { margin: 8px 0; border: 1px solid #8d6e63; background: rgba(255,255,255,.55); }
-#mhx-chasse > summary { cursor: pointer; padding: 6px 10px; font-weight: bold; background: #d7ccc8; }
-.mhx-chasse-corps { padding: 6px 10px; font-size: 13px; }
-.mhx-chasse-corps h4 { margin: 8px 0 4px; }
+#mhx-chasse { margin: 8px 0; }
+#mhx-chasse > summary { cursor: pointer; padding: 4px 10px; font-weight: bold; color: var(--mhx-texte); background: var(--mhx-brun) url(/mountyhall/MH_Packs/packMH_parchemin/tableau/tableau2.jpg); border-radius: 6px 6px 0 0; }
+#mhx-chasse:not([open]) > summary { border-radius: 6px; }
+.mhx-chasse-corps { padding: 6px 10px; }
+.mhx-chasse-corps h4 { margin: 8px 0 4px; font: bold 12px var(--mhx-police); color: var(--mhx-texte); }
 .mhx-chasse-ligne { display: flex; gap: 8px; align-items: center; margin: 2px 0; }
 .mhx-chasse-form { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
-.mhx-chasse-in { padding: 2px 4px; }
-.mhx-chasse-pos { margin: 4px 0; padding-left: 6px; border-left: 4px solid #8d6e63; }
-.mhx-chasse-vide { color: #777; font-style: italic; }
-.mhx-chasse-msg { color: #b71c1c; font-weight: bold; min-height: 1em; }
+.mhx-chasse-in { padding: 2px 4px; font: 12px var(--mhx-police); background: #ffffcc; border: 1px solid var(--mhx-texte); }
+.mhx-chasse-pos { margin: 4px 0; padding-left: 6px; border-left: 4px solid var(--mhx-brun); }
+.mhx-chasse-vide { font-style: italic; }
+.mhx-chasse-msg { color: var(--mhx-alerte); font-weight: bold; min-height: 1em; }
 .mhx-chasse-etoile { background: none; border: 0; cursor: pointer; font-size: 1.1em; padding: 0; }
-.mhx-chasse-star { font-weight: bold; background: rgba(255,213,79,.35); }
-tr.mhx-cible > td { background: #ffcc80 !important; background-image: none !important; }
-.mhx-cible-pic { font-size: 1.2em; vertical-align: middle; cursor: help; }
+.mhx-chasse-star { font-weight: bold; background: rgba(243, 210, 92, .45); }
+tr.mhx-cible > td { background: var(--mhx-cible) !important; background-image: none !important; }
+.mhx-cible-pic { font-size: var(--mhx-picto); vertical-align: middle; cursor: help; }
