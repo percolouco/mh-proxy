@@ -197,3 +197,8 @@ tr.mhx-gwfiltre-cache { display: none !important; }
 /* Monstre hypnotise (vue) : ligne violette jusqu'a son prochain tour */
 tr.mhx-hypno > td { background: #d1b3e8 !important; background-image: none !important; }
 .mhx-hypno-pic { font-size: 1.2em; vertical-align: middle; cursor: help; }
+
+/* Ordres : distance / DLA jusqu'a l'objectif ; Bienvenue : gowap surcharge */
+#mhx-ordre-dist { margin: 6px 0; padding: 6px 10px; border-left: 5px solid #6a1b9a; background: rgba(0,0,0,.04); font-weight: bold; font-size: 13px; cursor: help; }
+#mhx-mesgowaps .mhx-mg-surcharge { border-left-color: #d32f2f; box-shadow: 0 0 0 2px #d32f2f inset; }
+.mhx-mg-alerte { color: #fff; background: #d32f2f; padding: 1px 6px; border-radius: 3px; font-weight: bold; }
