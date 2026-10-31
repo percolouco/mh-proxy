@@ -993,6 +993,20 @@
     var jets = (txt.match(/Jet de R\u00e9sistance ?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     return { type: 'insulte', effet: /EFFET R[E\u00c9]DUIT/.test(txt) ? 'r\u00e9duit' : '', sig: jets + '|' + m[2], monstres: [{ role: 'cible', nom: m[1], id: m[2], etat: '' }] };
   }
+  // Comp\u00e9tence Connaissance des Monstres : fiche du monstre (valeurs textuelles du jeu) -> groupe WhatsApp.
+  var CDM_LABELS = ['Famille du monstre', 'Niveau', 'Points de Vie', 'Blessure', 'D\u00e9s d\'Attaque', 'D\u00e9s d\'Esquive', 'D\u00e9s de D\u00e9g\u00e2t', 'D\u00e9s de R\u00e9g\u00e9n\u00e9ration', 'D\u00e9s d\'Armure', 'Armure Physique', 'Armure Magique', 'Vue', 'Maitrise Magique', 'R\u00e9sistance Magique', 'Capacit\u00e9 sp\u00e9ciale', 'Nombre d\'attaques', 'Attaque magique', 'Attaque \u00e0 distance', 'Vitesse de D\u00e9placement', 'Dur\u00e9e Tour', 'DLA', 'Chargement', 'Voir le Cach\u00e9', 'L\u00e9vite', 'Sang froid', 'Bonus Malus', 'Port\u00e9e du Pouvoir'];
+  function parseCdm(txt) {
+    var m = /Connaissance des Monstres ?: ?(.+?) \((\d+)\) Famille du monstre/.exec(txt);
+    if (!m) return null;
+    var reste = txt.slice(m.index + m[0].length - 'Famille du monstre'.length), champs = {}, pos = [];
+    CDM_LABELS.forEach(function (l) { var i = reste.indexOf(l + ' :'); if (i >= 0) pos.push({ l: l, i: i }); });
+    pos.sort(function (x, y) { return x.i - y.i; });
+    pos.forEach(function (p, k) {
+      var fin = k + 1 < pos.length ? pos[k + 1].i : reste.search(/ Cette action vous a co/); if (fin < 0) fin = reste.length;
+      champs[p.l] = reste.slice(p.i + p.l.length + 2, fin).replace(/^\s+|\s+$/g, '');
+    });
+    return { type: 'cdm', sig: m[2] + '|' + (champs['Points de Vie'] || '').replace(/\D+/g, '-'), monstres: [{ role: 'cible', nom: m[1], id: m[2], etat: '' }], champs: champs };
+  }
   // Sortilège Flash Aveuglant : une section par cible touchée (monstre ou troll), avec durée en tours, effet réduit et malus.
   function parseFlash(txt) {
     var re = /\((\d+)\) a \u00e9t\u00e9 influenc\u00e9 par l'effet du sortil\u00e8ge : Flash Aveuglant, pour une dur\u00e9e de (\d+) tours?/g;
@@ -1089,7 +1103,7 @@
       });
       return;
     }
-    var res = parseLancer(txt) || parseAttaque(txt) || parseSortEffet(txt) || parseInsulte(txt) || parseBaroufle(txt);
+    var res = parseLancer(txt) || parseAttaque(txt) || parseSortEffet(txt) || parseInsulte(txt) || parseCdm(txt) || parseBaroufle(txt);
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
