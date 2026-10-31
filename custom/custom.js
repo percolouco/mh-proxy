@@ -986,6 +986,13 @@
     var mon = { role: 'cible', nom: m[2], id: m[3], etat: et ? et[1] : '' };
     return { type: 'attaque', nom: tt ? tt[1] : m[1].charAt(0) + m[1].slice(1).toLowerCase(), moyen: 'sortil\u00e8ge', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets + '|' + m[3], monstres: [mon] };
   }
+  // Comp\u00e9tence Insultes : le monstre est \u00e9nerv\u00e9 et ne vise plus que le lanceur.
+  function parseInsulte(txt) {
+    var m = /Votre insulte a \u00e9nerv\u00e9 le monstre (?:une|un|la|le|l\u2019|l')\s?(.+?) \((\d+)\)/.exec(txt);
+    if (!m) return null;
+    var jets = (txt.match(/Jet de R\u00e9sistance ?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
+    return { type: 'insulte', effet: /EFFET R[E\u00c9]DUIT/.test(txt) ? 'r\u00e9duit' : '', sig: jets + '|' + m[2], monstres: [{ role: 'cible', nom: m[1], id: m[2], etat: '' }] };
+  }
   // Sortilège Flash Aveuglant : une section par cible touchée (monstre ou troll), avec durée en tours, effet réduit et malus.
   function parseFlash(txt) {
     var re = /\((\d+)\) a \u00e9t\u00e9 influenc\u00e9 par l'effet du sortil\u00e8ge : Flash Aveuglant, pour une dur\u00e9e de (\d+) tours?/g;
@@ -1082,7 +1089,7 @@
       });
       return;
     }
-    var res = parseLancer(txt) || parseAttaque(txt) || parseSortEffet(txt) || parseBaroufle(txt);
+    var res = parseLancer(txt) || parseAttaque(txt) || parseSortEffet(txt) || parseInsulte(txt) || parseBaroufle(txt);
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
