@@ -3023,7 +3023,7 @@
       if (car.length) s += ' (' + car.join(' ') + ')';
       return s;
     };
-    var rows = [];
+    var rows = [], pris = {};
     var render = function () {
       rows.forEach(function (r) {
         r.cell.innerHTML = '';
@@ -3052,8 +3052,21 @@
           return kinds.indexOf(e.kind) !== -1 && Math.abs(te - ts) <= 2 && (e.actor_id || e.target_id) && (!e.actor_id || txt.indexOf('(' + e.actor_id + ')') !== -1) && (!e.target_id || txt.indexOf('(' + e.target_id + ')') !== -1);
         });
         if (!found.length) return;
-        // plusieurs mails pour le m\u00eame combat (attaquant et d\u00e9fenseur) : on garde le plus complet
+        // plusieurs mails pour le m\u00eame combat (attaquant et d\u00e9fenseur) : m\u00eame signature, on garde le plus complet
         found.sort(function (a, b) { return Object.keys(b.detail || {}).length - Object.keys(a.detail || {}).length; });
+        var sigs = {}, fights = [];
+        found.forEach(function (e) {
+          var dd = e.detail || {}, k = [e.kind, e.degats, dd.vie, dd.jet_att, dd.jet_esq, dd.destab, dd.stab, e.px].join('|');
+          if (!sigs[k]) { sigs[k] = 1; fights.push({ e: e, k: k }); }
+        });
+        // m\u00eame seconde, m\u00eames protagonistes : la ligne du haut est la plus r\u00e9cente, donc celle qui a le moins de PV restants
+        fights.sort(function (a, b) {
+          var va = a.e.detail && a.e.detail.vie != null ? a.e.detail.vie : 1e9, vb = b.e.detail && b.e.detail.vie != null ? b.e.detail.vie : 1e9;
+          return va - vb;
+        });
+        var libre = fights.filter(function (f) { return !pris[f.k]; }), choix = (libre.length ? libre : fights)[0];
+        pris[choix.k] = 1;
+        found = [choix.e];
         tr.setAttribute('data-mhx-ev', '1');
         var cell = c[c.length - 1];
         rows.push({ cell: cell, orig: cell.textContent.replace(/[\s\u00a0]+/g, ' ').trim(), nouv: phrase(found[0]) });
