@@ -994,7 +994,7 @@
     return { type: 'insulte', effet: /EFFET R[E\u00c9]DUIT/.test(txt) ? 'r\u00e9duit' : '', sig: jets + '|' + m[2], monstres: [{ role: 'cible', nom: m[1], id: m[2], etat: '' }] };
   }
   // Comp\u00e9tence Connaissance des Monstres : fiche du monstre (valeurs textuelles du jeu) -> groupe WhatsApp.
-  var CDM_LABELS = ['Famille du monstre', 'Niveau', 'Points de Vie', 'Blessure', 'D\u00e9s d\'Attaque', 'D\u00e9s d\'Esquive', 'D\u00e9s de D\u00e9g\u00e2t', 'D\u00e9s de R\u00e9g\u00e9n\u00e9ration', 'D\u00e9s d\'Armure', 'Armure Physique', 'Armure Magique', 'Vue', 'Maitrise Magique', 'R\u00e9sistance Magique', 'Capacit\u00e9 sp\u00e9ciale', 'Nombre d\'attaques', 'Attaque magique', 'Attaque \u00e0 distance', 'Vitesse de D\u00e9placement', 'Dur\u00e9e Tour', 'DLA', 'Chargement', 'Voir le Cach\u00e9', 'L\u00e9vite', 'Sang froid', 'Bonus Malus', 'Port\u00e9e du Pouvoir'];
+  var CDM_LABELS = ['Famille du monstre', 'Niveau', 'Points de Vie', 'Blessure', 'Points de Vie restants', 'D\u00e9s d\'Attaque', 'D\u00e9s d\'Esquive', 'D\u00e9s de D\u00e9g\u00e2t', 'D\u00e9s de R\u00e9g\u00e9n\u00e9ration', 'D\u00e9s d\'Armure', 'Armure Physique', 'Armure Magique', 'Vue', 'Maitrise Magique', 'R\u00e9sistance Magique', 'Capacit\u00e9 sp\u00e9ciale', 'Nombre d\'attaques', 'Attaque magique', 'Attaque \u00e0 distance', 'Vitesse de D\u00e9placement', 'Dur\u00e9e Tour', 'DLA', 'Chargement', 'Voir le Cach\u00e9', 'L\u00e9vite', 'Sang froid', 'Bonus Malus', 'Port\u00e9e du Pouvoir'];
   function parseCdm(txt) {
     var m = /Connaissance des Monstres ?: ?(.+?) \((\d+)\) Famille du monstre/.exec(txt);
     if (!m) return null;
@@ -1107,11 +1107,6 @@
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
-    if (res.type === 'cdm' && /Calcul/i.test(res.champs['Blessure'] || '')) { // Mountyzilla calcule la blessure apr\u00e8s le chargement : on attend (~5 s max)
-      window.__cdmTry = (window.__cdmTry || 0) + 1;
-      if (window.__cdmTry < 14) { setTimeout(sendLancerNotice, 400); return; }
-      delete res.champs['Blessure'];
-    }
     mhdPost(NOTIF_LANCER_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(res)), function (ok) {
       mhdBadge(ok ? 'Action signal\u00e9e sur WhatsApp' : 'Action : envoi WhatsApp impossible', !ok);
     });
