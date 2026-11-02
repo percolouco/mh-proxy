@@ -1107,6 +1107,11 @@
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
+    if (res.type === 'cdm' && /Calcul/i.test(res.champs['Blessure'] || '')) { // Mountyzilla calcule la blessure apr\u00e8s le chargement : on attend (~5 s max)
+      window.__cdmTry = (window.__cdmTry || 0) + 1;
+      if (window.__cdmTry < 14) { setTimeout(sendLancerNotice, 400); return; }
+      delete res.champs['Blessure'];
+    }
     mhdPost(NOTIF_LANCER_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(res)), function (ok) {
       mhdBadge(ok ? 'Action signal\u00e9e sur WhatsApp' : 'Action : envoi WhatsApp impossible', !ok);
     });
