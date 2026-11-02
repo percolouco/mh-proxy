@@ -241,3 +241,4 @@ tr.mhx-hypno > td { background: var(--mhx-hypno) !important; background-image: n
 .mhx-chasse-star { font-weight: bold; background: rgba(243, 210, 92, .45); }
 tr.mhx-cible > td { background: var(--mhx-cible) !important; background-image: none !important; }
 .mhx-cible-pic { font-size: var(--mhx-picto); vertical-align: middle; cursor: help; }
+.mhx-cdm { margin-top: 3px; font-size: 12px; line-height: 1.5; color: inherit; }

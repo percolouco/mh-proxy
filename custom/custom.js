@@ -2974,7 +2974,7 @@
     if (!/\/(MonsterView|PJView|PJView_Events)\.php$/.test(location.pathname)) return;
     var id = (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
     if (!id) return;
-    var evs = null;
+    var evs = null, cdms = null;
     var epoch = function (d, t) { return Date.UTC(+d[3], +d[2] - 1, +d[1], +t[1], +t[2], +t[3]) / 1000; };
     var KEY = 'mhx-ev-reecrit', show = true;
     try { show = localStorage.getItem(KEY) !== 'no'; } catch (e) { /* stockage indisponible */ }
@@ -3034,6 +3034,25 @@
         r.cell.appendChild(sw);
       });
     };
+    // Comp\u00e9tence Connaissance des Monstres : fiche de la CdM correspondant \u00e0 la ligne (m\u00eame troll, m\u00eame seconde ; d\u00e9calage d'une heure tol\u00e9r\u00e9)
+    var CDM_SHOW = ['Niveau', 'Points de Vie', 'Blessure', 'Points de Vie restants', 'D\u00e9s d\'Attaque', 'D\u00e9s d\'Esquive', 'D\u00e9s de D\u00e9g\u00e2t', 'Armure Physique', 'Armure Magique', 'R\u00e9sistance Magique'];
+    var cdmFor = function (ts, txt) {
+      var best = null, bd = 1e9;
+      (cdms || []).forEach(function (r) {
+        var m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(r.le || ''); if (!m || txt.indexOf('(' + r.troll + ')') === -1) return;
+        var dt = Math.abs(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000 - ts), d = Math.min(dt, Math.abs(dt - 3600));
+        if (d <= 2 && d < bd) { bd = d; best = r; }
+      });
+      return best;
+    };
+    var cdmHtml = function (r) {
+      var ch = r.champs || {}, l = [];
+      CDM_SHOW.forEach(function (k) {
+        var v = String(ch[k] || '').replace(/\(\s*Calcul[^()]*\)/, '').trim(), pm = /\(([^()]+)\)/.exec(v); if (pm) v = pm[1];
+        if (v) l.push(esc(k) + ' : <b>' + esc(v) + '</b>');
+      });
+      return l.length ? '<div class="mhx-cdm">\uD83D\uDD0D <b>CdM niv. ' + (r.niveau_cdm || '?') + '</b> \u2014 ' + esc(r.mob_nom || '') + '<br>' + l.join(' \u00b7 ') + '</div>' : '';
+    };
     var paint = function () {
       if (!evs) return;
       var neuf = false;
@@ -3051,7 +3070,13 @@
           var te = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000;
           return kinds.indexOf(e.kind) !== -1 && Math.abs(te - ts) <= 2 && (e.actor_id || e.target_id) && (!e.actor_id || txt.indexOf('(' + e.actor_id + ')') !== -1) && (!e.target_id || txt.indexOf('(' + e.target_id + ')') !== -1);
         });
-        if (!found.length) return;
+        var cd = kinds[0] === 'competence' ? cdmFor(ts, txt) : null, cdh = cd ? cdmHtml(cd) : '';
+        if (!found.length) {
+          if (!cdh) return;
+          tr.setAttribute('data-mhx-ev', '1');
+          rows.push({ cell: c[c.length - 1], orig: c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, ' ').trim(), nouv: esc(c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, ' ').trim()) + cdh });
+          neuf = true; return;
+        }
         // plusieurs mails pour le m\u00eame combat (attaquant et d\u00e9fenseur) : m\u00eame signature, on garde le plus complet
         found.sort(function (a, b) { return Object.keys(b.detail || {}).length - Object.keys(a.detail || {}).length; });
         var sigs = {}, fights = [];
@@ -3069,13 +3094,13 @@
         found = [choix.e];
         tr.setAttribute('data-mhx-ev', '1');
         var cell = c[c.length - 1];
-        rows.push({ cell: cell, orig: cell.textContent.replace(/[\s\u00a0]+/g, ' ').trim(), nouv: phrase(found[0]) });
+        rows.push({ cell: cell, orig: cell.textContent.replace(/[\s\u00a0]+/g, ' ').trim(), nouv: phrase(found[0]) + cdh });
         neuf = true;
       });
       if (neuf) render();
     };
-    fetch(COMBATS_URL + id, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
-      .then(function (l) { evs = l; paint(); setInterval(paint, 2000); }); // le tableau est rempli par JavaScript apr\u00e8s le chargement
+    var getJ = function (u) { return fetch(u, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+    Promise.all([getJ(COMBATS_URL + id), getJ(COMBATS_URL.replace('combats=', 'cdms=') + id)]).then(function (x) { evs = x[0]; cdms = x[1]; paint(); setInterval(paint, 2000); }); // le tableau est rempli par JavaScript apr\u00e8s le chargement
   }
 
 
