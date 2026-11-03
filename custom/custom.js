@@ -1274,7 +1274,9 @@
       var left = when - Date.now();
       var el = document.createElement('div');
       el.className = 'mhx-dla' + (left <= 0 ? ' mhx-dla-past' : left < 3 * 3600e3 ? ' mhx-dla-soon' : '');
-      el.textContent = 'DLA : ' + pad(m[3]) + '/' + pad(m[2]) + ' ' + m[4] + ':' + m[5] + (left <= 0 ? ' (d\u00e9pass\u00e9e)' : '');
+      // PA disponibles (affich\u00e9s \u00e0 droite dans l'encart) : repris juste apr\u00e8s la DLA
+      var paM = /(\d+)\s*PA\b/.exec((box.parentNode ? box.parentNode.textContent : box.textContent).replace(/[\s\u00a0]+/g, ' '));
+      el.textContent = 'DLA : ' + pad(+m[3]) + '/' + pad(+m[2]) + ' ' + m[4] + ':' + m[5] + (left <= 0 ? ' (d\u00e9pass\u00e9e)' : '') + (paM ? ' \u00b7 ' + paM[1] + ' PA' : '');
       // « poids porté : X minutes » -> « ... / Y minutes restantes », Y = moitié de la durée du tour - X
       var pw = h3.nextElementSibling;
       if (pw && d.tour > 0 && !pw.querySelector('.mhx-poids') && /poids port/.test(pw.textContent)) {

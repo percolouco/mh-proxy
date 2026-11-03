@@ -188,3 +188,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.77.1 | 2026-10-31 | Détail des événements COMBAT (pages monstre / troll) : deux lignes à la même seconde entre les mêmes protagonistes affichent chacune leur propre combat (la ligne du haut est la plus récente : moins de PV restants), au lieu du même détail répété. |
 | 0.77.2 | 2026-11-02 | Message WhatsApp CdM : la ligne « Points de Vie restants » (ajoutée par Mountyzilla) n’est plus avalée dans la valeur de Blessure, qui disparaissait du message. |
 | 0.78.0 | 2026-11-02 | Pages monstre / troll : les lignes COMPETENCE (Connaissance des Monstres) affichent la fiche de la CdM correspondante (même troll, même seconde). |
+| 0.79.0 | 2026-11-03 | Page Suivants : la DLA de chaque gowap s'affichait « 002/11 » (zéro en trop) → « 02/11 13:53 » ; les PA disponibles sont repris juste après la DLA (« DLA : 02/11 13:53 · 6 PA »). Affichage uniquement. |
