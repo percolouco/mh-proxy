@@ -3340,13 +3340,24 @@
       [['separe', 'Port\u00e9e s\u00e9par\u00e9e (cases / niveaux)'], ['cout', 'Port\u00e9e en co\u00fbt unique']].forEach(function (f) { var o = document.createElement('option'); o.value = f[0]; o.textContent = f[1]; selm.appendChild(o); });
       ligne2.appendChild(selm);
       ligne2.appendChild(champ('Cases', 'mhx-pc-cases', '44')); ligne2.appendChild(champ('Niveaux', 'mhx-pc-niv', '20')); ligne2.appendChild(champ('Co\u00fbt max', 'mhx-pc-cout', '44'));
+      // filtre « personne sur la case » (comme dans la liste des tr\u00e9sors) : ignore les tr\u00e9sors d'une case occup\u00e9e par un troll ou un gowap apprivois\u00e9
+      var exclPc = { actif: false, dist: 0 };
+      try { var exs = JSON.parse(localStorage.getItem('mhx-pc-excl') || '{}') || {}; exclPc = { actif: !!exs.actif, dist: Math.min(3, Math.max(0, parseInt(exs.dist, 10) || 0)) }; } catch (e) { /* r\u00e9glages par d\u00e9faut */ }
+      var ligneX = document.createElement('div'); ligneX.className = 'mhx-pc-ligne';
+      var lx = document.createElement('label'); lx.className = 'mhx-pc-champ'; lx.title = 'Ignore les tr\u00e9sors ayant un gowap apprivois\u00e9 ou un troll sur leur case (ou \u00e0 la distance choisie), d\u2019apr\u00e8s les positions de la derni\u00e8re vue';
+      var cx = document.createElement('input'); cx.type = 'checkbox'; cx.checked = exclPc.actif; lx.appendChild(cx); lx.appendChild(document.createTextNode(' Personne sur la case '));
+      var sx = document.createElement('select'); sx.id = 'mhx-pc-excl-dist';
+      ['m\u00eame case', '\u2264 1 case', '\u2264 2 cases', '\u2264 3 cases'].forEach(function (t, i) { var o = document.createElement('option'); o.value = i; o.textContent = t; if (i === exclPc.dist) o.selected = true; sx.appendChild(o); });
+      var saveX = function () { exclPc = { actif: cx.checked, dist: parseInt(sx.value, 10) || 0 }; try { localStorage.setItem('mhx-pc-excl', JSON.stringify(exclPc)); } catch (e) { /* stockage indisponible */ } };
+      cx.addEventListener('change', saveX); sx.addEventListener('change', saveX);
+      ligneX.appendChild(lx); ligneX.appendChild(sx);
       var ligne3 = document.createElement('div'); ligne3.className = 'mhx-pc-ligne'; ligne3.id = 'mhx-pc-gowaps'; ligne3.textContent = 'Chargement de mes gowaps\u2026';
       var go = document.createElement('button'); go.type = 'button'; go.className = 'mh_form_submit mhx-tfiltre'; go.textContent = 'Calculer les parcours'; go.disabled = true;
       var info = document.createElement('span'); info.className = 'mhx-pc-info';
       var res = document.createElement('div'); res.className = 'mhx-pc-res';
-      [ligne1, ligne2, ligne3].forEach(function (x) { corps.appendChild(x); });
+      [ligne1, ligne2, ligneX, ligne3].forEach(function (x) { corps.appendChild(x); });
       var lb = document.createElement('div'); lb.className = 'mhx-pc-ligne'; lb.appendChild(go); lb.appendChild(info); corps.appendChild(lb); corps.appendChild(res);
-      var gowaps = [], items = null;
+      var gowaps = [], items = null, occ = { gowap: [], troll: [] };
       // gowaps du troll connecte (cases cochees dans la liste commune) avec leur derniere position lue
       mineCall(me, '', function (d) {
         ligne3.textContent = '';
@@ -3363,7 +3374,7 @@
         if (!d.gowaps.length) ligne3.textContent = 'Aucun gowap rattach\u00e9 \u00e0 ton troll (coche \u00ab Mes gowaps \u00bb dans la liste commune des suivants).';
         go.disabled = false;
       });
-      fetch(TRESORS_URL + '?troll=' + me, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { items = d && d.items ? d.items : []; }, function () { items = []; });
+      fetch(TRESORS_URL + '?troll=' + me, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { items = d && d.items ? d.items : []; if (d && d.occ) occ = d.occ; }, function () { items = []; });
       go.addEventListener('click', function () {
         res.textContent = '';
         var v = function (id) { var x = parseInt(document.getElementById(id).value, 10); return isNaN(x) ? null : x; };
@@ -3375,7 +3386,8 @@
         if (!items) { msg('Tr\u00e9sors pas encore charg\u00e9s, r\u00e9essaie.'); return; }
         if (!choisis.length) { msg('Aucun gowap coch\u00e9.'); return; }
         var vus = {}, dups = [], tres = [];
-        items.forEach(function (it) { if (!re.test(it.nom)) return; if (vus[it.ref]) { dups.push(it.ref); return; } vus[it.ref] = 1; tres.push(it); });
+        var occupes = [], procheOcc = function (it, l2) { return (l2 || []).some(function (q) { return q[2] === it.n && Math.max(Math.abs(q[0] - it.x), Math.abs(q[1] - it.y)) <= exclPc.dist; }); };
+        items.forEach(function (it) { if (!re.test(it.nom)) return; if (vus[it.ref]) { dups.push(it.ref); return; } vus[it.ref] = 1; if (exclPc.actif && (procheOcc(it, occ.gowap) || procheOcc(it, occ.troll))) { occupes.push(it); return; } tres.push(it); });
         var departs = choisis.map(function (g) { return g.start; });
         var refPos = haveRef ? ref : null;
         var retenus = [], exclus = [], limite = [];
@@ -3400,6 +3412,7 @@
         var out = function (s) { txt.push(s); };
         var nomT = /gigots/i.test(sel.options[sel.selectedIndex].textContent) ? 'gigots' : 'tr\u00e9sors';
         out('Filtrage : ' + retenus.length + ' retenus, ' + exclus.length + ' exclus sur ' + tres.length + ' ' + nomT + (refPos ? ' (r\u00e9f. ' + pcPos(refPos) + ', ' + (mode === 'cout' ? 'co\u00fbt \u2264 ' + pcFmt(cmax) : cases + ' cases / ' + niv + ' niveaux, mode s\u00e9par\u00e9') + ')' : ' (pas de position de r\u00e9f\u00e9rence : aucun filtrage)') + '.');
+        if (exclPc.actif) out('Cases occup\u00e9es ignor\u00e9es (' + (exclPc.dist ? '\u2264 ' + exclPc.dist + ' case' + (exclPc.dist > 1 ? 's' : '') : 'm\u00eame case') + ') : ' + (occupes.length ? occupes.map(function (it) { return it.ref + ' (' + pcPos([it.x, it.y, it.n]) + ')'; }).join(', ') : 'aucune'));
         if (dups.length) out('Doublons d\u2019ID ignor\u00e9s : ' + dups.join(', '));
         exclus.forEach(function (x) { out('  exclu ' + x[0].ref + ' (' + pcPos([x[0].x, x[0].y, x[0].n]) + ') : ' + x[1]); });
         if (limite.length) { out('\u00c0 la limite :'); limite.forEach(function (x) { out('  ' + x[0].ref + ' (' + pcPos([x[0].x, x[0].y, x[0].n]) + ') : ' + x[1]); }); }
