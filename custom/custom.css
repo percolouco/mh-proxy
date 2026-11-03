@@ -249,3 +249,9 @@ tr.mhx-hypno > td { background: var(--mhx-hypno) !important; background-image: n
 tr.mhx-cible > td { background: var(--mhx-cible) !important; background-image: none !important; }
 .mhx-cible-pic { font-size: var(--mhx-picto); vertical-align: middle; cursor: help; }
 .mhx-cdm { margin-top: 3px; font-size: 12px; line-height: 1.5; color: inherit; }
+
+/* Parcours de récolte partagé (page Ordres) */
+.mhx-pc-partage { margin-top: 8px; }
+.mhx-pc-gowap { margin: 6px 0; padding-left: 6px; border-left: 4px solid var(--mhx-brun); }
+.mhx-pc-tab { border-collapse: collapse; margin: 4px 0; font: 12px var(--mhx-police); }
+.mhx-pc-tab td { padding: 1px 8px; border-bottom: 1px solid rgba(0,0,0,.12); }
