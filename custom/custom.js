@@ -2245,18 +2245,38 @@
     var milieu = function (i) { var a = parseInt(i.getAttribute('min'), 10), b = parseInt(i.getAttribute('max'), 10); return isNaN(a) || isNaN(b) ? null : Math.round((a + b) / 2); };
     var p = { x: milieu(ix), y: milieu(iy), n: milieu(inn) };
     if (p.x === null || p.y === null || p.n === null) return;
-    // le formulaire est dans un bandeau tr\u00e8s bas : l'aide s'affiche en pop-in flottante dans la fen\u00eatre principale du jeu (m\u00eame origine),
-    // \u00e0 d\u00e9faut dans le cadre \u00ab Contenu \u00bb, \u00e0 d\u00e9faut dans ce bandeau ; elle est retir\u00e9e d\u00e8s que le bandeau est quitt\u00e9 (Annuler, Action).
-    var hote = null;
-    try { if (window.top && window.top.document && window.top.document.body && !/^frameset$/i.test(window.top.document.body.tagName)) hote = window.top.document; } catch (e) { hote = null; }
-    if (!hote) { try { var fc = window.top.frames['Contenu']; if (fc && fc.document && fc.document.body) hote = fc.document; } catch (e) { hote = null; } }
-    if (!hote) hote = document;
+    // le formulaire est dans le bandeau d'action (div.action, tr\u00e8s bas) : l'aide s'affiche en pop-in flottante dans la page principale
+    // (cadre \u00ab Contenu \u00bb, main.play), coll\u00e9e juste au-dessus du bandeau, son coin bas-droit \u00e0 l'angle haut-droit de div.action.
+    // Les cadres sont cherch\u00e9s depuis le haut ; \u00e0 d\u00e9faut, la pop-in reste dans le bandeau. Elle est retir\u00e9e \u00e0 la sortie du bandeau.
+    var cherche = function (w, prof) {
+      if (prof > 4) return null;
+      var n = 0; try { n = w.frames.length; } catch (e) { return null; }
+      for (var i = 0; i < n; i++) {
+        var f = null; try { f = w.frames[i]; if (f === window) continue; var d = f.document; if (f.name === 'Contenu' && d && d.body) return f; } catch (e) { f = null; }
+        var r = f ? cherche(f, prof + 1) : null; if (r) return r;
+      }
+      return null;
+    };
+    var fen = null, aMain = function (w) { try { return !!w.document.querySelector('main.play'); } catch (e) { return false; } };
+    try { fen = cherche(window.top, 0); } catch (e) { fen = null; }
+    if (!fen) { try { if (window.top !== window && aMain(window.top)) fen = window.top; } catch (e) { fen = null; } }
+    var hote = fen ? fen.document : document;
     var el = function (tag, cls, txt) { var e = hote.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    var LARG = 340;
+    var coin = function () { // abscisse du bord droit de div.action (m\u00eame origine horizontale que le cadre principal)
+      var act = document.querySelector('div.action'), r = act ? act.getBoundingClientRect() : null;
+      var droite = r && r.width > 0 ? r.right : Math.min(window.innerWidth, 800);
+      var dec = 0; try { if (fen && fen !== window) dec = (window.frameElement ? window.frameElement.getBoundingClientRect().left : 0); } catch (e) { dec = 0; }
+      return Math.max(LARG + 8, droite + dec);
+    };
     var box = el('div'); box.id = 'mhx-tpprepa';
-    box.style.cssText = 'position:fixed;top:70px;right:16px;width:340px;max-width:92vw;max-height:80vh;overflow:auto;z-index:99999;padding:10px 12px;text-align:left;font:12px/1.5 Trebuchet MS,Arial,sans-serif;color:#222;background:#efe6c8;border:2px solid #a47e3c;border-radius:7px;box-shadow:0 4px 14px rgba(0,0,0,.35);';
+    box.style.cssText = 'position:fixed;bottom:6px;width:' + LARG + 'px;max-width:92vw;max-height:70vh;overflow:auto;z-index:99999;padding:10px 12px;text-align:left;font:12px/1.5 Trebuchet MS,Arial,sans-serif;color:#222;background:#efe6c8;border:2px solid #a47e3c;border-radius:7px;box-shadow:0 4px 14px rgba(0,0,0,.35);';
+    var place = function () { box.style.left = Math.max(8, coin() - LARG) + 'px'; };
+    place();
     hote.body.appendChild(box);
     var fermer = function () { try { if (box.parentNode) box.parentNode.removeChild(box); } catch (e) { /* page d\u00e9j\u00e0 d\u00e9charg\u00e9e */ } };
     window.addEventListener('pagehide', fermer);
+    window.addEventListener('resize', place);
     var rng = function (a) { return a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]; };
     var seq = 0, tempo = null;
     var calcul = function () {
