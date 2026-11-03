@@ -2784,6 +2784,20 @@
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var data = { cibles: [], positions: [] }, t0 = Date.now(), box = null, body = null, msg = null, ouvertes = {}, observe = {}, fileMort = [], verifie = false;
     var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    // derni\u00e8re position connue d'une cible : ma vue actuelle d'abord, sinon la derni\u00e8re observation d'une position de chasse
+    var positionCible = function (id) {
+      var sid = String(id), vu = null;
+      document.querySelectorAll('#VUE_monstres tbody tr').forEach(function (tr) {
+        var ref = tr.querySelector('td.ref'), x = tr.querySelector('td.x'), y = tr.querySelector('td.y'), n = tr.querySelector('td.n');
+        if (ref && x && y && n && ref.textContent.trim() === sid) vu = { x: parseInt(x.textContent, 10), y: parseInt(y.textContent, 10), n: parseInt(n.textContent, 10), t: 'maintenant' };
+      });
+      if (!vu) data.positions.forEach(function (p) {
+        (p.monstres || []).forEach(function (m) {
+          if (String(m.id) === sid && p.obs && (!vu || p.obs > vu.o)) vu = { x: m.x, y: m.y, n: m.n, o: p.obs, t: 'vu le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') };
+        });
+      });
+      return vu ? ' \u2014 X=' + vu.x + ' Y=' + vu.y + ' N=' + vu.n + ' (' + vu.t + ')' : ' \u2014 position inconnue';
+    };
     var ensure = function () {
       if (box && box.parentNode) return true;
       var cible = document.getElementById('monstres');
@@ -2811,7 +2825,7 @@
       if (!data.cibles.length) ul.appendChild(el('div', 'mhx-chasse-vide', 'Aucune cible.'));
       data.cibles.forEach(function (c) {
         var l = el('div', 'mhx-chasse-ligne');
-        l.appendChild(el('span', null, '[' + c.monstre + '] ' + (c.nom || 'monstre')));
+        l.appendChild(el('span', null, '[' + c.monstre + '] ' + (c.nom || 'monstre') + positionCible(c.monstre)));
         l.appendChild(bouton('\u2716', 'Retirer cette cible', function () { chassePost('action=cible_del&monstre=' + c.monstre, function (j) { erreur(j); load(); }); }));
         ul.appendChild(l);
       });
@@ -2827,27 +2841,45 @@
       }));
       body.appendChild(fc);
       // --- positions
-      body.appendChild(el('h4', null, '\ud83d\udccd Positions de chasse (' + data.positions.length + '/3, monstres \u00e0 ' + CHASSE_RAYON + ' cases ou moins)'));
+      body.appendChild(el('h4', null, '\ud83d\udccd Positions de chasse (' + data.positions.length + '/3)'));
       if (!data.positions.length) body.appendChild(el('div', 'mhx-chasse-vide', 'Aucune position.'));
       data.positions.forEach(function (p) {
         var d = el('details', 'mhx-chasse-pos'); d.open = !!ouvertes[p.id];
         d.addEventListener('toggle', function () { ouvertes[p.id] = d.open; });
-        var sm = el('summary', null, 'X=' + p.x + ' Y=' + p.y + ' N=' + p.n + ' \u2014 ' + p.monstres.length + ' monstre' + (p.monstres.length > 1 ? 's' : '') + (p.obs ? ' (observ\u00e9 le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')' : ''));
+        var dist = function (m) { return Math.max(Math.abs(m.x - p.x), Math.abs(m.y - p.y), Math.abs(m.n - p.n)); };
+        var rcle = 'mhx-chasse-rayon-' + p.id, rayon = CHASSE_RAYON;
+        try { rayon = parseInt(localStorage.getItem(rcle) || String(CHASSE_RAYON), 10) === 5 ? 5 : CHASSE_RAYON; } catch (e) { rayon = CHASSE_RAYON; }
+        var visibles = p.monstres.filter(function (m) { return dist(m) <= rayon; });
+        var sm = el('summary', null, 'X=' + p.x + ' Y=' + p.y + ' N=' + p.n + ' \u2014 ' + visibles.length + ' monstre' + (visibles.length > 1 ? 's' : '') + ' \u00e0 ' + rayon + ' cases ou moins' + (p.obs ? ' (observ\u00e9 le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')' : ''));
         d.appendChild(sm);
         var actions = el('div', 'mhx-chasse-ligne');
         var a = el('a', null, '\ud83d\uddfa\ufe0f Ouvrir dans l\'IT'); a.href = itLien(p); a.target = '_blank'; a.rel = 'noopener';
         actions.appendChild(a);
+        var sel = el('select', 'mhx-chasse-in'); sel.title = 'Rayon autour de la position';
+        [5, CHASSE_RAYON].forEach(function (r) { var o = el('option', null, r + ' cases'); o.value = String(r); if (r === rayon) o.selected = true; sel.appendChild(o); });
+        sel.addEventListener('change', function () { try { localStorage.setItem(rcle, sel.value); } catch (e) { /* stockage indisponible */ } ouvertes[p.id] = true; render(); });
+        actions.appendChild(sel);
         actions.appendChild(bouton('\u2716 Supprimer la position', '', function () { chassePost('action=pos_del&id=' + p.id, function (j) { erreur(j); load(); }); }));
         d.appendChild(actions);
-        var mons = p.monstres.slice().sort(function (m1, m2) { return (m2.star - m1.star) || (Math.max(Math.abs(m1.x - p.x), Math.abs(m1.y - p.y), Math.abs(m1.n - p.n)) - Math.max(Math.abs(m2.x - p.x), Math.abs(m2.y - p.y), Math.abs(m2.n - p.n))); });
-        mons.forEach(function (m) {
-          var l = el('div', 'mhx-chasse-ligne' + (m.star ? ' mhx-chasse-star' : ''));
-          var st = el('button', 'mhx-chasse-etoile', m.star ? '\u2b50' : '\u2606'); st.type = 'button'; st.title = 'Mettre en avant / retirer la mise en avant';
-          st.addEventListener('click', function () { chassePost('action=star&id=' + p.id + '&monstre=' + m.id, function (j) { erreur(j); load(); }); });
-          l.appendChild(st);
-          l.appendChild(el('span', null, '[' + m.id + '] ' + (m.nom || 'monstre') + ' \u2014 X=' + m.x + ' Y=' + m.y + ' N=' + m.n + ' (dist. ' + Math.max(Math.abs(m.x - p.x), Math.abs(m.y - p.y), Math.abs(m.n - p.n)) + ')'));
-          d.appendChild(l);
-        });
+        var mons = visibles.slice().sort(function (m1, m2) { return (m2.star - m1.star) || (dist(m1) - dist(m2)); });
+        if (mons.length) {
+          var tb = el('table', 'mhx-chasse-tab'), th = el('thead'), trh = el('tr');
+          ['\u2b50', 'N\u00b0', 'Nom', 'X', 'Y', 'N', 'Dist.'].forEach(function (h) { trh.appendChild(el('th', null, h)); });
+          th.appendChild(trh); tb.appendChild(th);
+          var tbody = el('tbody');
+          mons.forEach(function (m) {
+            var tr = el('tr', m.star ? 'mhx-chasse-star' : '');
+            var td0 = el('td'), st = el('button', 'mhx-chasse-etoile', m.star ? '\u2b50' : '\u2606'); st.type = 'button'; st.title = 'Mettre en avant / retirer la mise en avant';
+            st.addEventListener('click', function () { chassePost('action=star&id=' + p.id + '&monstre=' + m.id, function (j) { erreur(j); load(); }); });
+            td0.appendChild(st); tr.appendChild(td0);
+            tr.appendChild(el('td', 'mhx-c', String(m.id)));
+            tr.appendChild(el('td', null, m.nom || 'monstre'));
+            tr.appendChild(el('td', 'mhx-c', String(m.x))); tr.appendChild(el('td', 'mhx-c', String(m.y))); tr.appendChild(el('td', 'mhx-c', String(m.n)));
+            tr.appendChild(el('td', 'mhx-c', String(dist(m))));
+            tbody.appendChild(tr);
+          });
+          tb.appendChild(tbody); d.appendChild(tb);
+        } else d.appendChild(el('div', 'mhx-chasse-vide', 'Aucun monstre dans ce rayon.'));
         body.appendChild(d);
       });
       var fp = el('div', 'mhx-chasse-form'), ix = champ('X', 5), iy = champ('Y', 5), inn = champ('N', 5);
