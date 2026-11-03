@@ -2188,8 +2188,8 @@
     if (me && id) aggroSend(me, id, last);
   }
 
-  // Fiche d'un monstre : bouton « Suivi PV / finisseurs » (PV restants estimés d'après la dernière CdM et les frappes publiées,
-  // possibilités de finition de TeleKom et Flak Flak). Calcul fait par le serveur MH (notif/pv_monstre.php) ; affichage uniquement.
+  // Fiche d'un monstre : bouton \u00ab Suivi PV / finisseurs \u00bb (PV restants estim\u00e9s d'apr\u00e8s la derni\u00e8re CdM et les frappes publi\u00e9es,
+  // possibilit\u00e9s de finition de TeleKom et Flak Flak). Calcul fait par le serveur MH (notif/pv_monstre.php) ; affichage uniquement.
   var PV_MONSTRE_URL = 'https://mh.percolouco.com/notif/pv_monstre.php';
   function addFinisseurs() {
     if (!/\/MonsterView\.php$/.test(location.pathname)) return;
@@ -2197,7 +2197,7 @@
     if (!id || document.getElementById('mhx-finisseurs')) return;
     var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
     var box = el('div', 'mhx-monstre'); box.id = 'mhx-finisseurs';
-    box.appendChild(el('h4', null, '📉 Suivi des PV et finisseurs'));
+    box.appendChild(el('h4', null, '\ud83d\udcc9 Suivi des PV et finisseurs'));
     var res = el('div', 'mhx-fin-res');
     var btn = el('button', 'mh_form_submit mhx-chasse-btn', 'Calculer les PV restants'); btn.type = 'button';
     btn.addEventListener('click', function () {
@@ -2206,26 +2206,26 @@
         btn.disabled = false; res.textContent = '';
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
         var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
-        var plage = function (a) { return a ? (a[0] === a[1] ? String(a[0]) : a[0] + ' à ' + a[1]) : '?'; };
-        var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' 🎯 (cible de chasse)' : ''), '');
+        var plage = function (a) { return a ? (a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]) : '?'; };
+        var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' \ud83c\udfaf (cible de chasse)' : ''), '');
         d1.style.fontWeight = 'bold';
-        if (j.cdm) ligne('CdM du ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ' : PV max ' + plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ', blessure ±' + j.cdm.blessure + ' %' : '') + ' → PV de départ ' + plage(j.cdm.depart), 'PV initiaux : ');
+        if (j.cdm) ligne('CdM du ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ' : PV max ' + plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ', blessure \u00b1' + j.cdm.blessure + ' %' : '') + ' \u2192 PV de d\u00e9part ' + plage(j.cdm.depart), 'PV initiaux : ');
         else ligne('aucune CdM connue', 'PV initiaux : ');
-        ligne(j.degats_cumules + ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ' publiée' + (j.nb_frappes > 1 ? 's' : '') + (j.nb_frappes_total > j.nb_frappes ? ', ' + (j.nb_frappes_total - j.nb_frappes) + ' avant la CdM non comptée' + (j.nb_frappes_total - j.nb_frappes > 1 ? 's' : '') : '') + ')', 'Dégâts cumulés : ');
+        ligne(j.degats_cumules + ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ' publi\u00e9e' + (j.nb_frappes > 1 ? 's' : '') + (j.nb_frappes_total > j.nb_frappes ? ', ' + (j.nb_frappes_total - j.nb_frappes) + ' avant la CdM non compt\u00e9e' + (j.nb_frappes_total - j.nb_frappes > 1 ? 's' : '') : '') + ')', 'D\u00e9g\u00e2ts cumul\u00e9s : ');
         var rst = ligne(j.restants ? plage(j.restants) + (j.estimation ? ' (estimation)' : '') : 'inconnus', 'PV restants : ');
-        if (j.estimation && j.raisons && j.raisons.length) { rst.title = j.raisons.join(' ; '); ligne(j.raisons.join(' ; '), '⚠️ '); res.lastChild.style.fontStyle = 'italic'; }
-        var icone = { 'morte': '☠️', 'finissable': '✅', 'bientôt finissable': '🟡', 'encore résistante': '🛡️' }[j.etat] || '';
-        ligne(icone + ' ' + j.etat, 'État de la cible : ');
+        if (j.estimation && j.raisons && j.raisons.length) { rst.title = j.raisons.join(' ; '); ligne(j.raisons.join(' ; '), '\u26a0\ufe0f '); res.lastChild.style.fontStyle = 'italic'; }
+        var icone = { 'morte': '\u2620\ufe0f', 'finissable': '\u2705', 'bient\u00f4t finissable': '\ud83d\udfe1', 'encore r\u00e9sistante': '\ud83d\udee1\ufe0f' }[j.etat] || '';
+        ligne(icone + ' ' + j.etat, '\u00c9tat de la cible : ');
         if (j.esquive) ligne(j.esquive.valeur + ' (' + j.esquive.source + ')', 'Esquive du monstre : ');
         (j.finisseurs || []).forEach(function (f) {
           var t = el('div', 'mhx-fin-troll'); t.appendChild(el('b', null, f.nom));
           if (!f.options.length) t.appendChild(document.createTextNode(' : pas assez de frappes connues'));
           res.appendChild(t);
           f.options.forEach(function (o) {
-            ligne(o.attaque + ' — dégâts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' → finition : ' + o.peut_finir : ''), '• ');
+            ligne(o.attaque + ' \u2014 d\u00e9g\u00e2ts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' \u2192 finition : ' + o.peut_finir : ''), '\u2022 ');
           });
         });
-        ligne('Dégâts min/moy/max déduits des frappes passées de chaque finisseur (sur d’autres monstres : l’armure du monstre n’est pas prise en compte). Estimations.', '').style.fontSize = '11px';
+        ligne('D\u00e9g\u00e2ts min/moy/max d\u00e9duits des frappes pass\u00e9es de chaque finisseur (sur d\u2019autres monstres : l\u2019armure du monstre n\u2019est pas prise en compte). Estimations.', '').style.fontSize = '11px';
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     });
     box.appendChild(btn); box.appendChild(res);
