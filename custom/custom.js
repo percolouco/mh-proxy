@@ -2234,6 +2234,57 @@
     else if (document.body) document.body.insertBefore(box, document.body.firstChild);
   }
 
+  // Formulaire du sortil\u00e8ge T\u00e9l\u00e9portation (champs X / Y / N \u00ab tpx tpy tpn \u00bb) : sous les champs, zone d'arriv\u00e9e possible
+  // (d\u00e9viation max d'apr\u00e8s les r\u00e8gles du jeu + dispersion) et alerte si un trou de M\u00e9t\u00e9orite est \u00e0 6 cases ou moins.
+  // Calcul fait par le serveur MH (notif/tp_info.php) ; affichage seulement, le bouton Action n'est jamais touch\u00e9.
+  var TP_INFO_URL = 'https://mh.percolouco.com/notif/tp_info.php';
+  function addTpPrepa() {
+    var ix = document.getElementById('originex'), iy = document.getElementById('originey'), inn = document.getElementById('originen');
+    if (!ix || !iy || !inn || document.getElementById('mhx-tpprepa')) return;
+    // position du lanceur : milieu de la plage autoris\u00e9e de chaque champ (la port\u00e9e est centr\u00e9e sur le troll)
+    var milieu = function (i) { var a = parseInt(i.getAttribute('min'), 10), b = parseInt(i.getAttribute('max'), 10); return isNaN(a) || isNaN(b) ? null : Math.round((a + b) / 2); };
+    var p = { x: milieu(ix), y: milieu(iy), n: milieu(inn) };
+    if (p.x === null || p.y === null || p.n === null) return;
+    var box = document.createElement('div'); box.id = 'mhx-tpprepa'; box.className = 'mhx-monstre';
+    box.style.textAlign = 'left';
+    var cible = document.getElementById('tp') || ix.parentNode;
+    cible.parentNode.insertBefore(box, cible.nextSibling);
+    var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    var rng = function (a) { return a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]; };
+    var seq = 0, tempo = null;
+    var calcul = function () {
+      var v = [ix, iy, inn].map(function (i) { return i.value.trim(); });
+      box.textContent = '';
+      if (!v.every(function (t) { return /^-?\d+$/.test(t); })) { box.style.display = 'none'; return; }
+      box.style.display = '';
+      var me = ++seq;
+      box.appendChild(el('div', null, 'Calcul de la zone d\u2019arriv\u00e9e\u2026'));
+      fetch(TP_INFO_URL + '?px=' + p.x + '&py=' + p.y + '&pn=' + p.n + '&x=' + v[0] + '&y=' + v[1] + '&n=' + v[2], { referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (me !== seq) return;
+          box.textContent = '';
+          if (!j || !j.zone) { box.appendChild(el('div', null, 'Aide TP indisponible (serveur MH injoignable).')); return; }
+          box.appendChild(el('h4', null, '\ud83c\udf00 Pr\u00e9paration du TP'));
+          var l = function (t, b) { var d = el('div'); if (b) d.appendChild(el('b', null, b)); d.appendChild(document.createTextNode(t)); box.appendChild(d); return d; };
+          l(j.distance + ' cases en X/Y depuis ta position (' + p.x + ' | ' + p.y + ' | ' + p.n + ')', 'Distance : ');
+          l('X/Y \u00b1' + j.regles.deviation_max.x + ', N \u00b1' + j.regles.deviation_max.n + ' (portail), puis dispersion X/Y \u00b1' + j.regles.dispersion_max.x + ', N \u00b1' + j.regles.dispersion_max.n + ' au passage', 'Erreur maximale : ');
+          l('X ' + rng(j.zone.x) + ' | Y ' + rng(j.zone.y) + ' | N ' + rng(j.zone.n), 'Zone d\u2019arriv\u00e9e possible : ');
+          l('X ' + rng(j.zone_probable.x) + ' | Y ' + rng(j.zone_probable.y) + ' | N ' + rng(j.zone_probable.n) + ' (erreurs observ\u00e9es sur ' + j.erreur.echantillon + ' TP du groupe)', 'Zone probable : ');
+          var pres = (j.trous || []).filter(function (t) { return t.dist <= j.rayon_trou; }), zone = (j.trous || []).filter(function (t) { return t.dist > j.rayon_trou; });
+          if (pres.length) {
+            var a = el('div', 'mhx-tp-alerte');
+            a.style.cssText = 'margin-top:6px;padding:4px 8px;border:2px solid #b00020;color:#b00020;font-weight:bold;background:rgba(255,255,255,.5);';
+            a.appendChild(el('div', null, '\u26a0\ufe0f Trou de M\u00e9t\u00e9orite \u00e0 ' + j.rayon_trou + ' cases ou moins de la destination vis\u00e9e'));
+            pres.forEach(function (t) { a.appendChild(el('div', null, 'X=' + t.x + ' | Y=' + t.y + ' | N de ' + t.n_max + ' \u00e0 ' + t.n_min + ' \u2014 \u00e0 ' + t.dist + ' case' + (t.dist > 1 ? 's' : ''))); });
+            box.appendChild(a);
+          } else l('aucun trou de M\u00e9t\u00e9orite connu \u00e0 ' + j.rayon_trou + ' cases ou moins de la destination vis\u00e9e', '\u2705 ');
+          if (zone.length) l(zone.map(function (t) { return 'X=' + t.x + ' Y=' + t.y + ' (' + t.dist + ' cases)'; }).join(' ; '), '\u26a0\ufe0f Dans la zone d\u2019arriv\u00e9e possible : ');
+        }, function () { if (me === seq) { box.textContent = ''; box.appendChild(el('div', null, 'Aide TP indisponible (serveur MH injoignable).')); } });
+    };
+    [ix, iy, inn].forEach(function (i) { i.addEventListener('input', function () { clearTimeout(tempo); tempo = setTimeout(calcul, 400); }); });
+    calcul();
+  }
+
   function addAggroCol() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var aggro = null, queue = null, running = false, t0 = Date.now();
@@ -3469,6 +3520,7 @@
       ['evenements_scriz', '\u00c9v\u00e9nements r\u00e9\u00e9crits au format SCIZ (jets, d\u00e9g\u00e2ts, r\u00e9sistance\u2026)'],
       ['monstre_analyse', 'Analyse du monstre (dur\u00e9e du tour, peut rejouer, cumul)'],
       ['monstre_aggro', 'Derni\u00e8re cible frapp\u00e9e sur la fiche du monstre'],
+      ['tp_prepa', 'Pr\u00e9paration du sortil\u00e8ge T\u00e9l\u00e9portation : zone d\u2019arriv\u00e9e et alerte trou de M\u00e9t\u00e9orite'],
       ['monstre_finisseurs', 'Suivi des PV et aide aux finisseurs sur la fiche du monstre (bouton)'],
       ['profil_kiki', 'Jauge Kiki Meter sur le profil']
     ]],
@@ -3551,7 +3603,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
