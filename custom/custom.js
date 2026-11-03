@@ -2245,11 +2245,18 @@
     var milieu = function (i) { var a = parseInt(i.getAttribute('min'), 10), b = parseInt(i.getAttribute('max'), 10); return isNaN(a) || isNaN(b) ? null : Math.round((a + b) / 2); };
     var p = { x: milieu(ix), y: milieu(iy), n: milieu(inn) };
     if (p.x === null || p.y === null || p.n === null) return;
-    var box = document.createElement('div'); box.id = 'mhx-tpprepa'; box.className = 'mhx-monstre';
-    box.style.textAlign = 'left';
-    var cible = document.getElementById('tp') || ix.parentNode;
-    cible.parentNode.insertBefore(box, cible.nextSibling);
-    var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    // le formulaire est dans un bandeau tr\u00e8s bas : l'aide s'affiche en pop-in flottante dans la fen\u00eatre principale du jeu (m\u00eame origine),
+    // \u00e0 d\u00e9faut dans le cadre \u00ab Contenu \u00bb, \u00e0 d\u00e9faut dans ce bandeau ; elle est retir\u00e9e d\u00e8s que le bandeau est quitt\u00e9 (Annuler, Action).
+    var hote = null;
+    try { if (window.top && window.top.document && window.top.document.body && !/^frameset$/i.test(window.top.document.body.tagName)) hote = window.top.document; } catch (e) { hote = null; }
+    if (!hote) { try { var fc = window.top.frames['Contenu']; if (fc && fc.document && fc.document.body) hote = fc.document; } catch (e) { hote = null; } }
+    if (!hote) hote = document;
+    var el = function (tag, cls, txt) { var e = hote.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    var box = el('div'); box.id = 'mhx-tpprepa';
+    box.style.cssText = 'position:fixed;top:70px;right:16px;width:340px;max-width:92vw;max-height:80vh;overflow:auto;z-index:99999;padding:10px 12px;text-align:left;font:12px/1.5 Trebuchet MS,Arial,sans-serif;color:#222;background:#efe6c8;border:2px solid #a47e3c;border-radius:7px;box-shadow:0 4px 14px rgba(0,0,0,.35);';
+    hote.body.appendChild(box);
+    var fermer = function () { try { if (box.parentNode) box.parentNode.removeChild(box); } catch (e) { /* page d\u00e9j\u00e0 d\u00e9charg\u00e9e */ } };
+    window.addEventListener('pagehide', fermer);
     var rng = function (a) { return a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]; };
     var seq = 0, tempo = null;
     var calcul = function () {
@@ -2264,7 +2271,7 @@
           if (me !== seq) return;
           box.textContent = '';
           if (!j || !j.zone) { box.appendChild(el('div', null, 'Aide TP indisponible (serveur MH injoignable).')); return; }
-          box.appendChild(el('h4', null, '\ud83c\udf00 Pr\u00e9paration du TP'));
+          var h = el('div', null, '\ud83c\udf00 Pr\u00e9paration du TP'); h.style.cssText = 'font-weight:bold;color:#7a1f1f;margin-bottom:4px;'; var x = el('span', null, '\u2716'); x.style.cssText = 'float:right;cursor:pointer;'; x.title = 'Masquer'; x.addEventListener('click', function () { box.style.display = 'none'; }); h.appendChild(x); box.appendChild(h);
           var l = function (t, b) { var d = el('div'); if (b) d.appendChild(el('b', null, b)); d.appendChild(document.createTextNode(t)); box.appendChild(d); return d; };
           l(j.distance + ' cases en X/Y depuis ta position (' + p.x + ' | ' + p.y + ' | ' + p.n + ')', 'Distance : ');
           l('X/Y \u00b1' + j.regles.deviation_max.x + ', N \u00b1' + j.regles.deviation_max.n + ' (portail), puis dispersion X/Y \u00b1' + j.regles.dispersion_max.x + ', N \u00b1' + j.regles.dispersion_max.n + ' au passage', 'Erreur maximale : ');
