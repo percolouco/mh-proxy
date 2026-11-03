@@ -2294,13 +2294,13 @@
           var h = el('div', null, '\ud83c\udf00 Pr\u00e9paration du TP'); h.style.cssText = 'font-weight:bold;color:#7a1f1f;margin-bottom:4px;'; var x = el('span', null, '\u2716'); x.style.cssText = 'float:right;cursor:pointer;'; x.title = 'Masquer'; x.addEventListener('click', function () { box.style.display = 'none'; }); h.appendChild(x); box.appendChild(h);
           var l = function (t, b) { var d = el('div'); if (b) d.appendChild(el('b', null, b)); d.appendChild(document.createTextNode(t)); box.appendChild(d); return d; };
           var sg = function (x) { return '\u00b1' + x; };
-          l(j.tranches.xy + ' tranches X/Y, ' + j.tranches.n + ' tranches N', 'Distance : ');
           l('X/Y ' + sg(j.deviation.x) + ', N ' + sg(j.deviation.n), 'D\u00e9viation : ');
           l('X/Y ' + sg(j.dispersion.x) + ', N ' + sg(j.dispersion.n), 'Dispersion : ');
           var memes = j.saisie.x === +v[0] && j.saisie.y === +v[1] && j.saisie.n === +v[2];
           var sa = l(j.saisie.x + ' | ' + j.saisie.y + ' | ' + j.saisie.n + (memes ? ' (ta cible)' : ''), '\u00c0 saisir : ');
           sa.style.cssText = 'font-size:13px;color:#1b5e20;';
-          l('X ' + rng(j.arrivee.x) + ' | Y ' + rng(j.arrivee.y) + ' | N ' + rng(j.arrivee.n), 'Arriv\u00e9e attendue : ');
+          var ab = function (a) { return a[0] + '/' + a[1]; };
+          l('X ' + ab(j.arrivee.x) + ' | Y ' + ab(j.arrivee.y) + ' | N ' + ab(j.arrivee.n), 'Arriv\u00e9e probable : ');
           if (j.trous && j.trous.length) {
             var a = el('div', 'mhx-tp-alerte');
             a.style.cssText = 'margin-top:6px;padding:4px 8px;border:2px solid #b00020;color:#b00020;font-weight:bold;background:rgba(255,255,255,.5);';
