@@ -2188,6 +2188,52 @@
     if (me && id) aggroSend(me, id, last);
   }
 
+  // Fiche d'un monstre : bouton « Suivi PV / finisseurs » (PV restants estimés d'après la dernière CdM et les frappes publiées,
+  // possibilités de finition de TeleKom et Flak Flak). Calcul fait par le serveur MH (notif/pv_monstre.php) ; affichage uniquement.
+  var PV_MONSTRE_URL = 'https://mh.percolouco.com/notif/pv_monstre.php';
+  function addFinisseurs() {
+    if (!/\/MonsterView\.php$/.test(location.pathname)) return;
+    var id = (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
+    if (!id || document.getElementById('mhx-finisseurs')) return;
+    var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    var box = el('div', 'mhx-monstre'); box.id = 'mhx-finisseurs';
+    box.appendChild(el('h4', null, '📉 Suivi des PV et finisseurs'));
+    var res = el('div', 'mhx-fin-res');
+    var btn = el('button', 'mh_form_submit mhx-chasse-btn', 'Calculer les PV restants'); btn.type = 'button';
+    btn.addEventListener('click', function () {
+      btn.disabled = true; res.textContent = 'Calcul en cours...';
+      fetch(PV_MONSTRE_URL + '?id=' + id, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        btn.disabled = false; res.textContent = '';
+        if (!j) { res.textContent = 'Serveur injoignable.'; return; }
+        var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
+        var plage = function (a) { return a ? (a[0] === a[1] ? String(a[0]) : a[0] + ' à ' + a[1]) : '?'; };
+        var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' 🎯 (cible de chasse)' : ''), '');
+        d1.style.fontWeight = 'bold';
+        if (j.cdm) ligne('CdM du ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ' : PV max ' + plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ', blessure ±' + j.cdm.blessure + ' %' : '') + ' → PV de départ ' + plage(j.cdm.depart), 'PV initiaux : ');
+        else ligne('aucune CdM connue', 'PV initiaux : ');
+        ligne(j.degats_cumules + ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ' publiée' + (j.nb_frappes > 1 ? 's' : '') + (j.nb_frappes_total > j.nb_frappes ? ', ' + (j.nb_frappes_total - j.nb_frappes) + ' avant la CdM non comptée' + (j.nb_frappes_total - j.nb_frappes > 1 ? 's' : '') : '') + ')', 'Dégâts cumulés : ');
+        var rst = ligne(j.restants ? plage(j.restants) + (j.estimation ? ' (estimation)' : '') : 'inconnus', 'PV restants : ');
+        if (j.estimation && j.raisons && j.raisons.length) { rst.title = j.raisons.join(' ; '); ligne(j.raisons.join(' ; '), '⚠️ '); res.lastChild.style.fontStyle = 'italic'; }
+        var icone = { 'morte': '☠️', 'finissable': '✅', 'bientôt finissable': '🟡', 'encore résistante': '🛡️' }[j.etat] || '';
+        ligne(icone + ' ' + j.etat, 'État de la cible : ');
+        if (j.esquive) ligne(j.esquive.valeur + ' (' + j.esquive.source + ')', 'Esquive du monstre : ');
+        (j.finisseurs || []).forEach(function (f) {
+          var t = el('div', 'mhx-fin-troll'); t.appendChild(el('b', null, f.nom));
+          if (!f.options.length) t.appendChild(document.createTextNode(' : pas assez de frappes connues'));
+          res.appendChild(t);
+          f.options.forEach(function (o) {
+            ligne(o.attaque + ' — dégâts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' → finition : ' + o.peut_finir : ''), '• ');
+          });
+        });
+        ligne('Dégâts min/moy/max déduits des frappes passées de chaque finisseur (sur d’autres monstres : l’armure du monstre n’est pas prise en compte). Estimations.', '').style.fontSize = '11px';
+      }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
+    });
+    box.appendChild(btn); box.appendChild(res);
+    var form = document.querySelector('form[action=""]');
+    if (form && form.parentNode) form.parentNode.insertBefore(box, form);
+    else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+  }
+
   function addAggroCol() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var aggro = null, queue = null, running = false, t0 = Date.now();
@@ -3410,6 +3456,7 @@
       ['evenements_scriz', '\u00c9v\u00e9nements r\u00e9\u00e9crits au format SCIZ (jets, d\u00e9g\u00e2ts, r\u00e9sistance\u2026)'],
       ['monstre_analyse', 'Analyse du monstre (dur\u00e9e du tour, peut rejouer, cumul)'],
       ['monstre_aggro', 'Derni\u00e8re cible frapp\u00e9e sur la fiche du monstre'],
+      ['monstre_finisseurs', 'Suivi des PV et aide aux finisseurs sur la fiche du monstre (bouton)'],
       ['profil_kiki', 'Jauge Kiki Meter sur le profil']
     ]],
     ['Autres pages du jeu', [
@@ -3491,7 +3538,7 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

@@ -58,6 +58,8 @@ a.interface-it::after {
 #mhx-badge.mhx-badge-err { background: #d32f2f; }
 .mhx-monstre { margin: 15px auto; padding: 10px; width: 80%; text-align: center; }
 .mhx-monstre h4 { margin: 0 0 8px 0; color: var(--mhx-alerte); }
+.mhx-fin-res { text-align: left; margin-top: 6px; line-height: 1.5; }
+.mhx-fin-troll { margin-top: 4px; }
 
 /* Page Ma vue : colonne PV entre « Niv. » et « Réf. » */
 .mhx-pvcol { white-space: nowrap; font-weight: bold; font-size: 12px; text-align: right; padding-left: 1px; padding-right: 2px; }
