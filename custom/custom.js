@@ -2293,10 +2293,13 @@
           if (!j || !j.zone) { box.appendChild(el('div', null, 'Aide TP indisponible (serveur MH injoignable).')); return; }
           var h = el('div', null, '\ud83c\udf00 Pr\u00e9paration du TP'); h.style.cssText = 'font-weight:bold;color:#7a1f1f;margin-bottom:4px;'; var x = el('span', null, '\u2716'); x.style.cssText = 'float:right;cursor:pointer;'; x.title = 'Masquer'; x.addEventListener('click', function () { box.style.display = 'none'; }); h.appendChild(x); box.appendChild(h);
           var l = function (t, b) { var d = el('div'); if (b) d.appendChild(el('b', null, b)); d.appendChild(document.createTextNode(t)); box.appendChild(d); return d; };
-          l(j.distance + ' cases en X/Y depuis ta position (' + p.x + ' | ' + p.y + ' | ' + p.n + ')', 'Distance : ');
-          l('X/Y \u00b1' + j.regles.deviation_max.x + ', N \u00b1' + j.regles.deviation_max.n + ' (portail), puis dispersion X/Y \u00b1' + j.regles.dispersion_max.x + ', N \u00b1' + j.regles.dispersion_max.n + ' au passage', 'Erreur maximale : ');
-          l('X ' + rng(j.zone.x) + ' | Y ' + rng(j.zone.y) + ' | N ' + rng(j.zone.n), 'Zone d\u2019arriv\u00e9e possible : ');
-          l('X ' + rng(j.zone_probable.x) + ' | Y ' + rng(j.zone_probable.y) + ' | N ' + rng(j.zone_probable.n) + ' (erreurs observ\u00e9es sur ' + j.erreur.echantillon + ' TP du groupe)', 'Zone probable : ');
+          var fm = function (x) { return String(Math.round(x * 10) / 10).replace('.', ','); };
+          var rg = j.regles, zm = j.zone_moyenne || j.zone;
+          l(j.distance + ' cases en X/Y depuis ta position (' + p.x + ' | ' + p.y + ' | ' + p.n + ') : ' + rg.tranches.xy + ' tranches en X/Y, ' + rg.tranches.n + ' en N', 'Distance : ');
+          l('X/Y \u00b1' + fm(rg.deviation_moyenne.x) + ', N \u00b1' + fm(rg.deviation_moyenne.n) + ' (portail), puis dispersion moyenne X/Y \u00b1' + fm(rg.dispersion_moyenne.x) + ', N \u00b1' + fm(rg.dispersion_moyenne.n) + ' au passage', 'Erreur moyenne (moyenne des d\u00e9s) : ');
+          l('X ' + rng(zm.x) + ' | Y ' + rng(zm.y) + ' | N ' + rng(zm.n), 'Zone d\u2019arriv\u00e9e moyenne : ');
+          var pire = l('X ' + rng(j.zone.x) + ' | Y ' + rng(j.zone.y) + ' | N ' + rng(j.zone.n) + ' (erreur max X/Y \u00b1' + rg.deviation_max.x + ', N \u00b1' + rg.deviation_max.n + ' + dispersion)', 'Pire cas : ');
+          pire.style.cssText = 'font-size:11px;color:#555;';
           var pres = (j.trous || []).filter(function (t) { return t.dist <= j.rayon_trou; }), zone = (j.trous || []).filter(function (t) { return t.dist > j.rayon_trou; });
           if (pres.length) {
             var a = el('div', 'mhx-tp-alerte');
@@ -2305,7 +2308,7 @@
             pres.forEach(function (t) { a.appendChild(el('div', null, 'X=' + t.x + ' | Y=' + t.y + ' | N de ' + t.n_max + ' \u00e0 ' + t.n_min + ' \u2014 \u00e0 ' + t.dist + ' case' + (t.dist > 1 ? 's' : ''))); });
             box.appendChild(a);
           } else l('aucun trou de M\u00e9t\u00e9orite connu \u00e0 ' + j.rayon_trou + ' cases ou moins de la destination vis\u00e9e', '\u2705 ');
-          if (zone.length) l(zone.map(function (t) { return 'X=' + t.x + ' Y=' + t.y + ' (' + t.dist + ' cases)'; }).join(' ; '), '\u26a0\ufe0f Dans la zone d\u2019arriv\u00e9e possible : ');
+          if (zone.length) l(zone.map(function (t) { return 'X=' + t.x + ' Y=' + t.y + ' (' + t.dist + ' cases)'; }).join(' ; '), '\u26a0\ufe0f Dans la zone d\u2019arriv\u00e9e moyenne : ');
         }, function () { if (me === seq) { box.textContent = ''; box.appendChild(el('div', null, 'Aide TP indisponible (serveur MH injoignable).')); } });
     };
     [ix, iy, inn].forEach(function (i) { i.addEventListener('input', function () { clearTimeout(tempo); tempo = setTimeout(calcul, 400); }); });
