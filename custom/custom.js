@@ -3392,6 +3392,80 @@
     lire();
   }
 
+  // ===== Parcours de r\u00e9colte partag\u00e9 : enregistr\u00e9 sur le serveur MH (notif/parcours.php), visible par tout le groupe, envoi des ordres au gowap =====
+  // Chaque envoi d'ordres est un clic humain (par case, ou \u00ab Tout envoyer \u00bb apr\u00e8s confirmation) : il r\u00e9utilise la s\u00e9quence \u00ab Aller chercher \u00bb /
+  // \u00ab Se d\u00e9placer vers \u00bb + \u00ab Arr\u00eat \u00bb ci-dessus (sans PA). Aucun envoi automatique.
+  var PARCOURS_URL = 'https://mh.percolouco.com/notif/parcours.php';
+  function pcApi(me, body, cb) {
+    fetch(PARCOURS_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'troll=' + me + '&' + body })
+      .then(function (r) { return r.json().catch(function () { return {}; }); }).then(function (j) { cb(j || {}); }, function () { cb(null); });
+  }
+  // \u00ab Se d\u00e9placer vers la case puis s'arr\u00eater \u00bb pour un gowap : m\u00eame s\u00e9quence que \u00ab Aller chercher \u00bb (ordres cr\u00e9\u00e9s \u00e0 l'envers, chacun remonte en premier)
+  function pcEnvoyerCase(gowapId, c, say) {
+    var it = { ref: String(c.ref || ''), nom: c.nom || 'Tr\u00e9sor', x: c.x, y: c.y, n: c.n, dist: 0 };
+    return sequenceAllerChercher(it, String(gowapId), say, true).then(function (txt) {
+      var moi = currentTrollId(); if (moi && /^\d+$/.test(it.ref) && it.ref !== '0') marksCall('action=set&ref=' + it.ref + '&troll=' + moi, function () {});
+      return txt;
+    });
+  }
+  function pcRendrePartage(zone, liste, me, onReset, filtreGowap) {
+    zone.textContent = '';
+    var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+    var l = (liste || []).filter(function (g) { return g.cases && g.cases.length; });
+    var tete = el('div', 'mhx-pc-ligne');
+    tete.appendChild(el('b', null, 'Parcours enregistr\u00e9 (partag\u00e9 avec le groupe) : '));
+    tete.appendChild(document.createTextNode(l.length ? l.length + ' gowap' + (l.length > 1 ? 's' : '') : 'aucun'));
+    var reset = el('button', 'mh_form_submit mhx-tfiltre', 'R\u00e9initialiser le parcours'); reset.type = 'button';
+    reset.title = 'Efface le parcours enregistr\u00e9 de tous les gowaps (pour tout le groupe)';
+    reset.addEventListener('click', function () {
+      if (!l.length) return;
+      if (!window.confirm('Effacer le parcours de r\u00e9colte enregistr\u00e9 pour tous les gowaps ?')) return;
+      pcApi(me, 'action=reset', function (j) { if (j && j.ok) onReset(); else tete.appendChild(el('span', 'mhx-pc-info', ' \u00c9chec de la r\u00e9initialisation.')); });
+    });
+    tete.appendChild(reset);
+    zone.appendChild(tete);
+    var etat = el('div', 'mhx-pc-info'); var occupe = false;
+    var say = function (t) { etat.textContent = t; };
+    l.forEach(function (g) {
+      var bloc = el('div', 'mhx-pc-gowap');
+      var h = el('div'); h.appendChild(el('b', null, (g.nom || 'Gowap') + ' (' + g.gowap + ') : ' + g.cases.length + ' case' + (g.cases.length > 1 ? 's' : '')));
+      var tout = el('button', 'mh_form_submit mhx-tfiltre', 'Tout envoyer \u00e0 ce gowap'); tout.type = 'button'; tout.style.marginLeft = '8px';
+      tout.title = 'Envoie \u00e0 ce gowap les ordres de toutes les cases (d\u00e9placement puis arr\u00eat pour chacune), apr\u00e8s confirmation';
+      h.appendChild(tout); bloc.appendChild(h);
+      var tb = el('table', 'mhx-pc-tab');
+      var envoyer = function (c, bouton, fini) {
+        if (occupe) { say('Un envoi est d\u00e9j\u00e0 en cours, patiente quelques secondes.'); return Promise.resolve(); }
+        occupe = true; if (bouton) bouton.disabled = true;
+        return pcEnvoyerCase(g.gowap, c, say).then(function (txt) { say(txt); if (bouton) bouton.textContent = 'envoy\u00e9 \u2713'; }, function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : 'envoi impossible')); if (bouton) bouton.disabled = false; })
+          .then(function () { occupe = false; if (fini) fini(); });
+      };
+      g.cases.forEach(function (c, i) {
+        var tr = el('tr');
+        tr.appendChild(el('td', null, String(i + 1))); tr.appendChild(el('td', null, c.ref ? String(c.ref) : '')); tr.appendChild(el('td', null, c.nom || ''));
+        tr.appendChild(el('td', null, 'X=' + c.x + ' | Y=' + c.y + ' | N=' + c.n));
+        var td = el('td'), b = el('button', 'mh_form_submit mhx-tfiltre', '\u2192 ordres'); b.type = 'button';
+        b.title = 'Envoie \u00e0 ce gowap : se d\u00e9placer vers cette case, puis s\u2019arr\u00eater (un clic = une case)';
+        b.addEventListener('click', function () { envoyer(c, b); });
+        td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+      });
+      tout.addEventListener('click', function () {
+        if (occupe) return;
+        if (!window.confirm('Envoyer \u00e0 ' + (g.nom || 'ce gowap') + ' les ordres de ' + g.cases.length + ' case(s) (d\u00e9placement puis arr\u00eat pour chacune) ?')) return;
+        occupe = true; tout.disabled = true;
+        var suite = Promise.resolve(), n = g.cases.length;
+        // chaque nouvel ordre arrive en premier : on envoie donc de la derni\u00e8re case \u00e0 la premi\u00e8re pour que l'ordre final suive le parcours
+        g.cases.slice().reverse().forEach(function (c, k) {
+          suite = suite.then(function () { say('Case ' + (n - k) + '/' + n + '\u2026'); return pcEnvoyerCase(g.gowap, c, function () {}); });
+        });
+        suite.then(function () { say('Termin\u00e9 : ' + n + ' case(s) envoy\u00e9e(s) \u00e0 ' + (g.nom || 'ce gowap') + '. Recharge la page pour voir les ordres.'); },
+          function (e) { say('\u00c9chec : ' + (e && e.message ? e.message : 'envoi impossible') + ' (les cases d\u00e9j\u00e0 envoy\u00e9es restent enregistr\u00e9es).'); })
+          .then(function () { occupe = false; tout.disabled = false; });
+      });
+      bloc.appendChild(tb); zone.appendChild(bloc);
+    });
+    zone.appendChild(etat);
+  }
+
   function addParcoursRecolte() {
     if (!/\/Play_a_Action\.php$/.test(location.pathname) || !/[?&]sub=ordres\b/.test(location.search)) return;
     var me = aggroTroll();
@@ -3438,6 +3512,14 @@
       var res = document.createElement('div'); res.className = 'mhx-pc-res';
       [ligne1, ligne2, ligneX, ligne3].forEach(function (x) { corps.appendChild(x); });
       var lb = document.createElement('div'); lb.className = 'mhx-pc-ligne'; lb.appendChild(go); lb.appendChild(info); corps.appendChild(lb); corps.appendChild(res);
+      var partage = document.createElement('div'); partage.className = 'mhx-pc-partage'; corps.appendChild(partage);
+      var chargePartage = function () {
+        fetch(PARCOURS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (!j || !j.parcours) { partage.textContent = 'Parcours partag\u00e9 indisponible (serveur MH injoignable).'; return; }
+          pcRendrePartage(partage, j.parcours, me, chargePartage);
+        }, function () { partage.textContent = 'Parcours partag\u00e9 indisponible (serveur MH injoignable).'; });
+      };
+      chargePartage();
       var gowaps = [], items = null, occ = { gowap: [], troll: [] };
       // gowaps du troll connecte (cases cochees dans la liste commune) avec leur derniere position lue
       mineCall(me, '', function (d) {
@@ -3522,6 +3604,9 @@
           else { var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) { /* ignore */ } document.body.removeChild(ta); }
         });
         res.appendChild(cp); res.appendChild(pre);
+        // enregistrement du parcours sur le serveur (partage avec le groupe), puis affichage des boutons d'envoi des ordres
+        var donnees = choisis.map(function (g, gi) { return { gowap: parseInt(g.id, 10), nom: g.nom || 'Gowap', cases: sol.routes[gi].map(function (ti) { var it = retenus[ti]; return { ref: it.ref, nom: it.nom, x: it.x, y: it.y, n: it.n }; }) }; });
+        pcApi(me, 'action=save&data=' + encodeURIComponent(JSON.stringify(donnees)), function (j) { if (j && j.ok) chargePartage(); else msg('Parcours calcul\u00e9 mais non enregistr\u00e9 (serveur MH injoignable).'); });
         msg(pts.length + ' ' + nomT + ' r\u00e9partis en ' + Math.round(Date.now() - t0) + ' ms.');
       });
     })();
