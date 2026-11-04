@@ -1276,7 +1276,7 @@
       el.className = 'mhx-dla' + (left <= 0 ? ' mhx-dla-past' : left < 3 * 3600e3 ? ' mhx-dla-soon' : '');
       // PA disponibles (affich\u00e9s \u00e0 droite dans l'encart) : repris juste apr\u00e8s la DLA
       var paM = /(\d+)\s*PA\b/.exec((box.parentNode ? box.parentNode.textContent : box.textContent).replace(/[\s\u00a0]+/g, ' '));
-      el.textContent = 'DLA : ' + pad(+m[3]) + '/' + pad(+m[2]) + ' ' + m[4] + ':' + m[5] + (left <= 0 ? ' (d\u00e9pass\u00e9e)' : '') + (paM ? ' \u00b7 ' + paM[1] + ' PA' : '');
+      el.textContent = 'DLA : ' + pad(+m[3]) + '/' + pad(+m[2]) + ' ' + m[4] + ':' + m[5] + (left <= 0 ? ' (d\u00e9pass\u00e9e)' : '') + (paM && feat('suivants_pa') ? ' \u00b7 ' + paM[1] + ' PA' : '');
       // « poids porté : X minutes » -> « ... / Y minutes restantes », Y = moitié de la durée du tour - X
       var pw = h3.nextElementSibling;
       if (pw && d.tour > 0 && !pw.querySelector('.mhx-poids') && /poids port/.test(pw.textContent)) {
@@ -3513,7 +3513,9 @@
       [ligne1, ligne2, ligneX, ligne3].forEach(function (x) { corps.appendChild(x); });
       var lb = document.createElement('div'); lb.className = 'mhx-pc-ligne'; lb.appendChild(go); lb.appendChild(info); corps.appendChild(lb); corps.appendChild(res);
       var partage = document.createElement('div'); partage.className = 'mhx-pc-partage'; corps.appendChild(partage);
+      var partageOn = feat('ordres_parcours_partage');
       var chargePartage = function () {
+        if (!partageOn) return;
         fetch(PARCOURS_URL, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
           if (!j || !j.parcours) { partage.textContent = 'Parcours partag\u00e9 indisponible (serveur MH injoignable).'; return; }
           pcRendrePartage(partage, j.parcours, me, chargePartage);
@@ -3606,7 +3608,7 @@
         res.appendChild(cp); res.appendChild(pre);
         // enregistrement du parcours sur le serveur (partage avec le groupe), puis affichage des boutons d'envoi des ordres
         var donnees = choisis.map(function (g, gi) { return { gowap: parseInt(g.id, 10), nom: g.nom || 'Gowap', cases: sol.routes[gi].map(function (ti) { var it = retenus[ti]; return { ref: it.ref, nom: it.nom, x: it.x, y: it.y, n: it.n }; }) }; });
-        pcApi(me, 'action=save&data=' + encodeURIComponent(JSON.stringify(donnees)), function (j) { if (j && j.ok) chargePartage(); else msg('Parcours calcul\u00e9 mais non enregistr\u00e9 (serveur MH injoignable).'); });
+        if (partageOn) pcApi(me, 'action=save&data=' + encodeURIComponent(JSON.stringify(donnees)), function (j) { if (j && j.ok) chargePartage(); else msg('Parcours calcul\u00e9 mais non enregistr\u00e9 (serveur MH injoignable).'); });
         msg(pts.length + ' ' + nomT + ' r\u00e9partis en ' + Math.round(Date.now() - t0) + ' ms.');
       });
     })();
@@ -3642,13 +3644,15 @@
     ['Autres pages du jeu', [
       ['turnstart_gowaps', 'Encart \u00ab Mes gowaps \u00bb sur la page de connexion'],
       ['suivants_dla', 'DLA de chaque suivant (page Suivants)'],
+      ['suivants_pa', 'PA disponibles \u00e0 c\u00f4t\u00e9 de la DLA de chaque suivant (page Suivants)'],
       ['suivants_vue', 'Port\u00e9e de vue de chaque suivant (page Suivants)'],
       ['suivants_hors_vue', 'Picto \u00ab hors de la vue du troll \u00bb sur les suivants (page Suivants)'],
       ['turnstart_surcharge', 'Alerte gowap surcharg\u00e9 / immobilis\u00e9 (page de connexion)'],
       ['ordres_dla', 'PA et DLA estim\u00e9s sur les ordres de d\u00e9placement (page Ordres)'],
       ['transbahuter_gowaps', 'Couleur et poids port\u00e9 des gowaps (page Transbahuter)'],
       ['ordres_tresors', 'Liste des tr\u00e9sors et \u00ab Aller chercher \u00bb (page Ordres des gowaps)'],
-      ['ordres_parcours', 'Parcours de r\u00e9colte : r\u00e9partir les tr\u00e9sors entre mes gowaps (page Ordres)'],
+      ['ordres_parcours', 'Parcours de r\u00e9colte : r\u00e9partir les tr\u00e9sors entre mes gowaps, filtre \u00ab Personne sur la case \u00bb (page Ordres)'],
+      ['ordres_parcours_partage', 'Parcours de r\u00e9colte partag\u00e9 avec le groupe : boutons \u00ab \u2192 ordres \u00bb, \u00ab Tout envoyer \u00bb et r\u00e9initialisation (page Ordres)'],
       ['commandes', 'Commandes d\u2019enchantement : synchro et couleurs des composants']
     ]],
     ['Menu', [
