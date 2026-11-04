@@ -3250,9 +3250,7 @@
           var va = a.e.detail && a.e.detail.vie != null ? a.e.detail.vie : 1e9, vb = b.e.detail && b.e.detail.vie != null ? b.e.detail.vie : 1e9;
           return va - vb;
         });
-        var libre = fights.filter(function (f) { return !pris[f.k]; });
-        if (!libre.length) return; // plus de mail pour cette ligne : on garde la phrase du jeu plut\u00f4t que de r\u00e9p\u00e9ter celle d'une ligne voisine
-        var choix = libre[0];
+        var libre = fights.filter(function (f) { return !pris[f.k]; }), choix = (libre.length ? libre : fights)[0];
         pris[choix.k] = 1;
         found = [choix.e];
         tr.setAttribute('data-mhx-ev', '1');
