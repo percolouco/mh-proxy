@@ -2206,7 +2206,7 @@
         btn.disabled = false; res.textContent = '';
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
         var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
-        var plage = function (a) { return a ? (a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]) : '?'; };
+        var plage = function (a) { return a ? (a[1] === null ? 'au moins ' + a[0] : a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]) : '?'; };
         var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' \ud83c\udfaf (cible de chasse)' : ''), '');
         d1.style.fontWeight = 'bold';
         if (j.cdm) ligne('CdM du ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ' : PV max ' + plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ', blessure \u00b1' + j.cdm.blessure + ' %' : '') + ' \u2192 PV de d\u00e9part ' + plage(j.cdm.depart), 'PV initiaux : ');
