@@ -354,7 +354,7 @@
     if (!titreActifs && !titreAttente && !/Bonus et Malus|Bonus-Malus/i.test(document.body.textContent)) return; // page inattendue : rien envoy\u00e9
     var data = { actifs: lire(titreActifs), attente: lire(titreAttente) };
     var envoyer = function (tot) {
-      if (tot) { data.total = tot.total; data.suivant = tot.suivant; }
+      if (tot) { data.total = tot.total; if (tot.suivant) data.suivant = tot.suivant; }
       mhdPost(NOTIF_BM_URL, 'troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
     };
     // « Effet total » et « Effet total suivant » calcul\u00e9s par le jeu (d\u00e9cumul inclus) : lus sur la page Bonus / Malus (lecture seule, aucun PA)
@@ -363,13 +363,15 @@
       .then(function (b) { envoyer(lireTotauxBM(new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(b), 'text/html'))); })
       .catch(function () { envoyer(null); });
   }
-  // Pied du tableau Bonus / Malus : \u00ab Effet total : ... \u00bb et \u00ab Effet total suivant : ... \u00bb (texte du jeu, d\u00e9cumul d\u00e9j\u00e0 appliqu\u00e9)
+  // Page Bonus / Malus : \u00ab Effet total : ... \u00bb (tableau des effets actifs) et \u00ab Effet total suivant (avec d\u00e9cumul estim\u00e9) : ... \u00bb
+  // (pied du tableau des effets actifs, ou de celui des effets pas encore actifs) ; texte du jeu, d\u00e9cumul d\u00e9j\u00e0 appliqu\u00e9
   function lireTotauxBM(doc) {
-    var td = doc && doc.querySelector('#bmm tfoot td');
-    if (!td) return null;
-    var h = td.innerHTML.replace(/<\/?b>/gi, '').replace(/\u00a0/g, ' ');
-    var t = /Effet total\s*:\s*([^<]*)/i.exec(h), n = /Effet total suivant\s*:\s*([^<]*)/i.exec(h);
-    return (t && n) ? { total: t[1].trim(), suivant: n[1].trim() } : null;
+    if (!doc || !doc.body) return null;
+    var txt = doc.body.textContent.replace(/[\s\u00a0]+/g, ' ');
+    var t = /Effet total ?: ([^|]*?(?:\|[^|]*?)*?)(?= Effet total suivant| Pas de d\u00e9cumul| D\u00e9cumul des| Nom Type|$)/.exec(txt);
+    var n = /Effet total suivant[^:]*: (.*?)(?= Pas de d\u00e9cumul| D\u00e9cumul des| Nom Type| Effet total ?:|$)/.exec(txt);
+    if (!t) return null;
+    return { total: t[1].split(' $(')[0].trim(), suivant: n ? n[1].split(' $(')[0].trim() : '' };
   }
 
   // Page Ma vue, partie Trésors : boutons Parchemin / Composant / Gigots de Gob, additionnables (un trésor est gardé s'il
