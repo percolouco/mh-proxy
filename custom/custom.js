@@ -1095,8 +1095,11 @@
     var im = new RegExp('Effet imm\u00e9diat ?: ?(.+?)' + fin.replace('| Effet imm\u00e9diat', '')).exec(txt);
     var pa = /Cette action vous a co\u00fbt\u00e9 (\d+) PA/.exec(txt);
     var effet = ef ? ef[1] : '', du = /\|? ?Dur\u00e9e ?: ?(\d+) tours?/.exec(effet);
-    if (du) effet = effet.replace(du[0], '').replace(/[\s|]+$/, '');
-    return { tresor_id: t[1], tresor_nom: t[2], effet: effet, tours: du ? parseInt(du[1], 10) : 0, immediat: im ? im[1] : '', pa: pa ? parseInt(pa[1], 10) : null };
+    if (du) effet = effet.replace(du[0], ' | ');
+    var ci = /([^|:]+? \(\d+\)) a \u00e9t\u00e9 influenc\u00e9e?\.?/.exec(effet);
+    if (ci) effet = effet.replace(ci[0], '');
+    effet = effet.replace(/\s+/g, ' ').replace(/^[\s|]+|[\s|]+$/g, '');
+    return { tresor_id: t[1], tresor_nom: t[2], cible: ci ? ci[1].trim() : '', effet: effet, tours: du ? parseInt(du[1], 10) : 0, immediat: im ? im[1] : '', pa: pa ? parseInt(pa[1], 10) : null };
   }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
