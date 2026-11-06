@@ -207,3 +207,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.88.2 | 2026-11-06 | Potion / Parchemin utilisé : la cible (« X (n°) a été influencé ») est lue à part et affichée sur une ligne « 🎯 Cible » du message WhatsApp, au lieu d'être collée à l'effet. |
 | 0.89.0 | 2026-11-06 | Page de connexion du jeu : si le numéro ou le nom saisi n'est pas dans la liste des 7 trolls autorisés, les boutons « Jouer son Trõll » et « Voir le Monde Souterrain » s'enfuient (easter egg) et la touche Entrée est bloquée. Seul le champ numéro/nom est lu, jamais le mot de passe. Contrôle côté navigateur uniquement. |
 | 0.89.1 | 2026-11-06 | Kiki Meter : détection de l'effet réduit alignée sur celle du message WhatsApp (accents / casse). Cause exacte du réduit manquant de Flak Flak non confirmée. |
+| 0.89.2 | 2026-11-06 | Gestion de la chasse : le lien vers la vue pointe vers Outils > Vue 2D (la vue du troll a quitté la page Tactique). |
