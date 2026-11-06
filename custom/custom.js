@@ -2967,7 +2967,7 @@
     var erreur = function (j) { msg.textContent = j && j.error ? j.error : (j ? '' : 'Serveur injoignable.'); };
     var itLien = function (p) {
       var me = aggroTroll();
-      return 'https://mh.percolouco.com/tactique/tactique.php?view_id=' + (me || '') + '&origin_x=' + p.x + '&origin_y=' + p.y + '&origin_n=' + p.n + '&portee=' + CHASSE_RAYON;
+      return 'https://mh.percolouco.com/vue_2d/vue_2d.php?view_id=' + (me || '') + '&origin_x=' + p.x + '&origin_y=' + p.y + '&origin_n=' + p.n + '&portee=' + CHASSE_RAYON;
     };
     var render = function () {
       if (!ensure()) return;
