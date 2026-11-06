@@ -692,6 +692,11 @@
   // effets réduits, dégât max. Un résultat est un essai s'il porte le titre « Sortilège : X » ou « Compétence : X » et le jet d'utilisation
   // (« jet de N sur N % ») ; réussi s'il contient « Vous avez RÉUSSI à utiliser », sinon raté.
   var NOTIF_KIKI_URL = 'https://mh.percolouco.com/notif/kiki.php';
+  // Effet r\u00e9duit : m\u00eame lecture que le message WhatsApp (\u00ab a donc un EFFET R\u00c9DUIT \u00bb), accents ou casse diff\u00e9rents accept\u00e9s.
+  function kikiReduit(txt) {
+    var ef = /a donc un (EFFET [A-Z\u00c0-\u00dc]+)/i.exec(txt);
+    return !!((ef && /DUIT/i.test(ef[1])) || /EFFET\s+R.{0,2}DUIT/.test(txt));
+  }
   function sendKiki() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
@@ -703,7 +708,7 @@
     (txt.match(/inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/g) || []).forEach(function (x) { degats = Math.max(degats, parseInt(x.replace(/\D/g, ''), 10)); });
     var cible = /(?:attaqu\u00e9|lanc\u00e9|saisir) (?:une|un|la|le|l\u2019|l')?\s?(.+?) \(\d+\)/.exec(txt);
     var data = {
-      nom: tt[1], reussi: /Vous avez R\u00c9USSI \u00e0 utiliser/.test(txt), reduit: /EFFET R[E\u00c9]DUIT/.test(txt), degats: degats, cible: cible ? cible[1] : '',
+      nom: tt[1], reussi: /Vous avez R\u00c9USSI \u00e0 utiliser/.test(txt), reduit: kikiReduit(txt), degats: degats, cible: cible ? cible[1] : '',
       sig: (txt.match(/(?:jet de|Jet de R\u00e9sistance :?|Jet d'Attaque est de :?) ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|')
     };
     mhdPost(NOTIF_KIKI_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
