@@ -3744,7 +3744,36 @@
     featFetch(troll, function (l) { if (l) boxes.forEach(function (b) { b.cb.checked = l.indexOf(b.k) === -1; }); });
   }
 
-  function demarrer() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  // Page de connexion du jeu : seuls les trolls de la liste peuvent cliquer sur les boutons ; pour les autres, ils s'enfuient (easter egg).
+  // Lit uniquement le champ « Numero / nom » (jamais le mot de passe), n'envoie rien et ne journalise rien.
+  function addLoginGarde() {
+    var champ = document.getElementById('trollinput'), b1 = document.getElementById('loginbutton'), b2 = document.getElementById('viewbutton'), form = document.getElementById('loginform');
+    if (!champ || !b1 || !b2 || !form || document.body.id !== 'login') return;
+    var OK_NUM = ['95681', '101586', '101617', '101587', '113075', '113379', '113620'];
+    var OK_NOM = ['perco', 'taotd', 'free', 'killdray', 'telekom', 'flak flak', 'minitel'];
+    function permis() {
+      var v = champ.value.replace(/\s+/g, ' ').replace(/^ | $/g, '').toLowerCase();
+      return OK_NUM.indexOf(v) !== -1 || OK_NOM.indexOf(v) !== -1;
+    }
+    var btns = [b1, b2];
+    function fuir(b) {
+      if (permis()) return;
+      var w = b.offsetWidth || 150, h = b.offsetHeight || 30;
+      b.style.position = 'fixed'; b.style.zIndex = '9999'; b.style.transition = 'left .25s, top .25s';
+      b.style.left = Math.max(0, Math.random() * (window.innerWidth - w)) + 'px';
+      b.style.top = Math.max(0, Math.random() * (window.innerHeight - h)) + 'px';
+    }
+    function rendre() { if (permis()) btns.forEach(function (b) { b.style.position = ''; b.style.left = ''; b.style.top = ''; b.style.zIndex = ''; b.style.transition = ''; }); }
+    btns.forEach(function (b) {
+      ['mouseover', 'pointerdown', 'touchstart', 'focus'].forEach(function (ev) { b.addEventListener(ev, function (e) { if (!permis()) { e.preventDefault(); fuir(b); if (ev === 'focus') b.blur(); } }, true); });
+      b.addEventListener('click', function (e) { if (!permis()) { e.preventDefault(); e.stopImmediatePropagation(); fuir(b); } }, true);
+    });
+    form.addEventListener('keypress', function (e) { if (!permis() && (e.key === 'Enter' || e.keyCode === 13)) { e.preventDefault(); e.stopImmediatePropagation(); btns.forEach(fuir); } }, true);
+    form.addEventListener('submit', function (e) { if (!permis()) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+    champ.addEventListener('input', rendre);
+  }
+
+  function demarrer() { addLoginGarde(); try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
