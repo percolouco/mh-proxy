@@ -6,6 +6,9 @@ services:
     volumes:
       - /home/perco/projects/mh-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - /home/perco/projects/mh-proxy/custom:/usr/share/nginx/custom:ro
+      - /home/perco/projects/mh-proxy/deploy/nginx.main.conf:/etc/nginx/nginx.conf:ro
+      - /home/perco/projects/mh-proxy/mh_gate.js:/etc/nginx/mh_gate.js:ro
+      - /home/perco/projects/mh-proxy/mh_proxy.inc:/etc/nginx/mh_proxy.inc:ro
     networks:
       - proxy
     labels:
