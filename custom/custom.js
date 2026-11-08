@@ -1106,6 +1106,20 @@
     effet = effet.replace(/\s+/g, ' ').replace(/^[\s|]+|[\s|]+$/g, '');
     return { tresor_id: t[1], tresor_nom: t[2], cible: ci ? ci[1].trim() : '', effet: effet, tours: du ? parseInt(du[1], 10) : 0, immediat: im ? im[1] : '', pa: pa ? parseInt(pa[1], 10) : null };
   }
+  // Sortil\u00e8ge Faiblesse Passag\u00e8re : cible, dur\u00e9e, jet de r\u00e9sistance et effet th\u00e9orique -> groupe WhatsApp.
+  function parseFaiblesse(txt) {
+    var m = /(?:une|un|la|le|l\u2019|l')\s?(.+?) \((\d+)\) a \u00e9t\u00e9 influenc\u00e9e? par l'effet du sortil\u00e8ge ?: ?Faiblesse Passag\u00e8re ?, pour une dur\u00e9e de (\d+) tours?/.exec(txt);
+    if (!m) return null;
+    var apres = txt.slice(m.index + m[0].length);
+    var se = /Seuil de R\u00e9sistance de la cible ?: ?(\d+) ?%/.exec(apres), je = /Jet de R\u00e9sistance ?: ?(-?\d+)/.exec(apres);
+    var ph = /La cible (.{1,60}?) l.effet du sortil\u00e8ge/.exec(apres);
+    var eff = [], i = apres.search(/effet th\u00e9orique suivant/), bloc = i >= 0 ? apres.slice(i) : '', fin = bloc.search(/ Cette action/);
+    if (fin >= 0) bloc = bloc.slice(0, fin);
+    var re = /\b([A-Z]{2,5}) ?: ?(-?\d+)/g, x;
+    while ((x = re.exec(bloc))) eff.push({ k: x[1], v: parseInt(x[2], 10) });
+    return { type: 'faiblesse', cible: { nom: m[1], id: m[2] }, tours: parseInt(m[3], 10), seuil: se ? parseInt(se[1], 10) : null, jet: je ? parseInt(je[1], 10) : null,
+      plein: !!(ph && /pleinement/.test(ph[1])), reduit: /EFFET R[E\u00c9]DUIT|partiellement|\u00e0 moiti\u00e9/i.test(apres.slice(0, 400)), effets: eff, sig: (je ? je[1] : '') + '|' + m[2] };
+  }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
@@ -1127,6 +1141,13 @@
     if (tre && troll0) {
       mhdPost(NOTIF_TRESOR_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(tre)), function (ok) {
         mhdBadge(ok ? 'Tr\u00e9sor utilis\u00e9 signal\u00e9 sur WhatsApp' : 'Tr\u00e9sor : envoi WhatsApp impossible', !ok);
+      });
+      return;
+    }
+    var fai = parseFaiblesse(txt);
+    if (fai && troll0) {
+      mhdPost(NOTIF_LANCER_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(fai)), function (ok) {
+        mhdBadge(ok ? 'Faiblesse Passag\u00e8re signal\u00e9e sur WhatsApp' : 'Faiblesse : envoi WhatsApp impossible', !ok);
       });
       return;
     }
