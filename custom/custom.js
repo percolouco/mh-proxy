@@ -3658,7 +3658,8 @@
       ['vue_hypno', 'Monstres hypnotis\u00e9s : ligne violette + picto'],
       ['vue_chasse', 'Gestion de la chasse : cibles prioritaires et positions de chasse du groupe'],
       ['vue_trolls_etat', 'Colonnes PA / PV / DLA des trolls'],
-      ['vue_sacro', 'Clic sur les PV d\u2019un troll pour demander un sacro']
+      ['vue_sacro', 'Clic sur les PV d\u2019un troll pour demander un sacro'],
+      ['vue_maj_it', 'Mise \u00e0 jour de ta vue dans l\u2019IT quand tu ouvres Ma vue (partielle si filtres, rien de supprim\u00e9 hors du cadre affich\u00e9)']
     ]],
     ['Pages monstre et troll', [
       ['evenements_scriz', '\u00c9v\u00e9nements r\u00e9\u00e9crits au format SCIZ (jets, d\u00e9g\u00e2ts, r\u00e9sistance\u2026)'],
@@ -3778,7 +3779,73 @@
     champ.addEventListener('input', rendre);
   }
 
-  function demarrer() { addLoginGarde(); try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+
+  // Page Ma vue : met a jour la vue du troll dans la base de l'IT (mh_sp_vue2) avec ce que la page affiche (lecture seule, aucune action en jeu).
+  // Regles : jamais de suppression pour ce qui n'est pas affiche ; une categorie n'est envoyee que si son tableau est charge ;
+  // si un filtre est actif (MZ, filtres du proxy, " Mais n'affiche pas ") la categorie est en " ajout seulement " ; le serveur ne supprime
+  // que les lignes de la meme categorie situees dans le carre affiche (limite de vue) et absentes de la page.
+  var VUE_MAJ_URL = 'https://mh.percolouco.com/notif/vue_maj.php';
+  function sendVueMaj() {
+    if (!VUE_RE.test(location.pathname)) return;
+    var troll = vueTrollId();
+    if (!troll) return;
+    var TABLES = [['monstres', 'MONSTRES'], ['trolls', 'TROLLS'], ['tresors', 'TRESORS'], ['champignons', 'CHAMPIGNONS'], ['lieux', 'LIEUX']];
+    var num = function (td) { var t = td ? td.textContent.trim() : ''; return /^-?\d+$/.test(t) ? parseInt(t, 10) : null; };
+    var nomDe = function (tr, ref, cat) {
+      var a = tr.querySelector('td a.monstre');
+      if (a) return a.textContent.trim();
+      var td = ref.nextElementSibling;
+      while (td && /^(?:dist|actions|x|y|n)$/.test(td.className.split(' ')[0])) td = td.nextElementSibling;
+      if (!td) return '';
+      var sv = td.getAttribute('data-sort-value');
+      if (sv) return sv.trim();
+      var t = ''; td.childNodes.forEach(function (c) { if (c.nodeType === 3) t += c.nodeValue; });
+      return t.trim();
+    };
+    var essais = 0;
+    var tente = function () {
+      essais++;
+      var tables = TABLES.map(function (d) { return [d, document.getElementById('VUE_' + d[0])]; }).filter(function (x) { return x[1]; });
+      var pret = tables.length && tables.every(function (x) { var tb = x[1].tBodies[0]; return tb && (tb.querySelector('td.ref') || tb.querySelector('tr.footable-empty')); });
+      var txt = document.body.textContent.replace(/\s+/g, ' ');
+      var pos = /X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/.exec(txt);
+      var porte = /porte actuellement \u00e0\s*(\d+)\s*cases horizontalement et\s*(\d+)\s*verticalement/.exec(txt);
+      var lim = /limit\u00e9 \u00e0\s*(\d+)\s*cases horizontalement et\s*(\d+)\s*verticalement/.exec(txt);
+      if (!pret || !pos || !porte) { if (essais < 30) setTimeout(tente, 500); return; } // le jeu charge tableaux et encart apres la page ; page non reconnue : rien n'est envoye
+      var h = parseInt(porte[1], 10), v = parseInt(porte[2], 10);
+      if (lim) { h = Math.min(h, parseInt(lim[1], 10)); v = Math.min(v, parseInt(lim[2], 10)); }
+      var tout = false; // " Mais n'affiche pas " non vide, ou " avec filtre " coche : le contenu n'est pas la vue complete
+      document.querySelectorAll('li').forEach(function (li) {
+        var t = li.textContent.replace(/\s+/g, ' ').trim();
+        if (/^Mais n.affiche pas/.test(t) && t.replace(/^Mais n.affiche pas\s*:?/, '').trim() !== '') tout = true;
+      });
+      var avecFiltre = document.getElementById('MZVueExtFiltre');
+      if (avecFiltre && avecFiltre.checked) tout = true;
+      var cats = {}, complet = !tout && !lim;
+      tables.forEach(function (x) {
+        var d = x[0], t = x[1], rows = [], filtre = tout, bad = false;
+        t.tBodies[0].querySelectorAll('tr').forEach(function (tr) {
+          var ref = tr.querySelector('td.ref');
+          if (!ref) return;
+          if (window.getComputedStyle(tr).display === 'none') { filtre = true; return; } // ligne masquee par un filtre
+          var id = ref.textContent.trim(), px = num(tr.querySelector('td.x')), py = num(tr.querySelector('td.y')), pn = num(tr.querySelector('td.n'));
+          if (!/^\d+$/.test(id) || px === null || py === null || pn === null) { bad = true; return; }
+          rows.push([id, nomDe(tr, ref, d[1]), px, py, pn]);
+        });
+        var bloc = t.closest('.collapsible-wrap') || t.parentNode;
+        bloc.querySelectorAll('input[type=button]').forEach(function (b) { if (b.value === '\ud83d\uddd1' && b.style.display !== 'none') filtre = true; }); // filtre MZ actif
+        if (d[0] === 'tresors' && document.querySelector('.mhx-tfiltre.mhx-actif')) filtre = true; // filtres du proxy sur les tresors
+        if (bad) filtre = true;
+        if (filtre) complet = false;
+        cats[d[1]] = { r: rows, add: filtre };
+      });
+      var corps = 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify({ o: [+pos[1], +pos[2], +pos[3]], h: h, v: v, cats: cats, complet: complet }));
+      fetch(VUE_MAJ_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: corps }).catch(function () {});
+    };
+    setTimeout(tente, 2500); // le jeu charge les tableaux apres l'ouverture de la page
+  }
+
+  function demarrer() { addLoginGarde(); try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } feat('vue_maj_it') && sendVueMaj(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
