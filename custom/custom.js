@@ -987,6 +987,9 @@
     if (!d) return null;
     var pv = /ne perdra que (\d+) points? de vie/.exec(txt);
     var ef = /a donc un (EFFET [A-Z\u00c9]+)/.exec(txt);
+    var plein = !ef && /endure donc pleinement l.effet/.test(txt);
+    var jA = /jet d'Attaque est de ?: ?(\d+)/i.exec(txt), jE = /jet d'Esquive de votre adversaire est de ?: ?(\d+)/i.exec(txt);
+    var crit = /par un coup critique/i.test(txt) || !!(jA && jE && parseInt(jE[1], 10) > 0 && parseInt(jA[1], 10) >= 2 * parseInt(jE[1], 10));
     var px = /gagn\u00e9 un total de (\d+) PX/.exec(txt);
     var mon = { role: 'cible', nom: m[1], id: m[2], degats: parseInt(d[1], 10), mort: /Vous l'avez TU\u00c9/.test(txt) };
     var ip = /N\u00e9anmoins, (?:une|un|la|le|l\u2019|l')\s?(.+?) \((\d+)\) s.est interpos/.exec(txt);
@@ -997,7 +1000,7 @@
     if (px) mon.px = parseInt(px[1], 10);
     var jets = (txt.match(/(?:Votre jet d'Attaque|Le jet (?:d'Esquive|de r\u00e9flexe) de votre adversaire|Jet de R\u00e9sistance) (?:est de )?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt); // titre de l'\u00e9cran : \u00ab Sortil\u00e8ge : Vampirisme \u00bb
-    return { type: 'attaque', nom: tt ? tt[1] : '', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : '', sig: jets, monstres: [mon] };
+    return { type: 'attaque', nom: tt ? tt[1] : '', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : (plein ? 'plein' : ''), critique: crit, sig: jets, monstres: [mon] };
   }
   // Sortilège sans dégâts (Hypnotisme...) : cible influencée, effet et état de la cible.
   function parseSortEffet(txt) {
