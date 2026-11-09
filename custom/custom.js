@@ -1193,7 +1193,7 @@
   //  - avec l'intervalle de confiance jaune (second intervalle) : CDM pas encore viable, on affiche
   //    « ~65 PV » (valeur après la flèche) + ⚠.
   // Si le monstre a subi des frappes de notre groupe depuis sa dernière CdM : « PV actuels / PV max » estimés par le serveur (notif/pv_monstres.php), même code couleur.
-  var PV_KEY = 'mhx-pv-monstres-3';
+  var PV_KEY = 'mhx-pv-monstres-4';
   var PV_MONSTRES_URL = 'https://mh.percolouco.com/notif/pv_monstres.php';
   function pvCache() {
     try { return JSON.parse(localStorage.getItem(PV_KEY) || '{}') || {}; } catch (e) { return {}; }
@@ -1248,7 +1248,7 @@
       if (cv && cv.frappes > 0) { // frappes de notre groupe depuis la CdM : PV actuels estimés / PV max
         txt = fmtRM(cv);
         if (txt) {
-          tip = 'PV actuels estimés / PV max\n' + cv.deg + ' dégâts subis (' + cv.frappes + ' frappe' + (cv.frappes > 1 ? 's' : '') + ' de notre groupe depuis la CdM)'
+          tip = 'PV actuels estimés / PV max\n' + cv.deg + ' dégâts subis (' + cv.frappes + ' frappe' + (cv.frappes > 1 ? 's' : '') + ' de notre groupe' + (cv.src === 'mz' ? '' : ' depuis la CdM') + ')'
             + (cv.regen ? '\nRégénération comptée : +' + cv.regen + ' PV (tours rejoués)' : '')
             + (cv.mort ? '\nMort confirmée' : '') + (cv.raisons && cv.raisons.length ? '\n' + cv.raisons.join('\n') : '');
         }
@@ -1264,11 +1264,14 @@
       if (td.title !== tip) td.title = tip;
     };
     var askCalc = function () {
-      var ids = rows().map(function (r) { return r.id; }).filter(function (i) { return !calcAsked[i]; });
+      var ids = rows().filter(function (r) { return !calcAsked[r.id] && (cache[r.id] || !r.niv || (tries[r.id] || 0) >= 5); }).map(function (r) { return r.id; });
       if (!ids.length) return;
       ids.forEach(function (i) { calcAsked[i] = true; });
-      for (var k = 0; k < ids.length; k += 200) {
-        fetch(PV_MONSTRES_URL + '?ids=' + ids.slice(k, k + 200).join(','), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      for (var k = 0; k < ids.length; k += 150) {
+        var part = ids.slice(k, k + 150), mz = {};
+        part.forEach(function (i) { if (cache[i] && cache[i].mz) mz[i] = cache[i].mz; });
+        var body = new URLSearchParams(); body.set('ids', part.join(',')); body.set('mz', JSON.stringify(mz));
+        fetch(PV_MONSTRES_URL, { method: 'POST', body: body, referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
           if (!j) return;
           Object.keys(j).forEach(function (i) { calc[i] = j[i]; });
           rows().forEach(show);
@@ -1278,7 +1281,7 @@
     var readPv = function (id) {
       var pop = document.getElementById('popupCDM' + id);
       if (!pop) return null;
-      var res = null, bless = false, familier = false;
+      var res = null, bless = false, familier = false, regDes = null;
       pop.querySelectorAll('tr').forEach(function (tr) {
         var c = tr.cells;
         if (!c || c.length < 2) return;
@@ -1300,9 +1303,17 @@
             var m2 = /(\d+)\s*-\s*(\d+)/.exec(t) || /(\d+)/.exec(t);
             if (m2) res = { v: m2[2] ? m2[1] + '-' + m2[2] : m2[1], k: 'ok' };
           }
+          // valeurs brutes (estimation Mountyzilla) pour le calcul serveur des PV actuels
+          if (res && m) res.mz = { pv: [parseInt(m[1], 10), parseInt(m[2], 10)], avg: Math.round(parseFloat(String(m[3]).replace(',', '.'))) };
+        }
+        if (/^D\u00e9s de R\u00e9g\u00e9n\u00e9ration$/i.test(lab)) {
+          var rt = c[1].textContent.replace(/[\s\u00a0]+/g, ' ');
+          var rg = /(\d+)\s*-\s*(\d+)/.exec(rt) || /(\d+)/.exec(rt);
+          if (rg) regDes = [parseInt(rg[1], 10), parseInt(rg[2] || rg[1], 10)];
         }
       });
       if (familier) return { v: '', k: 'fam' };
+      if (res && res.mz && regDes) res.mz.reg = regDes;
       if (res && bless && res.k === 'ok') res.k = 'bless';
       return res;
     };
@@ -1323,11 +1334,12 @@
           var pv = readPv(r.id);
           if (document.getElementById('popupCDM' + r.id)) { r.niv.click(); done[r.id] = true; } // referme (le clic bascule le popup)
           if (pv) {
-            if (!cache[r.id] || cache[r.id].v !== pv.v || cache[r.id].k !== pv.k) { cache[r.id] = pv; changed = true; }
+            if (!cache[r.id] || cache[r.id].v !== pv.v || cache[r.id].k !== pv.k || JSON.stringify(cache[r.id].mz) !== JSON.stringify(pv.mz)) { cache[r.id] = pv; changed = true; }
             show(r);
           }
         }
         if (changed) { try { localStorage.setItem(PV_KEY, JSON.stringify(cache)); } catch (e) {} }
+        askCalc();
       } finally {
         document.body.classList.remove('mhx-pv-lecture');
         busy = false;
@@ -1336,7 +1348,6 @@
     var n = 0, timer = setInterval(function () {
       ensureCol();
       rows().forEach(show);
-      askCalc();
       harvest();
       var tb = document.querySelector('#VUE_monstres tbody');
       if (tb && !tb.mhxObserved) {
@@ -2291,7 +2302,7 @@
     var btn = el('button', 'mh_form_submit mhx-chasse-btn', 'Calculer les PV restants'); btn.type = 'button';
     btn.addEventListener('click', function () {
       btn.disabled = true; res.textContent = 'Calcul en cours...';
-      fetch(PV_MONSTRE_URL + '?id=' + id, { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      fetch(PV_MONSTRE_URL + '?id=' + id + (function () { try { var c = (JSON.parse(localStorage.getItem('mhx-pv-monstres-4') || '{}') || {})[id]; return c && c.mz ? '&mz=' + encodeURIComponent(JSON.stringify(c.mz)) : ''; } catch (e) { return ''; } })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         btn.disabled = false; res.textContent = '';
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
         var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
@@ -2299,7 +2310,8 @@
         var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' \ud83c\udfaf (cible de chasse)' : ''), '');
         d1.style.fontWeight = 'bold';
         if (j.cdm) ligne('CdM du ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ' : PV max ' + plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ', blessure \u00b1' + j.cdm.blessure + ' %' : '') + ' \u2192 PV de d\u00e9part ' + plage(j.cdm.depart), 'PV initiaux : ');
-        else ligne('aucune CdM connue', 'PV initiaux : ');
+        else if (j.mz) ligne('aucune CdM de notre groupe : estimation Mountyzilla, PV max ' + j.mz.pv[0] + ' \u00e0 ' + j.mz.pv[1] + (j.mz.avg ? ' (\u2192 ' + j.mz.avg + ')' : '') + ', monstre suppos\u00e9 sans blessure avant la 1re frappe', 'PV initiaux : ');
+        else ligne('aucune CdM connue (ouvrir la vue pour lire l\u2019estimation Mountyzilla)', 'PV initiaux : ');
         ligne(j.degats_cumules + ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ' publi\u00e9e' + (j.nb_frappes > 1 ? 's' : '') + (j.nb_frappes_total > j.nb_frappes ? ', ' + (j.nb_frappes_total - j.nb_frappes) + ' avant la CdM non compt\u00e9e' + (j.nb_frappes_total - j.nb_frappes > 1 ? 's' : '') : '') + ')', 'D\u00e9g\u00e2ts cumul\u00e9s : ');
         var rst = ligne(j.restants ? plage(j.restants) + (j.estimation ? ' (estimation)' : '') : 'inconnus', 'PV restants : ');
         if (j.estimation && j.raisons && j.raisons.length) { rst.title = j.raisons.join(' ; '); ligne(j.raisons.join(' ; '), '\u26a0\ufe0f '); res.lastChild.style.fontStyle = 'italic'; }
