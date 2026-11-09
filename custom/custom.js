@@ -1192,7 +1192,9 @@
   //  - avec une ligne « Blessure » en plus : CDM fiable, même affichage + ✓ ;
   //  - avec l'intervalle de confiance jaune (second intervalle) : CDM pas encore viable, on affiche
   //    « ~65 PV » (valeur après la flèche) + ⚠.
+  // Si le monstre a subi des frappes de notre groupe depuis sa dernière CdM : « PV actuels / PV max » estimés par le serveur (notif/pv_monstres.php), même code couleur.
   var PV_KEY = 'mhx-pv-monstres-3';
+  var PV_MONSTRES_URL = 'https://mh.percolouco.com/notif/pv_monstres.php';
   function pvCache() {
     try { return JSON.parse(localStorage.getItem(PV_KEY) || '{}') || {}; } catch (e) { return {}; }
   }
@@ -1227,16 +1229,51 @@
         ref.parentNode.insertBefore(td, ref);
       });
     };
+    // PV estimés par le serveur (CdM + frappes de notre groupe + régénération des tours rejoués) : utilisés seulement si le monstre a subi des frappes de notre groupe
+    var calc = {}, calcAsked = {};
+    var mid = function (a) { return a ? (a[1] === null ? a[0] : Math.round((a[0] + a[1]) / 2)) : null; };
+    var fmtRM = function (cv) {
+      var r = mid(cv.r), m = mid(cv.m);
+      if (r === null) return null;
+      var rt = (cv.r[1] === null ? '≥' : (cv.r[0] !== cv.r[1] ? '~' : '')) + r;
+      var mt = m === null ? '?' : (cv.m[1] === null ? m + '+' : String(m));
+      return rt + ' / ' + mt;
+    };
     var show = function (r) {
-      var c = cache[r.id];
+      var c = cache[r.id], cv = calc[r.id];
       var td = r.tr.querySelector('td.mhx-pvcol');
-      if (!c || !td) return;
-      if (c.k === 'fam') { td.textContent = ''; td.className = 'mhx-pvcol'; td.title = ''; return; } // familier : pas d'info
-      var txt = c.v + ' PV';
+      if (!td) return;
+      if (c && c.k === 'fam') { td.textContent = ''; td.className = 'mhx-pvcol'; td.title = ''; return; } // familier : pas d'info
+      var txt = null, tip = '';
+      if (cv && cv.frappes > 0) { // frappes de notre groupe depuis la CdM : PV actuels estimés / PV max
+        txt = fmtRM(cv);
+        if (txt) {
+          tip = 'PV actuels estimés / PV max\n' + cv.deg + ' dégâts subis (' + cv.frappes + ' frappe' + (cv.frappes > 1 ? 's' : '') + ' de notre groupe depuis la CdM)'
+            + (cv.regen ? '\nRégénération comptée : +' + cv.regen + ' PV (tours rejoués)' : '')
+            + (cv.mort ? '\nMort confirmée' : '') + (cv.raisons && cv.raisons.length ? '\n' + cv.raisons.join('\n') : '');
+        }
+      }
+      if (txt === null) {
+        if (!c) return;
+        txt = c.v + ' PV';
+        tip = c.k === 'bless' ? 'CDM fiable (blessure connue)'
+          : c.k === 'doute' ? 'Estimation : la CDM n’est pas encore fiable' : '';
+      }
       if (td.textContent !== txt) td.textContent = txt;
-      td.className = 'mhx-pvcol mhx-pv-' + c.k;
-      td.title = c.k === 'bless' ? 'CDM fiable (blessure connue)'
-        : c.k === 'doute' ? 'Estimation : la CDM n\u2019est pas encore fiable' : '';
+      td.className = 'mhx-pvcol mhx-pv-' + (c ? c.k : 'ok');
+      if (td.title !== tip) td.title = tip;
+    };
+    var askCalc = function () {
+      var ids = rows().map(function (r) { return r.id; }).filter(function (i) { return !calcAsked[i]; });
+      if (!ids.length) return;
+      ids.forEach(function (i) { calcAsked[i] = true; });
+      for (var k = 0; k < ids.length; k += 200) {
+        fetch(PV_MONSTRES_URL + '?ids=' + ids.slice(k, k + 200).join(','), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (!j) return;
+          Object.keys(j).forEach(function (i) { calc[i] = j[i]; });
+          rows().forEach(show);
+        }, function () { /* serveur injoignable : on garde l'affichage de la CdM */ });
+      }
     };
     var readPv = function (id) {
       var pop = document.getElementById('popupCDM' + id);
@@ -1299,6 +1336,7 @@
     var n = 0, timer = setInterval(function () {
       ensureCol();
       rows().forEach(show);
+      askCalc();
       harvest();
       var tb = document.querySelector('#VUE_monstres tbody');
       if (tb && !tb.mhxObserved) {
@@ -3669,7 +3707,7 @@
   // Une copie locale sert au d\u00e9marrage imm\u00e9diat des pages ; elle est rafra\u00eechie depuis le serveur \u00e0 chaque page (effet \u00e0 la page suivante).
   var FEATURES = [
     ['Page Ma vue', [
-      ['vue_pv', 'PV des monstres (colonne PV, lus dans la CDM)'],
+      ['vue_pv', 'PV des monstres (colonne PV : CDM, puis PV actuels / max apr\u00e8s frappes du groupe)'],
       ['vue_aggro', 'Colonne Aggro (derni\u00e8re cible frapp\u00e9e par les monstres)'],
       ['vue_gowaps_liste', 'Couleur des gowaps de la liste commune'],
       ['vue_gowaps_ramasseurs', 'Gowaps ramasseurs : recherche, ligne rose et filtre'],
