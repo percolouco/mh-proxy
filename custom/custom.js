@@ -1885,7 +1885,8 @@
   var GOWAP_PA_DLA = 6;
   function addOrdreDistance() {
     if (!/\/Play_a_Action\.php$/.test(location.pathname) || !/[?&]sub=ordres\b/.test(location.search)) return;
-    var re = /D\u00e9placement vers\s*X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/i;
+    // ordres avec une position cible : \u00ab D\u00e9placement vers X=.. | Y=.. | N=.. \u00bb et \u00ab Se secouer (s'\u00e9brouer) X=.. | Y=.. | N=.. \u00bb ; chaque estimation part de la position de l'ordre pr\u00e9c\u00e9dent
+    var re = /(?:D\u00e9placement vers|Se secouer|S.?\u00e9brouer)[^X\d]{0,40}X\s*=\s*(-?\d+)\s*\|\s*Y\s*=\s*(-?\d+)\s*\|\s*N\s*=\s*(-?\d+)/i;
     var fmt = function (c) { return (Math.round(c * 10) / 10).toString().replace('.', ','); };
     var maj = function () {
       var g = gowapPos();
