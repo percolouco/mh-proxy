@@ -1741,6 +1741,7 @@
     var head = el('div', null, 'mhx-tac-head');
     var h = el('h4', 'mhx-tac-titre', 'mhx-tac-titre'); h.textContent = '\ud83e\udd87 Analyse tactique'; head.appendChild(h);
     var b = el('button', 'mhx-tac-btn', 'mhx-tac-btn'); b.type = 'button'; b.textContent = '\u21bb Recalculer'; head.appendChild(b);
+    var w = el('button', 'mhx-tac-wa', 'mhx-tac-btn'); w.type = 'button'; w.textContent = '\ud83d\udcf2 WhatsApp'; w.style.display = 'none'; w.title = 'Envoyer le plan de finition dans le groupe WhatsApp'; head.insertBefore(w, b);
     box.appendChild(head);
     var grid = el('div', null, 'mhx-tac-grid');
     var left = el('div', null, 'mhx-tac-left');
@@ -2333,6 +2334,7 @@
 
   // Fiche d'un monstre : bouton \u00ab Suivi PV / finisseurs \u00bb (PV restants estim\u00e9s d'apr\u00e8s la derni\u00e8re CdM et les frappes publi\u00e9es,
   // possibilit\u00e9s de finition de TeleKom et Flak Flak). Calcul fait par le serveur MH (notif/pv_monstre.php) ; affichage uniquement.
+  var PLAN_WA_URL = 'https://mh.percolouco.com/notif/plan_whatsapp.php';
   var PV_MONSTRE_URL = 'https://mh.percolouco.com/notif/pv_monstre.php';
   var MONSTRE_PROCHAIN_TOUR = null; // ms : prochain tour estime du monstre (rempli par l'analyse tactique de la fiche)
   // Estimation Mountyzilla lue sur la page du monstre (lignes \u00ab Points de Vie 200-470 -> 335 PV \u00bb et \u00ab D\u00e9s de R\u00e9g\u00e9n\u00e9ration \u00bb), m\u00e9moris\u00e9e pour la colonne PV de Ma vue.
@@ -2442,10 +2444,23 @@
           if (ex.length) { var dx = carte('mhx-c-gris', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : '')); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (\d+) pas \u00e0 faire/, 'trop loin ($1 pas)'))); dx.appendChild(l); }); }
           (pf.notes || []).forEach(function (n) { li(carte('mhx-c-orange', '\u26a0\ufe0f'), n); });
           planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max'));
+          if (pf.plan) document.getElementById('mhx-tac-wa').style.display = '';
         }
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     };
     btn.addEventListener('click', calcule);
+    var wa = document.getElementById('mhx-tac-wa');
+    wa.addEventListener('click', function () {
+      if (!window.confirm('Envoyer le plan de finition dans le groupe WhatsApp ?')) return;
+      var tid = currentTrollId(), z = monsterMzRead() || monsterMzGet(id);
+      if (!tid) { wa.textContent = '\u26a0\ufe0f Troll inconnu'; return; }
+      wa.disabled = true; wa.textContent = 'Envoi...';
+      var body = 'troll=' + encodeURIComponent(tid) + '&id=' + encodeURIComponent(id) + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : '');
+      fetch(PLAN_WA_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (r) { wa.textContent = r && r.sent ? '\u2705 Envoy\u00e9' : '\u26a0\ufe0f ' + ((r && r.error) || '\u00e9chec'); setTimeout(function () { wa.disabled = false; wa.textContent = '\ud83d\udcf2 WhatsApp'; }, 4000); })
+        .catch(function () { wa.textContent = '\u26a0\ufe0f \u00e9chec'; setTimeout(function () { wa.disabled = false; wa.textContent = '\ud83d\udcf2 WhatsApp'; }, 4000); });
+    });
     box.appendChild(res);
     // calcul automatique à l'ouverture, dès que l'estimation Mountyzilla et le tour du monstre sont lus (6 s au plus)
     var att = 0;
