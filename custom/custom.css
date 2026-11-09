@@ -278,3 +278,5 @@ tr.mhx-cible > td { background: var(--mhx-cible) !important; background-image: n
 .mhx-c-gris .mhx-carte-t { color: #666; }
 .mhx-tac-note { font-size: 10px; color: #777; text-align: right; }
 #mhx-tactique .mhx-fin-res { margin-top: 0; line-height: 1.35; }
+.mhx-tac-head .mhx-tac-btn { margin-left: 6px; }
+.mhx-tac-head h4 { margin-right: auto !important; }
