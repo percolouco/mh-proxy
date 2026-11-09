@@ -2453,7 +2453,9 @@
     wa.addEventListener('click', function () {
       if (!window.confirm('Envoyer le plan de finition dans le groupe WhatsApp ?')) return;
       var tid = currentTrollId(), z = monsterMzRead() || monsterMzGet(id);
-      if (!tid) { wa.textContent = '\u26a0\ufe0f Troll inconnu'; return; }
+      if (!tid) { try { tid = localStorage.getItem('mhx-troll'); } catch (e) { tid = null; } }
+      if (!/^\d+$/.test(tid || '')) tid = null;
+      if (!tid) { wa.textContent = '\u26a0\ufe0f Troll inconnu : ouvre ta page Profil ou Ma vue puis reviens'; setTimeout(function () { wa.textContent = '\ud83d\udcf2 WhatsApp'; }, 6000); return; }
       wa.disabled = true; wa.textContent = 'Envoi...';
       var body = 'troll=' + encodeURIComponent(tid) + '&id=' + encodeURIComponent(id) + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : '');
       fetch(PLAN_WA_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, referrerPolicy: 'no-referrer' })
