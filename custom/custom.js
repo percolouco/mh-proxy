@@ -104,8 +104,8 @@
         body: 'dry=1&troll=' + (currentTrollId() || 0) + '&cible=' + encodeURIComponent(cible) + '&pv=' + m[1] + '&pvmax=' + m[2] + '&nom=' + encodeURIComponent(nom) })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) {
-          if (j && typeof j.need === 'number') nd.textContent = 'Need : ' + j.need + ' PV' + (j.regen_min > 0 && j.manque > 0 ? ' (manque ' + j.manque + ', r\u00e9g\u00e9n mini ' + j.regen_min + ')' : ''); // regen MINIMALE : seulement dans le Need
-          if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV' + (typeof j.regen_actuel === 'number' ? '\n(actuellement ~' + j.regen_actuel + ')' : ''); // regen moyenne, comme avant
+          if (j && typeof j.need === 'number') nd.textContent = 'Need : ' + j.need + ' PV' + (j.regen_min > 0 && j.manque > 0 ? ' (manque ' + j.manque + ', Reg mini ' + j.regen_min + ')' : ''); // regen MINIMALE : seulement dans le Need
+          if (j && typeof j.regen === 'number') rg.textContent = 'Reg : ~' + j.regen + ' PV' + (typeof j.regen_actuel === 'number' ? '\n(actuellement ~' + j.regen_actuel + ')' : ''); // regen moyenne, comme avant
           if (j && j.malus_pv) mp.textContent = j.malus_pv;
         }, function () {});
       var btns = document.createElement('div');
@@ -2397,46 +2397,28 @@
         (j.finisseurs || []).forEach(function (f) {
           var t = el('div', 'mhx-fin-troll'); t.appendChild(el('b', null, f.nom));
           var dp = f.dispo;
-          if (dp) { // couche 1 : disponibilite
+          if (dp) { // disponibilite du finisseur
             t.appendChild(document.createTextNode(' \u2014 ' + (dp.dla_passee ? '\u2705 ' + dp.maintenant + ' (DLA du ' + dp.dla_hm + ' pass\u00e9e)' : (dp.pa_restants > 0 ? '\u2705 ' + dp.maintenant : '\u23f3 ' + dp.maintenant) + ' ; prochaine DLA le ' + dp.dla_hm + ' (' + dp.pa_a_la_dla + ' PA)')));
             t.title = 'Profil lu le ' + dp.maj_profil + ' (UTC). Les PA et la DLA sont ceux de la derni\u00e8re mise \u00e0 jour de l\u2019IT.';
-          }
+          } else t.appendChild(document.createTextNode(' : profil introuvable'));
           res.appendChild(t);
-          var pct = function (x) { return x === null || x === undefined ? '?' : Math.round(x * 100) + ' %'; };
-          (f.plan || []).forEach(function (o) { // couche 2 : cout, reussite, toucher, degats nets, degats attendus
-            var txt = o.attaque + ' \u2014 ' + o.pa  + ' PA' + ' \u00b7 r\u00e9ussite ' + pct(o.reussite) + ' \u00b7 toucher ' + pct(o.toucher);
-            if (o.type === 'sort') txt += ' \u00b7 plein ' + pct(o.plein) + (o.sr !== null ? ' (SR ' + Math.round(o.sr) + ' %)' : '');
-            txt += ' \u00b7 d\u00e9g\u00e2ts nets ' + (o.deg_plein !== null ? o.deg_plein : '?') + (o.deg_reduit !== null ? ' (r\u00e9duit ' + o.deg_reduit + ')' : '');
-            txt += o.attendu !== null ? ' \u2192 ~' + o.attendu + ' attendus par tentative (' + o.par_pa + ' / PA)' : ' \u2192 non estimable (esquive du monstre inconnue)';
-            var d = ligne(txt, '\u2022 ');
-            d.title = (o.esq_src ? 'Esquive du monstre : ' + o.esq_src + '. ' : '') + (o.sr_src ? 'SR : ' + o.sr_src + '. ' : '') + (o.armure !== null && o.armure !== undefined ? 'Armure retir\u00e9e : ' + o.armure + '. ' : 'Armure du monstre inconnue (non retir\u00e9e). ') + 'Jet d\u2019attaque : ' + o.des_att + ' D6 ' + (o.bonus_att >= 0 ? '+' : '') + o.bonus_att + '.';
-          });
-          if (!(f.plan || []).length) f.options.forEach(function (o) { // sans plan : l'ancien affichage (historique des frappes)
-            ligne(o.attaque + ' \u2014 d\u00e9g\u00e2ts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' \u2192 finition : ' + o.peut_finir : ''), '\u2022 ');
-          });
         });
-        ligne('Esquive du monstre estim\u00e9e (jets observ\u00e9s ou d\u00e9s Mountyzilla), armure de la fiche Mountyzilla si lue. Estimations.', '').style.fontSize = '11px';
-        var pf = j.plan_finition; // couche 3 : plan de finition
+        var pf = j.plan_finition; // plan de finition : toutes les forces en presence, attaque preferee de chaque troll
         if (pf) {
           var h = el('div', 'mhx-fin-troll'); h.appendChild(el('b', null, '\ud83e\udded Plan de finition'));
-          h.appendChild(document.createTextNode(' \u2014 objectif : tuer avec au moins ' + Math.round(pf.seuil * 100) + ' % de chances' + (pf.cible ? ', cible = borne haute des PV (' + pf.cible.borne_haute + ' PV ; m\u00e9diane ' + pf.cible.mediane + ')' : '')));
+          h.appendChild(document.createTextNode(' \u2014 objectif : au moins ' + Math.round(pf.seuil * 100) + ' % de chances de tuer' + (pf.cible ? ', cible = borne haute des PV (' + pf.cible.borne_haute + ' PV ; m\u00e9diane ' + pf.cible.mediane + ')' : '')));
           res.appendChild(h);
           ligne(pf.fenetre_fin ? 'avant le prochain tour estim\u00e9 du monstre (' + pf.fenetre_fin + ')' : 'prochain tour du monstre inconnu : seulement maintenant et la prochaine DLA de chaque finisseur', 'Fen\u00eatre : ');
-          var dessine = function (titre, pl) {
-            if (!pl) return;
-            ligne(pl.pas.map(function (x) { return x.ordre + '. ' + x.nom + ' \u2014 ' + x.attaque + ' (' + x.quand + ', ' + x.pa + ' PA)'; }).join('  \u2192  ') + '  |  ' + pl.pa_total + ' PA, ' + pl.nb_trolls + ' troll' + (pl.nb_trolls > 1 ? 's' : '') + ', ' + Math.round(pl.p_kill * 1000) / 10 + ' % de tuer (m\u00e9diane : ' + Math.round(pl.p_kill_mediane * 1000) / 10 + ' %), d\u00e9g\u00e2ts attendus ' + pl.degats_attendus + ', fini ' + (pl.fin === 'maintenant' ? 'maintenant' : 'le ' + pl.fin), titre);
-          };
-          var pl = pf.plans || {};
-          if (pl.economique) {
-            dessine('\u2705 \u00c9conomique : ', pl.economique);
-            if (pl.au_plus_tot && JSON.stringify(pl.au_plus_tot.pas) !== JSON.stringify(pl.economique.pas)) dessine('\u23f1\ufe0f Au plus t\u00f4t : ', pl.au_plus_tot);
-            if (pl.maintenant && JSON.stringify(pl.maintenant.pas) !== JSON.stringify(pl.economique.pas)) dessine('\u26a1 Maintenant : ', pl.maintenant);
-          } else if (pl.meilleur_possible) {
-            dessine('\u26a0\ufe0f Meilleur plan possible : ', pl.meilleur_possible);
-            if (pf.manque_degats) ligne('il manque environ ' + pf.manque_degats + ' PV de d\u00e9g\u00e2ts pour atteindre la borne haute', '');
+          var pl = pf.plan;
+          if (pl) {
+            pl.pas.forEach(function (x) {
+              ligne(x.nom + ' \u2014 ' + x.attaque + ' (' + x.quand + ') \u2192 chance de tuer apr\u00e8s cette frappe : ' + Math.round(x.p_kill_apres * 1000) / 10 + ' %', x.ordre + '. ');
+            });
+            ligne(Math.round(pl.p_kill * 1000) / 10 + ' % de tuer (m\u00e9diane des PV : ' + Math.round(pl.p_kill_mediane * 1000) / 10 + ' %), d\u00e9g\u00e2ts attendus ' + pl.degats_attendus + (pl.etape_95 ? ' \u2014 95 % atteint \u00e0 la frappe ' + pl.etape_95 : ' \u2014 95 % non atteint' + (pf.manque_degats ? ' (il manque environ ' + pf.manque_degats + ' PV de d\u00e9g\u00e2ts)' : '')) + ', fini ' + (pl.fin === 'maintenant' ? 'maintenant' : 'le ' + pl.fin), '\u2192 ').style.fontWeight = 'bold';
           }
+          (pf.autres_attaques || []).forEach(function (n) { ligne(n, 'Autre attaque utilis\u00e9e : '); });
           (pf.notes || []).forEach(function (n) { ligne(n, '\u26a0\ufe0f ').style.fontStyle = 'italic'; });
-          ligne('Simulation (3000 tirages) : jets d\u2019attaque / esquive, dommages critiques, seuil de r\u00e9sistance, armure. Hypnotisme non encore pris en compte. Estimations.', '').style.fontSize = '11px';
+          ligne('Simulation (3000 tirages) : jets d\u2019attaque / esquive, critiques, seuil de r\u00e9sistance, armure. Hypnotisme pas encore pris en compte. Estimations.', '').style.fontSize = '11px';
         }
         ligne('D\u00e9g\u00e2ts min/moy/max d\u00e9duits des frappes pass\u00e9es de chaque finisseur (sur d\u2019autres monstres : l\u2019armure du monstre n\u2019est pas prise en compte). Estimations.', '').style.fontSize = '11px';
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
