@@ -2763,6 +2763,13 @@
           var sp = document.createElement('span'); sp.className = 'mhx-compo';
           sp.style.cssText = 'background:' + col + ';color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px;font-size:11px';
           sp.textContent = d.s === 'rouge' ? 'non disponible' : (d.s === 'bleu' ? 'stock : ' + d.qualite + ' ' : '') + '\ud83d\udccd ' + d.lieux.join(', ');
+          if (d.res && d.res.length) { // composant en GT reserve au nom du troll : petit cadenas discret a cote du lieu
+            var rs = document.createElement('span'); rs.className = 'mhx-compo-res';
+            rs.style.cssText = 'font-size:9px;opacity:.7;margin-left:4px;cursor:help';
+            rs.textContent = '\ud83d\udd12';
+            rs.title = 'R\u00e9serv\u00e9 \u00e0 ton nom en GT : ' + d.res.map(function (x) { return x.q + ' (' + x.l + ')'; }).join(' ; ');
+            sp.appendChild(rs);
+          }
           li.appendChild(sp);
         });
       });
