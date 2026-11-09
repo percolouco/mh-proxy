@@ -104,8 +104,8 @@
         body: 'dry=1&troll=' + (currentTrollId() || 0) + '&cible=' + encodeURIComponent(cible) + '&pv=' + m[1] + '&pvmax=' + m[2] + '&nom=' + encodeURIComponent(nom) })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) {
-          if (j && typeof j.need === 'number') nd.textContent = 'Need : ' + j.need + ' PV' + (j.regen > 0 && j.manque > 0 ? ' (manque ' + j.manque + ', r\u00e9g\u00e9n mini ' + j.regen + ')' : '');
-          if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9g\u00e9n mini : ' + j.regen + ' PV' + (typeof j.regen_actuel === 'number' && j.regen_actuel !== j.regen ? '\n(actuellement ' + j.regen_actuel + ')' : '');
+          if (j && typeof j.need === 'number') nd.textContent = 'Need : ' + j.need + ' PV' + (j.regen_min > 0 && j.manque > 0 ? ' (manque ' + j.manque + ', r\u00e9g\u00e9n mini ' + j.regen_min + ')' : ''); // regen MINIMALE : seulement dans le Need
+          if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV' + (typeof j.regen_actuel === 'number' ? '\n(actuellement ~' + j.regen_actuel + ')' : ''); // regen moyenne, comme avant
           if (j && j.malus_pv) mp.textContent = j.malus_pv;
         }, function () {});
       var btns = document.createElement('div');
