@@ -1732,22 +1732,26 @@
     return { min: lo, max: hi, avg: m[3] ? f(m[3]) : (lo + hi) / 2 };
   }
 
-  // Cadre unique « Analyse tactique » : colonne « Tour du monstre » + colonne « Infos g\u00e9n\u00e9rales » (PV) + plan de finition pleine largeur
+  // Cadre unique « Analyse tactique » (carte sombre) : en-tête + bouton, colonne gauche (infos monstre + chronomètre), colonne droite (plan de finition)
   function tacBox() {
     var box = document.getElementById('mhx-tactique');
     if (box) return box;
     var el = function (tag, id, cls) { var e = document.createElement(tag); if (id) e.id = id; if (cls) e.className = cls; return e; };
     box = el('div', 'mhx-tactique', 'mhx-monstre');
-    var h = el('h4'); h.textContent = '\ud83e\udd87 Analyse tactique'; box.appendChild(h);
+    var head = el('div', null, 'mhx-tac-head');
+    var h = el('h4', 'mhx-tac-titre', 'mhx-tac-titre'); h.textContent = '🦇 Analyse tactique'; head.appendChild(h);
+    var b = el('button', 'mhx-tac-btn', 'mhx-tac-btn'); b.type = 'button'; b.textContent = '↻ Recalculer'; head.appendChild(b);
+    box.appendChild(head);
     var grid = el('div', null, 'mhx-tac-grid');
-    var c1 = el('div', 'mhx-tac-tour', 'mhx-tac-col'), c2 = el('div', 'mhx-tac-infos', 'mhx-tac-col');
-    grid.appendChild(c2); grid.appendChild(c1); box.appendChild(grid);
-    box.appendChild(el('div', 'mhx-tac-plan', 'mhx-tac-plan'));
+    var left = el('div', null, 'mhx-tac-left');
+    left.appendChild(el('div', 'mhx-tac-infos', 'mhx-tac-bloc')); left.appendChild(el('div', 'mhx-tac-tour', 'mhx-tac-bloc'));
+    grid.appendChild(left); grid.appendChild(el('div', 'mhx-tac-plan', 'mhx-tac-right')); box.appendChild(grid);
     var form = document.querySelector('form[action=""]');
     if (form && form.parentNode) form.parentNode.insertBefore(box, form);
     else if (document.body) document.body.insertBefore(box, document.body.firstChild);
     return box;
   }
+  function tacRow(label, val, cls) { var d = document.createElement('div'); d.className = 'mhx-tac-row'; var a = document.createElement('span'); a.className = 'mhx-tac-lab'; a.textContent = label; var b = document.createElement('span'); b.className = 'mhx-tac-val' + (cls ? ' ' + cls : ''); b.textContent = val; d.appendChild(a); d.appendChild(b); return d; }
 
   function addMonsterAnalysis() {
     if (!/\/MonsterView\.php$/.test(location.pathname)) return;
@@ -1771,11 +1775,12 @@
       if (!s) return;
       MONSTRE_PROCHAIN_TOUR = s.minMs; // pour le plan de finition (fin de la fenetre : le monstre peut rejouer a partir de la)
       tacBox();
-      document.getElementById('mhx-tac-tour').innerHTML = '<div class="mhx-tac-t">Tour du monstre</div>' +
-        '<b>Dur\u00e9e du tour estim\u00e9e :</b> ' + s.dla + '<br>' +
-        '<b>Dernier tour commenc\u00e9 le :</b> ' + s.debut + '<br>' +
-        '<b>Peut rejouer \u00e0 partir du :</b> ' + s.min + '<br>' +
-        '<b>Son prochain cumul est le :</b> ' + s.max;
+      var tr = document.getElementById('mhx-tac-tour'); tr.textContent = '';
+      var tt = document.createElement('div'); tt.className = 'mhx-tac-t mhx-tac-t-bleu'; tt.textContent = 'Chronomètre'; tr.appendChild(tt);
+      tr.appendChild(tacRow('Durée' + (/CDM\)/.test(s.dla) ? ' (CDM)' : ' (estim.)'), s.dla.replace(/ \(.*$/, '')));
+      tr.appendChild(tacRow('Début', s.debut.replace(' à', '')));
+      tr.appendChild(tacRow('Rejoue', s.min.replace(' à', ''), 'mhx-tac-rouge'));
+      tr.appendChild(tacRow('Cumul', s.max.replace(' à', '')));
     })();
   }
 
@@ -2391,62 +2396,58 @@
     var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
     tacBox();
     var box = el('div'); box.id = 'mhx-finisseurs';
-    box.appendChild(el('div', 'mhx-tac-t', 'Infos g\u00e9n\u00e9rales'));
     var res = el('div', 'mhx-fin-res');
     var planBox = document.getElementById('mhx-tac-plan');
-    var btn = el('button', 'mh_form_submit mhx-chasse-btn mhx-tac-recalc', '\u21bb Recalculer'); btn.type = 'button';
+    var btn = document.getElementById('mhx-tac-btn');
     var calcule = function () {
       btn.disabled = true; res.textContent = 'Calcul en cours...'; planBox.textContent = '';
       fetch(PV_MONSTRE_URL + '?id=' + id + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (function () { var z = monsterMzRead() || monsterMzGet(id); if (z) monsterMzStore(id, z); return z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : ''; })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         btn.disabled = false; res.textContent = ''; planBox.textContent = '';
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
-        var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
-        var plage = function (a) { return a ? (a[1] === null ? 'au moins ' + a[0] : a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]) : '?'; };
-        var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' \ud83c\udfaf (cible)' : ''), '');
-        d1.style.fontWeight = 'bold';
-        if (j.cdm) ligne(plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ' (\u00b1' + j.cdm.blessure + ' %)' : '') + ' \u2192 d\u00e9part ' + plage(j.cdm.depart) + ' (CdM ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')', 'PV max : ');
-        else if (j.mz) ligne(j.mz.pv[0] + '-' + j.mz.pv[1] + (j.mz.avg ? ' (\u2192 ' + j.mz.avg + ')' : '') + ' (Mountyzilla), suppos\u00e9 intact', 'PV max : ');
-        else ligne('inconnus (ni CdM ni Mountyzilla)', 'PV max : ');
-        ligne(j.degats_cumules + ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + (j.nb_frappes_total > j.nb_frappes ? ', ' + (j.nb_frappes_total - j.nb_frappes) + ' avant CdM' : '') + ')', 'D\u00e9g\u00e2ts : ');
-        var rst = ligne(j.restants ? plage(j.restants) + (j.estimation ? ' (estim.)' : '') : 'inconnus', 'PV restants : ');
+        var plage = function (a) { return a ? (a[1] === null ? '≥ ' + a[0] : a[0] === a[1] ? String(a[0]) : a[0] + '-' + a[1]) : '?'; };
+        var titre = document.getElementById('mhx-tac-titre'); titre.textContent = '🦇 Analyse tactique' + (j.nom ? ' — ' + j.nom : '') + (j.cible_chasse ? ' 🎯' : '');
+        var tt = el('div', 'mhx-tac-t mhx-tac-t-orange', 'Infos monstre'); res.appendChild(tt);
+        var row = function (l, v, c) { var r = tacRow(l, v, c); res.appendChild(r); return r; };
+        if (j.cdm) row('PV max', plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ' (±' + j.cdm.blessure + ' %)' : '') + ' CdM ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2'));
+        else if (j.mz) row('PV max', j.mz.pv[0] + '-' + j.mz.pv[1] + (j.mz.avg ? ' (→ ' + j.mz.avg + ')' : '') + ' MZ');
+        else row('PV max', 'inconnus');
+        var rst = row('PV restants', j.restants ? plage(j.restants) + (j.estimation ? ' (estim.)' : '') : 'inconnus');
         if (j.estimation && j.raisons && j.raisons.length) rst.title = j.raisons.join(' ; ');
-        var icone = { 'morte': '\u2620\ufe0f', 'finissable': '\u2705', 'bient\u00f4t finissable': '\ud83d\udfe1', 'encore r\u00e9sistante': '\ud83d\udee1\ufe0f' }[j.etat] || '';
-        ligne(icone + ' ' + j.etat, '\u00c9tat : ');
-        if (j.esquive) ligne(j.esquive.valeur + ' (' + j.esquive.source + ')', 'Esquive du monstre : ');
+        row('Dégâts subis', j.degats_cumules + (j.nb_frappes ? ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ')' : '') + (j.nb_frappes_total > j.nb_frappes ? ' +' + (j.nb_frappes_total - j.nb_frappes) + ' avant CdM' : ''));
+        var icone = { 'morte': '☠️', 'finissable': '✅', 'bientôt finissable': '🟡', 'encore résistante': '🛡️' }[j.etat] || '';
+        row('État', icone + ' ' + j.etat);
+        if (j.esquive) row('Esquive', String(j.esquive.valeur)).title = j.esquive.source;
         var pf = j.plan_finition; // plan de finition : court, par ordre de frappe
         if (pf) {
           var pc = function (x) { return Math.round(x * 100) + ' %'; };
-          var sec = function (titre, couleur) {
-            var d = el('div', 'mhx-fin-sec'); d.style.cssText = 'margin:8px 0 4px;padding:3px 8px;border-left:4px solid ' + (couleur || '#8a6d3b') + ';background:rgba(255,255,255,.35)';
-            var t = el('div', null, titre); t.style.cssText = 'font-weight:bold;font-size:12px;margin-bottom:2px'; d.appendChild(t); planBox.appendChild(d); return d;
-          };
-          var li = function (d, txt, style) { var x = el('div', null, txt); x.style.cssText = 'margin:1px 0;' + (style || ''); d.appendChild(x); return x; };
-          var dessine = function (titre, couleur, pl) {
-            var d = sec(titre, couleur);
+          planBox.appendChild(el('div', 'mhx-tac-t mhx-tac-t-vert', '🧭 Plan de finition'));
+          var carte = function (cls, titre) { var d = el('div', 'mhx-carte ' + cls); d.appendChild(el('div', 'mhx-carte-t', titre)); planBox.appendChild(d); return d; };
+          var li = function (d, txt, cls) { var x = el('div', 'mhx-carte-l' + (cls ? ' ' + cls : ''), txt); d.appendChild(x); return x; };
+          var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Accélération du Métabolisme \(≈ (\d+) PV sacrifiés\)/, 'AM (≈ $1 PV)'); };
+          var dessine = function (cls, titre, pl) {
+            var d = carte(cls, titre);
             pl.sequence.forEach(function (x) {
-              var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
-              var acts = x.actions.map(function (a) { return court(a.attaque) + (a.nb > 1 ? ' \u00d7' + a.nb : ''); }).join(' + ');
-              var dep = x.deplacement ? x.deplacement.replace(/^([\d.,]+) PA de d\u00e9placement.*$/, '+ DE $1PA') : '';
-              li(d, x.ordre + '. ' + x.nom + ' \u2014 ' + acts + (dep ? ' (' + dep + ')' : ''), x.type === 'hypno' ? 'color:#5b2a86' : '');
+              var acts = x.actions.map(function (a) { return court(a.attaque) + (a.nb > 1 ? ' ×' + a.nb : ''); }).join(' + ');
+              var dep = x.deplacement ? x.deplacement.replace(/^([\d.,]+) PA de déplacement.*$/, '+ DE $1PA') : '';
+              var l = el('div', 'mhx-carte-l' + (x.type === 'hypno' ? ' mhx-hypno' : '')); l.appendChild(document.createTextNode(x.ordre + '. ')); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' — ' + acts)); if (dep) l.appendChild(el('span', 'mhx-dep', ' (' + dep + ')')); d.appendChild(l);
             });
-            li(d, '\u2192 ' + pc(pl.p_kill) + ' de chances de tuer (d\u00e9g\u00e2ts attendus ' + pl.degats_attendus + ')', 'font-weight:bold');
+            var f = el('div', 'mhx-carte-pied'); f.appendChild(document.createTextNode('🎯 ')); f.appendChild(el('b', null, pc(pl.p_kill) + ' de chances')); f.appendChild(el('span', 'mhx-dep', ' (' + pl.degats_attendus + ' dgts attendus)')); d.appendChild(f);
           };
-          var hdr = el('div', 'mhx-fin-troll'); hdr.appendChild(el('b', null, '\ud83e\udded PLAN DE FINITION')); hdr.style.cssText = 'margin-top:10px;font-size:13px'; planBox.appendChild(hdr);
           var pl = pf.plan;
           if (pl) {
-            if (pf.plan_maintenant) dessine('\u25b6\ufe0f MAINTENANT', '#990000', pf.plan_maintenant);
-            dessine(pl.t === 'maintenant' ? '\u25b6\ufe0f MAINTENANT' : '\u23f3 MEILLEUR MOMENT : le ' + pl.t, pf.faisable ? '#2a7a3b' : '#b36b00', pl);
+            if (pf.plan_maintenant) dessine('mhx-c-rouge', '▶️ Maintenant', pf.plan_maintenant);
+            dessine(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? '▶️ Maintenant' : '⏳ Meilleur moment : ' + pl.t.replace(' ', ' à '), pl);
           }
           var ex = pf.exclus || [];
-          if (ex.length) li(sec('\ud83d\udeab NON UTILIS\u00c9S', '#777'), ex.map(function (x) { return x.nom + ' (' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '') + ')'; }).join(' ; '));
-          (pf.notes || []).forEach(function (n) { li(sec('\u26a0\ufe0f', '#b36b00'), n, 'font-style:italic'); });
-          var fn = ligne('Simulation sur le maximum de PV du monstre.', ''); fn.style.fontSize = '11px'; planBox.appendChild(fn);
+          if (ex.length) { var dx = carte('mhx-c-gris', '🚫 Non utilisé' + (ex.length > 1 ? 's' : '')); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun créneau.*$/, '').replace(/^trop loin : encore (\d+) pas à faire/, 'trop loin ($1 pas)'))); dx.appendChild(l); }); }
+          (pf.notes || []).forEach(function (n) { li(carte('mhx-c-orange', '⚠️'), n); });
+          planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max'));
         }
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     };
     btn.addEventListener('click', calcule);
-    box.appendChild(btn); box.appendChild(res);
-    // calcul automatique \u00e0 l'ouverture, d\u00e8s que l'estimation Mountyzilla et le tour du monstre sont lus (6 s au plus)
+    box.appendChild(res);
+    // calcul automatique à l'ouverture, dès que l'estimation Mountyzilla et le tour du monstre sont lus (6 s au plus)
     var att = 0;
     (function pret() { if ((!monsterMzRead() || !MONSTRE_PROCHAIN_TOUR) && ++att < 10) return setTimeout(pret, 600); calcule(); })();
     document.getElementById('mhx-tac-infos').appendChild(box);
