@@ -233,3 +233,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.99.1 | 2026-11-09 | Analyse tactique : retour à la charte graphique du jeu (parchemin, bordure brune, Trebuchet 12 px, titres bordeaux) en gardant la mise en page deux colonnes + cartes ; caractères spéciaux corrigés (script entièrement en \\uXXXX, plus d'accents cassés)). |
 | 0.99.2 | 2026-11-09 | Analyse tactique : bloc « Chronomètre » renommé « Infos DLA monstre ». |
 | 0.99.3 | 2026-11-09 | Analyse tactique : bouton « 📲 WhatsApp » (avec confirmation) qui envoie le plan de finition dans le groupe ; le message est recalculé côté serveur (notif/plan_whatsapp.php). |
+| 0.99.4 | 2026-11-09 | Bouton WhatsApp du plan : numéro du troll lu aussi dans la mémoire du navigateur (la fiche d'un monstre ne le contient pas toujours). |
