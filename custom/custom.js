@@ -2295,14 +2295,28 @@
   var PV_MONSTRE_URL = 'https://mh.percolouco.com/notif/pv_monstre.php';
   // Estimation Mountyzilla lue sur la page du monstre (lignes \u00ab Points de Vie 200-470 -> 335 PV \u00bb et \u00ab D\u00e9s de R\u00e9g\u00e9n\u00e9ration \u00bb), m\u00e9moris\u00e9e pour la colonne PV de Ma vue.
   var PV_MZ_KEY = 'mhx-pv-mz-1';
+  // texte de la cellule qui suit le libelle ; l'intervalle jaune a 80 % (span) est place AVANT la valeur dans la cellule : on le retire
+  function monsterMzRow(re) {
+    var tds = document.querySelectorAll('td');
+    for (var i = 0; i < tds.length; i++) {
+      var td = tds[i];
+      if (td.children.length > 3 || !td.nextElementSibling || !re.test(td.textContent.replace(/[\s\u00a0]+/g, ' ').trim())) continue;
+      var c = td.nextElementSibling.cloneNode(true);
+      c.querySelectorAll('span').forEach(function (x) { x.remove(); });
+      return c.textContent.replace(/[\s\u00a0]+/g, ' ').trim();
+    }
+    return null;
+  }
   function monsterMzRead() {
-    var txt = (document.body ? document.body.textContent : '').normalize('NFC').replace(/[\s\u00a0]+/g, ' ');
-    var m = /Points de Vie(?!\s*restants)[^\d]{0,40}?(\d+)\s*-\s*(\d+)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(txt);
+    var pvTxt = monsterMzRow(/^Points de Vie$/);
+    if (!pvTxt) return null;
+    var m = /(\d+)\s*-\s*(\d+)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(pvTxt);
     if (!m) return null;
     var lo = parseInt(m[1], 10), hi = parseInt(m[2], 10);
     if (!(hi >= lo)) return null;
     var out = { pv: [lo, hi], avg: m[3] ? Math.round(parseFloat(m[3].replace(',', '.'))) : Math.round((lo + hi) / 2) };
-    var r = /(?:D\u00e9s de )?R\u00e9g\u00e9n\u00e9ration[^\d]{0,40}?(\d+)(?:\s*-\s*(\d+))?(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(txt);
+    var rgTxt = monsterMzRow(/^(?:D\u00e9s de )?R\u00e9g\u00e9n\u00e9ration$/);
+    var r = rgTxt && /(\d+)(?:\s*-\s*(\d+))?(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(rgTxt);
     if (r) { out.reg = [parseInt(r[1], 10), parseInt(r[2] || r[1], 10)]; if (r[3]) out.regAvg = parseFloat(r[3].replace(',', '.')); }
     return out;
   }
