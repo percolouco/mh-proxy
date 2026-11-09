@@ -1254,19 +1254,19 @@
       if (!td) return;
       if (c && c.k === 'fam') { td.textContent = ''; td.className = 'mhx-pvcol'; td.title = ''; return; } // familier : pas d'info
       var txt = null, tip = '';
-      if (cv && cv.frappes > 0) { // frappes de notre groupe depuis la CdM : PV actuels estimés / PV max
+      if (cv && cv.frappes > 0) { // frappes de notre groupe depuis la CdM : PV actuels estim\u00e9s / PV max
         txt = fmtRM(cv);
         if (txt) {
-          tip = 'PV actuels estimés / PV max\n' + cv.deg + ' dégâts subis (' + cv.frappes + ' frappe' + (cv.frappes > 1 ? 's' : '') + ' de notre groupe' + (cv.src === 'mz' ? '' : ' depuis la CdM') + ')'
-            + (cv.regen ? '\nRégénération comptée : +' + cv.regen + ' PV (tours rejoués)' : '')
-            + (cv.mort ? '\nMort confirmée' : '') + (cv.raisons && cv.raisons.length ? '\n' + cv.raisons.join('\n') : '');
+          tip = 'PV actuels estim\u00e9s / PV max\n' + cv.deg + ' d\u00e9g\u00e2ts subis (' + cv.frappes + ' frappe' + (cv.frappes > 1 ? 's' : '') + ' de notre groupe' + (cv.src === 'mz' ? '' : ' depuis la CdM') + ')'
+            + (cv.regen ? '\nR\u00e9g\u00e9n\u00e9ration compt\u00e9e : +' + cv.regen + ' PV (tours rejou\u00e9s)' : '')
+            + (cv.mort ? '\nMort confirm\u00e9e' : '') + (cv.raisons && cv.raisons.length ? '\n' + cv.raisons.join('\n') : '');
         }
       }
       if (txt === null) {
         if (!c) return;
         txt = c.v + ' PV';
         tip = c.k === 'bless' ? 'CDM fiable (blessure connue)'
-          : c.k === 'doute' ? 'Estimation : la CDM n’est pas encore fiable' : '';
+          : c.k === 'doute' ? 'Estimation : la CDM n\u2019est pas encore fiable' : '';
       }
       if (td.textContent !== txt) td.textContent = txt;
       td.className = 'mhx-pvcol mhx-pv-' + (c ? c.k : 'ok');
@@ -1739,8 +1739,8 @@
     var el = function (tag, id, cls) { var e = document.createElement(tag); if (id) e.id = id; if (cls) e.className = cls; return e; };
     box = el('div', 'mhx-tactique', 'mhx-monstre');
     var head = el('div', null, 'mhx-tac-head');
-    var h = el('h4', 'mhx-tac-titre', 'mhx-tac-titre'); h.textContent = '🦇 Analyse tactique'; head.appendChild(h);
-    var b = el('button', 'mhx-tac-btn', 'mhx-tac-btn'); b.type = 'button'; b.textContent = '↻ Recalculer'; head.appendChild(b);
+    var h = el('h4', 'mhx-tac-titre', 'mhx-tac-titre'); h.textContent = '\ud83e\udd87 Analyse tactique'; head.appendChild(h);
+    var b = el('button', 'mhx-tac-btn', 'mhx-tac-btn'); b.type = 'button'; b.textContent = '\u21bb Recalculer'; head.appendChild(b);
     box.appendChild(head);
     var grid = el('div', null, 'mhx-tac-grid');
     var left = el('div', null, 'mhx-tac-left');
@@ -1776,11 +1776,11 @@
       MONSTRE_PROCHAIN_TOUR = s.minMs; // pour le plan de finition (fin de la fenetre : le monstre peut rejouer a partir de la)
       tacBox();
       var tr = document.getElementById('mhx-tac-tour'); tr.textContent = '';
-      var tt = document.createElement('div'); tt.className = 'mhx-tac-t mhx-tac-t-bleu'; tt.textContent = 'Chronomètre'; tr.appendChild(tt);
-      tr.appendChild(tacRow('Durée' + (/CDM\)/.test(s.dla) ? ' (CDM)' : ' (estim.)'), s.dla.replace(/ \(.*$/, '')));
-      tr.appendChild(tacRow('Début', s.debut.replace(' à', '')));
-      tr.appendChild(tacRow('Rejoue', s.min.replace(' à', ''), 'mhx-tac-rouge'));
-      tr.appendChild(tacRow('Cumul', s.max.replace(' à', '')));
+      var tt = document.createElement('div'); tt.className = 'mhx-tac-t mhx-tac-t-bleu'; tt.textContent = 'Chronom\u00e8tre'; tr.appendChild(tt);
+      tr.appendChild(tacRow('Dur\u00e9e' + (/CDM\)/.test(s.dla) ? ' (CDM)' : ' (estim.)'), s.dla.replace(/ \(.*$/, '')));
+      tr.appendChild(tacRow('D\u00e9but', s.debut.replace(' \u00e0', '')));
+      tr.appendChild(tacRow('Rejoue', s.min.replace(' \u00e0', ''), 'mhx-tac-rouge'));
+      tr.appendChild(tacRow('Cumul', s.max.replace(' \u00e0', '')));
     })();
   }
 
@@ -2404,43 +2404,43 @@
       fetch(PV_MONSTRE_URL + '?id=' + id + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (function () { var z = monsterMzRead() || monsterMzGet(id); if (z) monsterMzStore(id, z); return z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : ''; })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         btn.disabled = false; res.textContent = ''; planBox.textContent = '';
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
-        var plage = function (a) { return a ? (a[1] === null ? '≥ ' + a[0] : a[0] === a[1] ? String(a[0]) : a[0] + '-' + a[1]) : '?'; };
-        var titre = document.getElementById('mhx-tac-titre'); titre.textContent = '🦇 Analyse tactique' + (j.nom ? ' — ' + j.nom : '') + (j.cible_chasse ? ' 🎯' : '');
+        var plage = function (a) { return a ? (a[1] === null ? '\u2265 ' + a[0] : a[0] === a[1] ? String(a[0]) : a[0] + '-' + a[1]) : '?'; };
+        var titre = document.getElementById('mhx-tac-titre'); titre.textContent = '\ud83e\udd87 Analyse tactique' + (j.nom ? ' \u2014 ' + j.nom : '') + (j.cible_chasse ? ' \ud83c\udfaf' : '');
         var tt = el('div', 'mhx-tac-t mhx-tac-t-orange', 'Infos monstre'); res.appendChild(tt);
         var row = function (l, v, c) { var r = tacRow(l, v, c); res.appendChild(r); return r; };
-        if (j.cdm) row('PV max', plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ' (±' + j.cdm.blessure + ' %)' : '') + ' CdM ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2'));
-        else if (j.mz) row('PV max', j.mz.pv[0] + '-' + j.mz.pv[1] + (j.mz.avg ? ' (→ ' + j.mz.avg + ')' : '') + ' MZ');
+        if (j.cdm) row('PV max', plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ' (\u00b1' + j.cdm.blessure + ' %)' : '') + ' CdM ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2'));
+        else if (j.mz) row('PV max', j.mz.pv[0] + '-' + j.mz.pv[1] + (j.mz.avg ? ' (\u2192 ' + j.mz.avg + ')' : '') + ' MZ');
         else row('PV max', 'inconnus');
         var rst = row('PV restants', j.restants ? plage(j.restants) + (j.estimation ? ' (estim.)' : '') : 'inconnus');
         if (j.estimation && j.raisons && j.raisons.length) rst.title = j.raisons.join(' ; ');
-        row('Dégâts subis', j.degats_cumules + (j.nb_frappes ? ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ')' : '') + (j.nb_frappes_total > j.nb_frappes ? ' +' + (j.nb_frappes_total - j.nb_frappes) + ' avant CdM' : ''));
-        var icone = { 'morte': '☠️', 'finissable': '✅', 'bientôt finissable': '🟡', 'encore résistante': '🛡️' }[j.etat] || '';
-        row('État', icone + ' ' + j.etat);
+        row('D\u00e9g\u00e2ts subis', j.degats_cumules + (j.nb_frappes ? ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ')' : '') + (j.nb_frappes_total > j.nb_frappes ? ' +' + (j.nb_frappes_total - j.nb_frappes) + ' avant CdM' : ''));
+        var icone = { 'morte': '\u2620\ufe0f', 'finissable': '\u2705', 'bient\u00f4t finissable': '\ud83d\udfe1', 'encore r\u00e9sistante': '\ud83d\udee1\ufe0f' }[j.etat] || '';
+        row('\u00c9tat', icone + ' ' + j.etat);
         if (j.esquive) row('Esquive', String(j.esquive.valeur)).title = j.esquive.source;
         var pf = j.plan_finition; // plan de finition : court, par ordre de frappe
         if (pf) {
           var pc = function (x) { return Math.round(x * 100) + ' %'; };
-          planBox.appendChild(el('div', 'mhx-tac-t mhx-tac-t-vert', '🧭 Plan de finition'));
+          planBox.appendChild(el('div', 'mhx-tac-t mhx-tac-t-vert', '\ud83e\udded Plan de finition'));
           var carte = function (cls, titre) { var d = el('div', 'mhx-carte ' + cls); d.appendChild(el('div', 'mhx-carte-t', titre)); planBox.appendChild(d); return d; };
           var li = function (d, txt, cls) { var x = el('div', 'mhx-carte-l' + (cls ? ' ' + cls : ''), txt); d.appendChild(x); return x; };
-          var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Accélération du Métabolisme \(≈ (\d+) PV sacrifiés\)/, 'AM (≈ $1 PV)'); };
+          var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
           var dessine = function (cls, titre, pl) {
             var d = carte(cls, titre);
             pl.sequence.forEach(function (x) {
-              var acts = x.actions.map(function (a) { return court(a.attaque) + (a.nb > 1 ? ' ×' + a.nb : ''); }).join(' + ');
-              var dep = x.deplacement ? x.deplacement.replace(/^([\d.,]+) PA de déplacement.*$/, '+ DE $1PA') : '';
-              var l = el('div', 'mhx-carte-l' + (x.type === 'hypno' ? ' mhx-hypno' : '')); l.appendChild(document.createTextNode(x.ordre + '. ')); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' — ' + acts)); if (dep) l.appendChild(el('span', 'mhx-dep', ' (' + dep + ')')); d.appendChild(l);
+              var acts = x.actions.map(function (a) { return court(a.attaque) + (a.nb > 1 ? ' \u00d7' + a.nb : ''); }).join(' + ');
+              var dep = x.deplacement ? x.deplacement.replace(/^([\d.,]+) PA de d\u00e9placement.*$/, '+ DE $1PA') : '';
+              var l = el('div', 'mhx-carte-l' + (x.type === 'hypno' ? ' mhx-hypno' : '')); l.appendChild(document.createTextNode(x.ordre + '. ')); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' \u2014 ' + acts)); if (dep) l.appendChild(el('span', 'mhx-dep', ' (' + dep + ')')); d.appendChild(l);
             });
-            var f = el('div', 'mhx-carte-pied'); f.appendChild(document.createTextNode('🎯 ')); f.appendChild(el('b', null, pc(pl.p_kill) + ' de chances')); f.appendChild(el('span', 'mhx-dep', ' (' + pl.degats_attendus + ' dgts attendus)')); d.appendChild(f);
+            var f = el('div', 'mhx-carte-pied'); f.appendChild(document.createTextNode('\ud83c\udfaf ')); f.appendChild(el('b', null, pc(pl.p_kill) + ' de chances')); f.appendChild(el('span', 'mhx-dep', ' (' + pl.degats_attendus + ' dgts attendus)')); d.appendChild(f);
           };
           var pl = pf.plan;
           if (pl) {
-            if (pf.plan_maintenant) dessine('mhx-c-rouge', '▶️ Maintenant', pf.plan_maintenant);
-            dessine(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? '▶️ Maintenant' : '⏳ Meilleur moment : ' + pl.t.replace(' ', ' à '), pl);
+            if (pf.plan_maintenant) dessine('mhx-c-rouge', '\u25b6\ufe0f Maintenant', pf.plan_maintenant);
+            dessine(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? '\u25b6\ufe0f Maintenant' : '\u23f3 Meilleur moment : ' + pl.t.replace(' ', ' \u00e0 '), pl);
           }
           var ex = pf.exclus || [];
-          if (ex.length) { var dx = carte('mhx-c-gris', '🚫 Non utilisé' + (ex.length > 1 ? 's' : '')); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun créneau.*$/, '').replace(/^trop loin : encore (\d+) pas à faire/, 'trop loin ($1 pas)'))); dx.appendChild(l); }); }
-          (pf.notes || []).forEach(function (n) { li(carte('mhx-c-orange', '⚠️'), n); });
+          if (ex.length) { var dx = carte('mhx-c-gris', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : '')); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (\d+) pas \u00e0 faire/, 'trop loin ($1 pas)'))); dx.appendChild(l); }); }
+          (pf.notes || []).forEach(function (n) { li(carte('mhx-c-orange', '\u26a0\ufe0f'), n); });
           planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max'));
         }
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
