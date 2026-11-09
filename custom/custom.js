@@ -1118,7 +1118,7 @@
   }
   // Sortil\u00e8ge Faiblesse Passag\u00e8re : cible, dur\u00e9e, jet de r\u00e9sistance et effet th\u00e9orique -> groupe WhatsApp.
   function parseFaiblesse(txt) {
-    var m = /(?:une|un|la|le|l\u2019|l')\s?(.+?) \((\d+)\) a \u00e9t\u00e9 influenc\u00e9e? par l'effet du sortil\u00e8ge ?: ?Faiblesse Passag\u00e8re ?, pour une dur\u00e9e de (\d+) tours?/.exec(txt);
+    var m = /(?:^|[^A-Za-z\u00c0-\u00ff])(?:une|un|la|le|l\u2019|l')\s?([^()]{1,60}?) \((\d+)\) a \u00e9t\u00e9 influenc\u00e9e? par l'effet du sortil\u00e8ge ?: ?Faiblesse Passag\u00e8re ?, pour une dur\u00e9e de (\d+) tours?/.exec(txt);
     if (!m) return null;
     var apres = txt.slice(m.index + m[0].length);
     var se = /Seuil de R\u00e9sistance de la cible ?: ?(\d+) ?%/.exec(apres), je = /Jet de R\u00e9sistance ?: ?(-?\d+)/.exec(apres);
