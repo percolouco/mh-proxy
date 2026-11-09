@@ -1741,7 +1741,7 @@
     var h = el('h4'); h.textContent = '\ud83e\udd87 Analyse tactique'; box.appendChild(h);
     var grid = el('div', null, 'mhx-tac-grid');
     var c1 = el('div', 'mhx-tac-tour', 'mhx-tac-col'), c2 = el('div', 'mhx-tac-infos', 'mhx-tac-col');
-    grid.appendChild(c1); grid.appendChild(c2); box.appendChild(grid);
+    grid.appendChild(c2); grid.appendChild(c1); box.appendChild(grid);
     box.appendChild(el('div', 'mhx-tac-plan', 'mhx-tac-plan'));
     var form = document.querySelector('form[action=""]');
     if (form && form.parentNode) form.parentNode.insertBefore(box, form);
@@ -2394,8 +2394,8 @@
     box.appendChild(el('div', 'mhx-tac-t', 'Infos g\u00e9n\u00e9rales'));
     var res = el('div', 'mhx-fin-res');
     var planBox = document.getElementById('mhx-tac-plan');
-    var btn = el('button', 'mh_form_submit mhx-chasse-btn', 'Calculer les PV restants'); btn.type = 'button';
-    btn.addEventListener('click', function () {
+    var btn = el('button', 'mh_form_submit mhx-chasse-btn mhx-tac-recalc', '\u21bb Recalculer'); btn.type = 'button';
+    var calcule = function () {
       btn.disabled = true; res.textContent = 'Calcul en cours...'; planBox.textContent = '';
       fetch(PV_MONSTRE_URL + '?id=' + id + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (function () { var z = monsterMzRead() || monsterMzGet(id); if (z) monsterMzStore(id, z); return z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : ''; })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         btn.disabled = false; res.textContent = ''; planBox.textContent = '';
@@ -2441,8 +2441,12 @@
           var fn = ligne('Estimation par simulation : monstre suppos\u00e9 \u00e0 son maximum de PV sans CDM ni frappes r\u00e9centes.', ''); fn.style.fontSize = '11px'; planBox.appendChild(fn);
         }
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
-    });
+    };
+    btn.addEventListener('click', calcule);
     box.appendChild(btn); box.appendChild(res);
+    // calcul automatique \u00e0 l'ouverture, d\u00e8s que l'estimation Mountyzilla et le tour du monstre sont lus (6 s au plus)
+    var att = 0;
+    (function pret() { if ((!monsterMzRead() || !MONSTRE_PROCHAIN_TOUR) && ++att < 10) return setTimeout(pret, 600); calcule(); })();
     document.getElementById('mhx-tac-infos').appendChild(box);
   }
 
