@@ -1714,7 +1714,7 @@
     var h = Math.floor(moy);
     return {
       dla: h + 'h ' + pad(Math.round((moy - h) * 60)) + 'm' + (cdm ? ' (CDM)' : ' (historique, peu fiable : CDM introuvable)'),
-      debut: fmt(debut), min: fmt(min), max: fmt(max)
+      debut: fmt(debut), min: fmt(min), max: fmt(max), minMs: min.getTime()
     };
   }
 
@@ -1748,6 +1748,7 @@
       if (!dates.length) dates = all; // format inattendu : on retombe sur tous les \u00e9v\u00e9nements
       var s = dates.length ? monsterDla(dates, cdm) : null;
       if (!s) return;
+      MONSTRE_PROCHAIN_TOUR = s.minMs; // pour le plan de finition (fin de la fenetre : le monstre peut rejouer a partir de la)
       var box = document.createElement('div');
       box.className = 'mhx-monstre';
       box.innerHTML = '<h4>\ud83e\udd87 Analyse Tactique (Script MH2)</h4>' +
@@ -2311,6 +2312,7 @@
   // Fiche d'un monstre : bouton \u00ab Suivi PV / finisseurs \u00bb (PV restants estim\u00e9s d'apr\u00e8s la derni\u00e8re CdM et les frappes publi\u00e9es,
   // possibilit\u00e9s de finition de TeleKom et Flak Flak). Calcul fait par le serveur MH (notif/pv_monstre.php) ; affichage uniquement.
   var PV_MONSTRE_URL = 'https://mh.percolouco.com/notif/pv_monstre.php';
+  var MONSTRE_PROCHAIN_TOUR = null; // ms : prochain tour estime du monstre (rempli par l'analyse tactique de la fiche)
   // Estimation Mountyzilla lue sur la page du monstre (lignes \u00ab Points de Vie 200-470 -> 335 PV \u00bb et \u00ab D\u00e9s de R\u00e9g\u00e9n\u00e9ration \u00bb), m\u00e9moris\u00e9e pour la colonne PV de Ma vue.
   var PV_MZ_KEY = 'mhx-pv-mz-1';
   // texte de la cellule qui suit le libelle ; l'intervalle jaune a 80 % (span) est place AVANT la valeur dans la cellule : on le retire
@@ -2376,7 +2378,7 @@
     var btn = el('button', 'mh_form_submit mhx-chasse-btn', 'Calculer les PV restants'); btn.type = 'button';
     btn.addEventListener('click', function () {
       btn.disabled = true; res.textContent = 'Calcul en cours...';
-      fetch(PV_MONSTRE_URL + '?id=' + id + (function () { var z = monsterMzRead() || monsterMzGet(id); if (z) monsterMzStore(id, z); return z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : ''; })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      fetch(PV_MONSTRE_URL + '?id=' + id + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (function () { var z = monsterMzRead() || monsterMzGet(id); if (z) monsterMzStore(id, z); return z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : ''; })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         btn.disabled = false; res.textContent = '';
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
         var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
@@ -2396,24 +2398,46 @@
           var t = el('div', 'mhx-fin-troll'); t.appendChild(el('b', null, f.nom));
           var dp = f.dispo;
           if (dp) { // couche 1 : disponibilite
-            t.appendChild(document.createTextNode(' — ' + (dp.dla_passee ? '✅ ' + dp.maintenant + ' (DLA du ' + dp.dla_hm + ' passée)' : (dp.pa_restants > 0 ? '✅ ' + dp.maintenant : '⏳ ' + dp.maintenant) + ' ; prochaine DLA le ' + dp.dla_hm + ' (' + dp.pa_a_la_dla + ' PA)')));
-            t.title = 'Profil lu le ' + dp.maj_profil + ' (UTC). Les PA et la DLA sont ceux de la dernière mise à jour de l’IT.';
+            t.appendChild(document.createTextNode(' \u2014 ' + (dp.dla_passee ? '\u2705 ' + dp.maintenant + ' (DLA du ' + dp.dla_hm + ' pass\u00e9e)' : (dp.pa_restants > 0 ? '\u2705 ' + dp.maintenant : '\u23f3 ' + dp.maintenant) + ' ; prochaine DLA le ' + dp.dla_hm + ' (' + dp.pa_a_la_dla + ' PA)')));
+            t.title = 'Profil lu le ' + dp.maj_profil + ' (UTC). Les PA et la DLA sont ceux de la derni\u00e8re mise \u00e0 jour de l\u2019IT.';
           }
           res.appendChild(t);
           var pct = function (x) { return x === null || x === undefined ? '?' : Math.round(x * 100) + ' %'; };
           (f.plan || []).forEach(function (o) { // couche 2 : cout, reussite, toucher, degats nets, degats attendus
-            var txt = o.attaque + ' — ' + o.pa + ' PA' + (o.pa_suppose ? '*' : '') + ' · réussite ' + pct(o.reussite) + ' · toucher ' + pct(o.toucher);
-            if (o.type === 'sort') txt += ' · plein ' + pct(o.plein) + (o.sr !== null ? ' (SR ' + Math.round(o.sr) + ' %)' : '');
-            txt += ' · dégâts nets ' + (o.deg_plein !== null ? o.deg_plein : '?') + (o.deg_reduit !== null ? ' (réduit ' + o.deg_reduit + ')' : '');
-            txt += o.attendu !== null ? ' → ~' + o.attendu + ' attendus par tentative (' + o.par_pa + ' / PA)' : ' → non estimable (esquive du monstre inconnue)';
-            var d = ligne(txt, '• ');
-            d.title = (o.esq_src ? 'Esquive du monstre : ' + o.esq_src + '. ' : '') + (o.sr_src ? 'SR : ' + o.sr_src + '. ' : '') + (o.armure !== null && o.armure !== undefined ? 'Armure retirée : ' + o.armure + '. ' : 'Armure du monstre inconnue (non retirée). ') + 'Jet d’attaque : ' + o.des_att + ' D6 ' + (o.bonus_att >= 0 ? '+' : '') + o.bonus_att + '.';
+            var txt = o.attaque + ' \u2014 ' + o.pa  + ' PA' + ' \u00b7 r\u00e9ussite ' + pct(o.reussite) + ' \u00b7 toucher ' + pct(o.toucher);
+            if (o.type === 'sort') txt += ' \u00b7 plein ' + pct(o.plein) + (o.sr !== null ? ' (SR ' + Math.round(o.sr) + ' %)' : '');
+            txt += ' \u00b7 d\u00e9g\u00e2ts nets ' + (o.deg_plein !== null ? o.deg_plein : '?') + (o.deg_reduit !== null ? ' (r\u00e9duit ' + o.deg_reduit + ')' : '');
+            txt += o.attendu !== null ? ' \u2192 ~' + o.attendu + ' attendus par tentative (' + o.par_pa + ' / PA)' : ' \u2192 non estimable (esquive du monstre inconnue)';
+            var d = ligne(txt, '\u2022 ');
+            d.title = (o.esq_src ? 'Esquive du monstre : ' + o.esq_src + '. ' : '') + (o.sr_src ? 'SR : ' + o.sr_src + '. ' : '') + (o.armure !== null && o.armure !== undefined ? 'Armure retir\u00e9e : ' + o.armure + '. ' : 'Armure du monstre inconnue (non retir\u00e9e). ') + 'Jet d\u2019attaque : ' + o.des_att + ' D6 ' + (o.bonus_att >= 0 ? '+' : '') + o.bonus_att + '.';
           });
           if (!(f.plan || []).length) f.options.forEach(function (o) { // sans plan : l'ancien affichage (historique des frappes)
-            ligne(o.attaque + ' — dégâts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' → finition : ' + o.peut_finir : ''), '• ');
+            ligne(o.attaque + ' \u2014 d\u00e9g\u00e2ts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' \u2192 finition : ' + o.peut_finir : ''), '\u2022 ');
           });
         });
-        ligne('* coût en PA supposé (4) : à confirmer. Esquive du monstre estimée (jets observés ou dés Mountyzilla), armure de la fiche Mountyzilla si lue. Estimations.', '').style.fontSize = '11px';
+        ligne('Esquive du monstre estim\u00e9e (jets observ\u00e9s ou d\u00e9s Mountyzilla), armure de la fiche Mountyzilla si lue. Estimations.', '').style.fontSize = '11px';
+        var pf = j.plan_finition; // couche 3 : plan de finition
+        if (pf) {
+          var h = el('div', 'mhx-fin-troll'); h.appendChild(el('b', null, '\ud83e\udded Plan de finition'));
+          h.appendChild(document.createTextNode(' \u2014 objectif : tuer avec au moins ' + Math.round(pf.seuil * 100) + ' % de chances' + (pf.cible ? ', cible = borne haute des PV (' + pf.cible.borne_haute + ' PV ; m\u00e9diane ' + pf.cible.mediane + ')' : '')));
+          res.appendChild(h);
+          ligne(pf.fenetre_fin ? 'avant le prochain tour estim\u00e9 du monstre (' + pf.fenetre_fin + ')' : 'prochain tour du monstre inconnu : seulement maintenant et la prochaine DLA de chaque finisseur', 'Fen\u00eatre : ');
+          var dessine = function (titre, pl) {
+            if (!pl) return;
+            ligne(pl.pas.map(function (x) { return x.ordre + '. ' + x.nom + ' \u2014 ' + x.attaque + ' (' + x.quand + ', ' + x.pa + ' PA)'; }).join('  \u2192  ') + '  |  ' + pl.pa_total + ' PA, ' + pl.nb_trolls + ' troll' + (pl.nb_trolls > 1 ? 's' : '') + ', ' + Math.round(pl.p_kill * 1000) / 10 + ' % de tuer (m\u00e9diane : ' + Math.round(pl.p_kill_mediane * 1000) / 10 + ' %), d\u00e9g\u00e2ts attendus ' + pl.degats_attendus + ', fini ' + (pl.fin === 'maintenant' ? 'maintenant' : 'le ' + pl.fin), titre);
+          };
+          var pl = pf.plans || {};
+          if (pl.economique) {
+            dessine('\u2705 \u00c9conomique : ', pl.economique);
+            if (pl.au_plus_tot && JSON.stringify(pl.au_plus_tot.pas) !== JSON.stringify(pl.economique.pas)) dessine('\u23f1\ufe0f Au plus t\u00f4t : ', pl.au_plus_tot);
+            if (pl.maintenant && JSON.stringify(pl.maintenant.pas) !== JSON.stringify(pl.economique.pas)) dessine('\u26a1 Maintenant : ', pl.maintenant);
+          } else if (pl.meilleur_possible) {
+            dessine('\u26a0\ufe0f Meilleur plan possible : ', pl.meilleur_possible);
+            if (pf.manque_degats) ligne('il manque environ ' + pf.manque_degats + ' PV de d\u00e9g\u00e2ts pour atteindre la borne haute', '');
+          }
+          (pf.notes || []).forEach(function (n) { ligne(n, '\u26a0\ufe0f ').style.fontStyle = 'italic'; });
+          ligne('Simulation (3000 tirages) : jets d\u2019attaque / esquive, dommages critiques, seuil de r\u00e9sistance, armure. Hypnotisme non encore pris en compte. Estimations.', '').style.fontSize = '11px';
+        }
         ligne('D\u00e9g\u00e2ts min/moy/max d\u00e9duits des frappes pass\u00e9es de chaque finisseur (sur d\u2019autres monstres : l\u2019armure du monstre n\u2019est pas prise en compte). Estimations.', '').style.fontSize = '11px';
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     });
