@@ -256,16 +256,26 @@ tr.mhx-cible > td { background: var(--mhx-cible) !important; background-image: n
 .mhx-pc-tab { border-collapse: collapse; margin: 4px 0; font: 12px var(--mhx-police); }
 .mhx-pc-tab td { padding: 1px 8px; border-bottom: 1px solid rgba(0,0,0,.12); }
 
-/* Analyse tactique : deux colonnes (tour du monstre, infos generales) puis plan de finition pleine largeur */
-#mhx-tactique { width: auto; max-width: 96%; text-align: left; }
-#mhx-tactique h4 { text-align: center; }
-.mhx-tac-grid { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
-#mhx-tac-infos { flex: 2 1 340px; }
-#mhx-tac-tour { flex: 1 1 230px; }
-.mhx-tac-recalc { float: right; font-size: 11px; padding: 0 6px; margin: 0 0 2px 6px; }
-.mhx-tac-col { min-width: 0; padding: 4px 8px; background: rgba(255,255,255,.25); border-radius: 4px; font-size: 12px; line-height: 1.4; }
-.mhx-tac-t { font-weight: bold; font-size: 13px; text-align: center; margin-bottom: 4px; color: var(--mhx-alerte); }
-.mhx-tac-plan { margin-top: 6px; font-size: 12px; }
-.mhx-tac-plan { display: flex; flex-wrap: wrap; gap: 0 8px; }
-.mhx-tac-plan > * { flex: 1 1 100%; }
-.mhx-tac-plan > .mhx-fin-sec { flex: 1 1 240px; }
+/* Analyse tactique : carte sombre, colonne gauche (infos monstre + chronometre), colonne droite (plan en cartes) */
+#mhx-tactique { width: auto; max-width: 96%; text-align: left; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(160deg, rgba(30,33,42,.96), rgba(18,20,27,.96)); color: #e9e9ee; font: 13px/1.45 'Segoe UI', Trebuchet MS, Arial, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.mhx-tac-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+#mhx-tactique h4.mhx-tac-titre { margin: 0; font-size: 17px; color: #fff; text-align: left; }
+.mhx-tac-btn { cursor: pointer; padding: 5px 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: #fff; border-radius: 7px; font-size: 12px; }
+.mhx-tac-btn:hover { background: rgba(255,255,255,.16); } .mhx-tac-btn:disabled { opacity: .5; cursor: default; }
+.mhx-tac-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 20px; align-items: start; }
+@media (max-width: 640px) { .mhx-tac-grid { grid-template-columns: 1fr; } }
+.mhx-tac-bloc { margin-bottom: 12px; }
+.mhx-tac-t { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+.mhx-tac-t-orange { color: #e8a85a; } .mhx-tac-t-bleu { color: #6cb4e8; } .mhx-tac-t-vert { color: #7fd49a; }
+.mhx-tac-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+.mhx-tac-lab { color: #b9bcc8; } .mhx-tac-val { font-weight: bold; text-align: right; } .mhx-tac-rouge { color: #ff8a80; }
+.mhx-carte { margin-bottom: 9px; padding: 8px 12px; border-radius: 8px; border-left: 4px solid #777; background: rgba(255,255,255,.07); }
+.mhx-carte-t { font-weight: bold; margin-bottom: 4px; }
+.mhx-carte-l { margin: 3px 0; } .mhx-dep { color: #a9adbb; font-weight: normal; } .mhx-hypno { color: #c9a6f0; }
+.mhx-carte-pied { margin: 8px -12px -8px; padding: 6px 12px; background: rgba(0,0,0,.25); border-radius: 0 0 8px 0; }
+.mhx-c-vert { border-left-color: #2fae5b; background: rgba(47,174,91,.13); } .mhx-c-vert .mhx-carte-t { color: #7fd49a; }
+.mhx-c-rouge { border-left-color: #e0554a; background: rgba(224,85,74,.12); } .mhx-c-rouge .mhx-carte-t { color: #ff8a80; }
+.mhx-c-orange { border-left-color: #e8a040; background: rgba(232,160,64,.12); } .mhx-c-orange .mhx-carte-t { color: #f0b868; }
+.mhx-c-gris { opacity: .85; } .mhx-c-gris .mhx-carte-t { color: #b9bcc8; }
+.mhx-tac-note { font-size: 10px; color: #8c90a0; text-align: right; }
