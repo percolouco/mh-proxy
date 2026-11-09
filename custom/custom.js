@@ -2394,46 +2394,32 @@
         var icone = { 'morte': '\u2620\ufe0f', 'finissable': '\u2705', 'bient\u00f4t finissable': '\ud83d\udfe1', 'encore r\u00e9sistante': '\ud83d\udee1\ufe0f' }[j.etat] || '';
         ligne(icone + ' ' + j.etat, '\u00c9tat de la cible : ');
         if (j.esquive) ligne(j.esquive.valeur + ' (' + j.esquive.source + ')', 'Esquive du monstre : ');
-        var pf = j.plan_finition; // plan de finition realiste : sections, ordre des frappes
+        var pf = j.plan_finition; // plan de finition : court, par ordre de frappe
         if (pf) {
-          var pc = function (x) { return Math.round(x * 1000) / 10 + ' %'; };
+          var pc = function (x) { return Math.round(x * 100) + ' %'; };
           var sec = function (titre, couleur) {
-            var d = el('div', 'mhx-fin-sec'); d.style.cssText = 'margin:8px 0 4px;padding:4px 8px;border-left:4px solid ' + (couleur || '#8a6d3b') + ';background:rgba(255,255,255,.35)';
-            var t = el('div', null, titre); t.style.cssText = 'font-weight:bold;font-size:12px;margin-bottom:3px'; d.appendChild(t); res.appendChild(d); return d;
+            var d = el('div', 'mhx-fin-sec'); d.style.cssText = 'margin:8px 0 4px;padding:3px 8px;border-left:4px solid ' + (couleur || '#8a6d3b') + ';background:rgba(255,255,255,.35)';
+            var t = el('div', null, titre); t.style.cssText = 'font-weight:bold;font-size:12px;margin-bottom:2px'; d.appendChild(t); res.appendChild(d); return d;
           };
           var li = function (d, txt, style) { var x = el('div', null, txt); x.style.cssText = 'margin:1px 0;' + (style || ''); d.appendChild(x); return x; };
+          var dessine = function (titre, couleur, pl) {
+            var d = sec(titre, couleur);
+            pl.sequence.forEach(function (x) {
+              var acts = x.actions.map(function (a) { return a.attaque + (a.nb > 1 ? ' \u00d7' + a.nb : ''); }).join(' + ');
+              li(d, x.ordre + '. ' + x.nom + ' \u2014 ' + acts + (x.deplacement ? ' (' + x.deplacement + ')' : ''), x.type === 'hypno' ? 'color:#5b2a86' : '');
+            });
+            li(d, '\u2192 ' + pc(pl.p_kill) + ' de chances de tuer (d\u00e9g\u00e2ts attendus ' + pl.degats_attendus + ')', 'font-weight:bold');
+          };
           var hdr = el('div', 'mhx-fin-troll'); hdr.appendChild(el('b', null, '\ud83e\udded PLAN DE FINITION')); hdr.style.cssText = 'margin-top:10px;font-size:13px'; res.appendChild(hdr);
-          var cb = sec('\ud83c\udfaf CIBLE');
-          if (pf.cible) li(cb, 'PV restants estim\u00e9s : jusqu\u2019\u00e0 ' + pf.cible.borne_haute + ' PV (m\u00e9diane ' + pf.cible.mediane + '). Objectif : tuer avec au moins ' + Math.round(pf.seuil * 100) + ' % de chances, m\u00eame si le monstre est \u00e0 son maximum.');
-          if (pf.monstre) li(cb, 'Position : X=' + pf.monstre.x + ' Y=' + pf.monstre.y + ' N=' + pf.monstre.n + ' (derni\u00e8re vue enregistr\u00e9e)');
-          li(cb, pf.fenetre_fin ? 'Tout doit tomber avant son prochain tour estim\u00e9 (' + pf.fenetre_fin + ') : sinon il peut fuir.' : 'Prochain tour du monstre inconnu : horizon de 30 h. Un monstre bless\u00e9 peut fuir \u00e0 son prochain tour : tout le monde doit \u00eatre en place avant la premi\u00e8re frappe.');
           var pl = pf.plan;
           if (pl) {
-            var sy = sec('\u23f1\ufe0f SYNCHRONISATION');
-            li(sy, pl.t === 'maintenant' ? 'Frappe group\u00e9e : maintenant' : 'Frappe group\u00e9e : le ' + pl.t, 'font-weight:bold');
-            var mise = sec('\ud83d\udccd MISE EN PLACE (avant la premi\u00e8re frappe)');
-            (pf.sequence || []).forEach(function (x) { li(mise, x.nom + ' : ' + x.deplacement + (x.distance ? ' \u2014 distance ' + x.distance : '')); });
-            var fr = sec('\u2694\ufe0f ORDRE DES FRAPPES', '#990000');
-            (pf.sequence || []).forEach(function (x) {
-              var acts = x.actions.map(function (a) { return a.attaque + (a.nb > 1 ? ' \u00d7' + a.nb : '') + (a.quand && a.quand !== '\u00e0 ce moment' ? ' (' + a.quand + ')' : ''); }).join(' puis ');
-              li(fr, x.ordre + '. ' + x.nom + (x.role === 'gros' ? ' (renfort)' : '') + ' \u2014 ' + acts + (x.cumul ? '  \u21aa cumul de DLA' : ''), x.type === 'hypno' ? 'color:#5b2a86' : '');
-            });
-            var hy = pl.hypnotisme;
-            if (hy) { var hs = sec('\ud83d\ude35 HYPNOTISME', '#5b2a86');
-              li(hs, hy.inclus ? hy.troll + ' le lance en premier : ' + pc(hy.p_sans) + ' \u2192 ' + pc(hy.p_avec) + ' de chances de tuer' : (hy.pret_a_ce_moment ? 'Pas n\u00e9cessaire (' + hy.troll + ' est en place).' : hy.troll + ' n\u2019est pas en place \u00e0 ce moment : non utilis\u00e9 (il doit \u00eatre sur la case du monstre).')); }
-            var ch = sec('\ud83d\udcca CHANCES DE TUER', pf.faisable ? '#2a7a3b' : '#b36b00');
-            var pr = pl.probas;
-            li(ch, 'Monstre \u00e0 son maximum (' + pf.cible.borne_haute + ' PV) : ' + pc(pr.au_max), 'font-weight:bold');
-            li(ch, 'Monstre \u00e0 la m\u00e9diane (' + pf.cible.mediane + ' PV) : ' + pc(pr.a_mediane));
-            li(ch, 'Monstre \u00e0 son minimum : ' + pc(pr.au_min));
-            li(ch, 'D\u00e9g\u00e2ts attendus : ' + pl.degats.attendus + ' PV (dans 90 % des cas entre ' + pl.degats.bas + ' et ' + pl.degats.haut + ')');
-            li(ch, pf.faisable ? '\u2705 Objectif atteint (' + pl.jeu + ')' : '\u26a0\ufe0f Objectif de ' + Math.round(pf.seuil * 100) + ' % non atteint avec ' + pl.jeu + (pf.manque_degats ? ' (il manque environ ' + pf.manque_degats + ' PV de d\u00e9g\u00e2ts)' : ''), 'font-weight:bold');
+            if (pf.plan_maintenant) dessine('\u25b6\ufe0f MAINTENANT', '#990000', pf.plan_maintenant);
+            dessine(pl.t === 'maintenant' ? '\u25b6\ufe0f MAINTENANT' : '\u23f3 MEILLEUR MOMENT : le ' + pl.t, pf.faisable ? '#2a7a3b' : '#b36b00', pl);
           }
-          var ex = (pf.exclus || []).concat(pf.reserve || []);
-          if (ex.length) { var se = sec('\ud83d\udeab NON UTILIS\u00c9S', '#777'); ex.forEach(function (x) { li(se, x.nom + ' \u2014 ' + x.raison + (x.distance ? ' (distance ' + x.distance + ')' : '')); }); }
-          else if (!pl) (pf.participants || []).forEach(function (x) { li(sec('\ud83d\udeab NON UTILIS\u00c9S', '#777'), x.nom + ' \u2014 ' + (x.raison || x.statut) + (x.distance ? ' (distance ' + x.distance + ')' : '')); });
-          if ((pf.notes || []).length) { var sn = sec('\u26a0\ufe0f ATTENTION', '#b36b00'); pf.notes.forEach(function (n) { li(sn, n, 'font-style:italic'); }); }
-          ligne('Simulation (3000 tirages) : positions et PA des trolls (derni\u00e8re mise \u00e0 jour de l\u2019IT), cases occup\u00e9es, d\u00e9placements, Charge, Projectile Magique, cumul des DLA, jets d\u2019attaque / esquive, seuil de r\u00e9sistance, armure, Hypnotisme. Estimations.', '').style.fontSize = '11px';
+          var ex = pf.exclus || [];
+          if (ex.length) li(sec('\ud83d\udeab NON UTILIS\u00c9S', '#777'), ex.map(function (x) { return x.nom + ' (' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '') + ')'; }).join(' ; '));
+          (pf.notes || []).forEach(function (n) { li(sec('\u26a0\ufe0f', '#b36b00'), n, 'font-style:italic'); });
+          ligne('Estimation par simulation : monstre suppos\u00e9 \u00e0 son maximum de PV sans CDM ni frappes r\u00e9centes.', '').style.fontSize = '11px';
         }
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     });
