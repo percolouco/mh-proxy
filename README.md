@@ -234,3 +234,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 0.99.2 | 2026-11-09 | Analyse tactique : bloc « Chronomètre » renommé « Infos DLA monstre ». |
 | 0.99.3 | 2026-11-09 | Analyse tactique : bouton « 📲 WhatsApp » (avec confirmation) qui envoie le plan de finition dans le groupe ; le message est recalculé côté serveur (notif/plan_whatsapp.php). |
 | 0.99.4 | 2026-11-09 | Bouton WhatsApp du plan : numéro du troll lu aussi dans la mémoire du navigateur (la fiche d'un monstre ne le contient pas toujours). |
+| 1.0.0 | 2026-11-09 | Plan de finition : interrupteur « Ignorer % de réussite et résistance » (2 plans calculés) ; frappes cliquables (retirer / ajouter, ordre = ordre des clics, AM automatique) avec chance de tuer recalculée par le serveur ; le message WhatsApp suit exactement la sélection et le mode choisis. |
