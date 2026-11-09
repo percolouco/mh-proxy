@@ -2402,16 +2402,16 @@
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
         var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
         var plage = function (a) { return a ? (a[1] === null ? 'au moins ' + a[0] : a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]) : '?'; };
-        var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' \ud83c\udfaf (cible de chasse)' : ''), '');
+        var d1 = ligne((j.nom || 'Monstre') + (j.cible_chasse ? ' \ud83c\udfaf (cible)' : ''), '');
         d1.style.fontWeight = 'bold';
-        if (j.cdm) ligne('CdM du ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ' : PV max ' + plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ', blessure \u00b1' + j.cdm.blessure + ' %' : '') + ' \u2192 PV de d\u00e9part ' + plage(j.cdm.depart), 'PV initiaux : ');
-        else if (j.mz) ligne('aucune CdM de notre groupe : estimation Mountyzilla, PV max ' + j.mz.pv[0] + ' \u00e0 ' + j.mz.pv[1] + (j.mz.avg ? ' (\u2192 ' + j.mz.avg + ')' : '') + ', monstre suppos\u00e9 sans blessure avant la 1re frappe', 'PV initiaux : ');
-        else ligne('aucune CdM connue et aucune estimation Mountyzilla lue sur cette page', 'PV initiaux : ');
-        ligne(j.degats_cumules + ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + ' publi\u00e9e' + (j.nb_frappes > 1 ? 's' : '') + (j.nb_frappes_total > j.nb_frappes ? ', ' + (j.nb_frappes_total - j.nb_frappes) + ' avant la CdM non compt\u00e9e' + (j.nb_frappes_total - j.nb_frappes > 1 ? 's' : '') : '') + ')', 'D\u00e9g\u00e2ts cumul\u00e9s : ');
-        var rst = ligne(j.restants ? plage(j.restants) + (j.estimation ? ' (estimation)' : '') : 'inconnus', 'PV restants : ');
-        if (j.estimation && j.raisons && j.raisons.length) { rst.title = j.raisons.join(' ; '); ligne(j.raisons.join(' ; '), '\u26a0\ufe0f '); res.lastChild.style.fontStyle = 'italic'; }
+        if (j.cdm) ligne(plage(j.cdm.pv_max) + (j.cdm.blessure !== null ? ' (\u00b1' + j.cdm.blessure + ' %)' : '') + ' \u2192 d\u00e9part ' + plage(j.cdm.depart) + ' (CdM ' + j.cdm.date.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')', 'PV max : ');
+        else if (j.mz) ligne(j.mz.pv[0] + '-' + j.mz.pv[1] + (j.mz.avg ? ' (\u2192 ' + j.mz.avg + ')' : '') + ' (Mountyzilla), suppos\u00e9 intact', 'PV max : ');
+        else ligne('inconnus (ni CdM ni Mountyzilla)', 'PV max : ');
+        ligne(j.degats_cumules + ' (' + j.nb_frappes + ' frappe' + (j.nb_frappes > 1 ? 's' : '') + (j.nb_frappes_total > j.nb_frappes ? ', ' + (j.nb_frappes_total - j.nb_frappes) + ' avant CdM' : '') + ')', 'D\u00e9g\u00e2ts : ');
+        var rst = ligne(j.restants ? plage(j.restants) + (j.estimation ? ' (estim.)' : '') : 'inconnus', 'PV restants : ');
+        if (j.estimation && j.raisons && j.raisons.length) rst.title = j.raisons.join(' ; ');
         var icone = { 'morte': '\u2620\ufe0f', 'finissable': '\u2705', 'bient\u00f4t finissable': '\ud83d\udfe1', 'encore r\u00e9sistante': '\ud83d\udee1\ufe0f' }[j.etat] || '';
-        ligne(icone + ' ' + j.etat, '\u00c9tat de la cible : ');
+        ligne(icone + ' ' + j.etat, '\u00c9tat : ');
         if (j.esquive) ligne(j.esquive.valeur + ' (' + j.esquive.source + ')', 'Esquive du monstre : ');
         var pf = j.plan_finition; // plan de finition : court, par ordre de frappe
         if (pf) {
@@ -2424,8 +2424,10 @@
           var dessine = function (titre, couleur, pl) {
             var d = sec(titre, couleur);
             pl.sequence.forEach(function (x) {
-              var acts = x.actions.map(function (a) { return a.attaque + (a.nb > 1 ? ' \u00d7' + a.nb : ''); }).join(' + ');
-              li(d, x.ordre + '. ' + x.nom + ' \u2014 ' + acts + (x.deplacement ? ' (' + x.deplacement + ')' : ''), x.type === 'hypno' ? 'color:#5b2a86' : '');
+              var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
+              var acts = x.actions.map(function (a) { return court(a.attaque) + (a.nb > 1 ? ' \u00d7' + a.nb : ''); }).join(' + ');
+              var dep = x.deplacement ? x.deplacement.replace(/^([\d.,]+) PA de d\u00e9placement.*$/, '+ DE $1PA') : '';
+              li(d, x.ordre + '. ' + x.nom + ' \u2014 ' + acts + (dep ? ' (' + dep + ')' : ''), x.type === 'hypno' ? 'color:#5b2a86' : '');
             });
             li(d, '\u2192 ' + pc(pl.p_kill) + ' de chances de tuer (d\u00e9g\u00e2ts attendus ' + pl.degats_attendus + ')', 'font-weight:bold');
           };
@@ -2438,7 +2440,7 @@
           var ex = pf.exclus || [];
           if (ex.length) li(sec('\ud83d\udeab NON UTILIS\u00c9S', '#777'), ex.map(function (x) { return x.nom + ' (' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '') + ')'; }).join(' ; '));
           (pf.notes || []).forEach(function (n) { li(sec('\u26a0\ufe0f', '#b36b00'), n, 'font-style:italic'); });
-          var fn = ligne('Estimation par simulation : monstre suppos\u00e9 \u00e0 son maximum de PV sans CDM ni frappes r\u00e9centes.', ''); fn.style.fontSize = '11px'; planBox.appendChild(fn);
+          var fn = ligne('Simulation sur le maximum de PV du monstre.', ''); fn.style.fontSize = '11px'; planBox.appendChild(fn);
         }
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     };
