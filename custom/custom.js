@@ -92,7 +92,10 @@
       d.textContent = (nom || 'Troll') + ' \u2014 ' + m[1] + '/' + m[2] + ' PV';
       var st = document.createElement('div');
       st.className = 'mhx-sacro-st';
-      var rg = document.createElement('div'); // r\u00e9g\u00e9n moyenne, lue sur le serveur (simulation, rien n'est envoy\u00e9)
+      var nd = document.createElement('div'); // Need = PV manquants - regeneration minimale du prochain tour (calcule par le serveur)
+      nd.className = 'mhx-sacro-who'; nd.style.fontWeight = 'bold';
+      nd.textContent = 'Need : ' + (parseInt(m[2], 10) - parseInt(m[1], 10)) + ' PV';
+      var rg = document.createElement('div'); // regeneration MINIMALE du prochain tour, lue sur le serveur (simulation, rien n'est envoye)
       rg.className = 'mhx-sacro-who';
       var mp = document.createElement('div'); // malus PV (bonus/malus enregistr\u00e9s), sur sa propre ligne
       mp.className = 'mhx-sacro-who';
@@ -100,7 +103,11 @@
       fetch(NOTIF_SACRO_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
         body: 'dry=1&troll=' + (currentTrollId() || 0) + '&cible=' + encodeURIComponent(cible) + '&pv=' + m[1] + '&pvmax=' + m[2] + '&nom=' + encodeURIComponent(nom) })
         .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) { if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9gen : ~' + j.regen + ' PV' + (typeof j.regen_actuel === 'number' ? '\n(actuellement ~' + j.regen_actuel + ')' : ''); if (j && j.malus_pv) mp.textContent = j.malus_pv; }, function () {});
+        .then(function (j) {
+          if (j && typeof j.need === 'number') nd.textContent = 'Need : ' + j.need + ' PV' + (j.regen > 0 && j.manque > 0 ? ' (manque ' + j.manque + ', r\u00e9g\u00e9n mini ' + j.regen + ')' : '');
+          if (j && typeof j.regen === 'number') rg.textContent = 'R\u00e9g\u00e9n mini : ' + j.regen + ' PV' + (typeof j.regen_actuel === 'number' && j.regen_actuel !== j.regen ? '\n(actuellement ' + j.regen_actuel + ')' : '');
+          if (j && j.malus_pv) mp.textContent = j.malus_pv;
+        }, function () {});
       var btns = document.createElement('div');
       var mk = function (label) {
         var bt = document.createElement('input');
@@ -127,7 +134,7 @@
         });
       });
       btns.appendChild(ok); btns.appendChild(no);
-      body.appendChild(q); body.appendChild(d); body.appendChild(rg); body.appendChild(mp); body.appendChild(st); body.appendChild(btns);
+      body.appendChild(q); body.appendChild(d); body.appendChild(nd); body.appendChild(rg); body.appendChild(mp); body.appendChild(st); body.appendChild(btns);
       box.appendChild(head); box.appendChild(body);
       ov.appendChild(box);
       document.body.appendChild(ov);
