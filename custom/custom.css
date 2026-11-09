@@ -255,3 +255,11 @@ tr.mhx-cible > td { background: var(--mhx-cible) !important; background-image: n
 .mhx-pc-gowap { margin: 6px 0; padding-left: 6px; border-left: 4px solid var(--mhx-brun); }
 .mhx-pc-tab { border-collapse: collapse; margin: 4px 0; font: 12px var(--mhx-police); }
 .mhx-pc-tab td { padding: 1px 8px; border-bottom: 1px solid rgba(0,0,0,.12); }
+
+/* Analyse tactique : deux colonnes (tour du monstre, infos generales) puis plan de finition pleine largeur */
+#mhx-tactique { width: auto; max-width: 96%; text-align: left; }
+#mhx-tactique h4 { text-align: center; }
+.mhx-tac-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.mhx-tac-col { flex: 1 1 260px; min-width: 0; padding: 6px 8px; background: rgba(255,255,255,.25); border-radius: 4px; font-size: 12px; line-height: 1.4; }
+.mhx-tac-t { font-weight: bold; font-size: 13px; text-align: center; margin-bottom: 4px; color: var(--mhx-alerte); }
+.mhx-tac-plan { margin-top: 6px; font-size: 12px; }

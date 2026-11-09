@@ -1720,6 +1720,10 @@
 
   // « Durée du tour   3-5 → 4  heures » dans la CDM du monstre
   function monsterCdmTurn() {
+    // lecture par la cellule (l'intervalle jaune 80 % est dans un span juste avant la valeur : en texte brut il colle les chiffres, ex. « 10-100 » -> 55 h)
+    var row = monsterMzRow(/^Dur\u00e9e du tour$/);
+    var mr = row && /(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(row);
+    if (mr) { var g = function (x) { return parseFloat(String(x).replace(',', '.')); }; return { min: g(mr[1]), max: g(mr[2]), avg: mr[3] ? g(mr[3]) : (g(mr[1]) + g(mr[2])) / 2 }; }
     var txt = (document.body ? document.body.textContent : '').normalize('NFC').replace(/[\s\u00a0]+/g, ' ');
     var m = /Dur\u00e9e du tour[^\d]{0,40}?(\d+(?:[.,]\d+)?)\s*[-\u2013]\s*(\d+(?:[.,]\d+)?)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(txt);
     if (!m) return null;
@@ -1728,11 +1732,28 @@
     return { min: lo, max: hi, avg: m[3] ? f(m[3]) : (lo + hi) / 2 };
   }
 
+  // Cadre unique « Analyse tactique » : colonne « Tour du monstre » + colonne « Infos g\u00e9n\u00e9rales » (PV) + plan de finition pleine largeur
+  function tacBox() {
+    var box = document.getElementById('mhx-tactique');
+    if (box) return box;
+    var el = function (tag, id, cls) { var e = document.createElement(tag); if (id) e.id = id; if (cls) e.className = cls; return e; };
+    box = el('div', 'mhx-tactique', 'mhx-monstre');
+    var h = el('h4'); h.textContent = '\ud83e\udd87 Analyse tactique'; box.appendChild(h);
+    var grid = el('div', null, 'mhx-tac-grid');
+    var c1 = el('div', 'mhx-tac-tour', 'mhx-tac-col'), c2 = el('div', 'mhx-tac-infos', 'mhx-tac-col');
+    grid.appendChild(c1); grid.appendChild(c2); box.appendChild(grid);
+    box.appendChild(el('div', 'mhx-tac-plan', 'mhx-tac-plan'));
+    var form = document.querySelector('form[action=""]');
+    if (form && form.parentNode) form.parentNode.insertBefore(box, form);
+    else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+    return box;
+  }
+
   function addMonsterAnalysis() {
     if (!/\/MonsterView\.php$/.test(location.pathname)) return;
     var tries = 0;
     (function run() {
-      if (document.querySelector('.mhx-monstre')) return;
+      if (document.getElementById('mhx-tac-tour') && document.getElementById('mhx-tac-tour').childNodes.length) return;
       var cdm = monsterCdmTurn();
       if (!cdm && ++tries < 6) return setTimeout(run, 800); // la CDM peut arriver apr\u00e8s le reste de la page
       var dates = [], all = [];
@@ -1749,16 +1770,12 @@
       var s = dates.length ? monsterDla(dates, cdm) : null;
       if (!s) return;
       MONSTRE_PROCHAIN_TOUR = s.minMs; // pour le plan de finition (fin de la fenetre : le monstre peut rejouer a partir de la)
-      var box = document.createElement('div');
-      box.className = 'mhx-monstre';
-      box.innerHTML = '<h4>\ud83e\udd87 Analyse Tactique (Script MH2)</h4>' +
+      tacBox();
+      document.getElementById('mhx-tac-tour').innerHTML = '<div class="mhx-tac-t">Tour du monstre</div>' +
         '<b>Dur\u00e9e du tour estim\u00e9e :</b> ' + s.dla + '<br>' +
         '<b>Dernier tour commenc\u00e9 le :</b> ' + s.debut + '<br>' +
         '<b>Peut rejouer \u00e0 partir du :</b> ' + s.min + '<br>' +
         '<b>Son prochain cumul est le :</b> ' + s.max;
-      var form = document.querySelector('form[action=""]');
-      if (form && form.parentNode) form.parentNode.insertBefore(box, form);
-      else if (document.body) document.body.insertBefore(box, document.body.firstChild);
     })();
   }
 
@@ -2372,14 +2389,16 @@
     var mzTries = 0;
     (function lireMz() { var z = monsterMzRead(); if (z) monsterMzStore(id, z); else if (++mzTries < 8) setTimeout(lireMz, 800); })(); // l'estimation MZ peut arriver apr\u00e8s le reste de la page
     var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
-    var box = el('div', 'mhx-monstre'); box.id = 'mhx-finisseurs';
-    box.appendChild(el('h4', null, '\ud83d\udcc9 Suivi des PV et finisseurs'));
+    tacBox();
+    var box = el('div'); box.id = 'mhx-finisseurs';
+    box.appendChild(el('div', 'mhx-tac-t', 'Infos g\u00e9n\u00e9rales'));
     var res = el('div', 'mhx-fin-res');
+    var planBox = document.getElementById('mhx-tac-plan');
     var btn = el('button', 'mh_form_submit mhx-chasse-btn', 'Calculer les PV restants'); btn.type = 'button';
     btn.addEventListener('click', function () {
-      btn.disabled = true; res.textContent = 'Calcul en cours...';
+      btn.disabled = true; res.textContent = 'Calcul en cours...'; planBox.textContent = '';
       fetch(PV_MONSTRE_URL + '?id=' + id + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (function () { var z = monsterMzRead() || monsterMzGet(id); if (z) monsterMzStore(id, z); return z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : ''; })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-        btn.disabled = false; res.textContent = '';
+        btn.disabled = false; res.textContent = ''; planBox.textContent = '';
         if (!j) { res.textContent = 'Serveur injoignable.'; return; }
         var ligne = function (t, b) { var d = el('div'); if (b) { var s = el('b', null, b); d.appendChild(s); } d.appendChild(document.createTextNode(t)); res.appendChild(d); return d; };
         var plage = function (a) { return a ? (a[1] === null ? 'au moins ' + a[0] : a[0] === a[1] ? String(a[0]) : a[0] + ' \u00e0 ' + a[1]) : '?'; };
@@ -2399,7 +2418,7 @@
           var pc = function (x) { return Math.round(x * 100) + ' %'; };
           var sec = function (titre, couleur) {
             var d = el('div', 'mhx-fin-sec'); d.style.cssText = 'margin:8px 0 4px;padding:3px 8px;border-left:4px solid ' + (couleur || '#8a6d3b') + ';background:rgba(255,255,255,.35)';
-            var t = el('div', null, titre); t.style.cssText = 'font-weight:bold;font-size:12px;margin-bottom:2px'; d.appendChild(t); res.appendChild(d); return d;
+            var t = el('div', null, titre); t.style.cssText = 'font-weight:bold;font-size:12px;margin-bottom:2px'; d.appendChild(t); planBox.appendChild(d); return d;
           };
           var li = function (d, txt, style) { var x = el('div', null, txt); x.style.cssText = 'margin:1px 0;' + (style || ''); d.appendChild(x); return x; };
           var dessine = function (titre, couleur, pl) {
@@ -2410,7 +2429,7 @@
             });
             li(d, '\u2192 ' + pc(pl.p_kill) + ' de chances de tuer (d\u00e9g\u00e2ts attendus ' + pl.degats_attendus + ')', 'font-weight:bold');
           };
-          var hdr = el('div', 'mhx-fin-troll'); hdr.appendChild(el('b', null, '\ud83e\udded PLAN DE FINITION')); hdr.style.cssText = 'margin-top:10px;font-size:13px'; res.appendChild(hdr);
+          var hdr = el('div', 'mhx-fin-troll'); hdr.appendChild(el('b', null, '\ud83e\udded PLAN DE FINITION')); hdr.style.cssText = 'margin-top:10px;font-size:13px'; planBox.appendChild(hdr);
           var pl = pf.plan;
           if (pl) {
             if (pf.plan_maintenant) dessine('\u25b6\ufe0f MAINTENANT', '#990000', pf.plan_maintenant);
@@ -2419,14 +2438,12 @@
           var ex = pf.exclus || [];
           if (ex.length) li(sec('\ud83d\udeab NON UTILIS\u00c9S', '#777'), ex.map(function (x) { return x.nom + ' (' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '') + ')'; }).join(' ; '));
           (pf.notes || []).forEach(function (n) { li(sec('\u26a0\ufe0f', '#b36b00'), n, 'font-style:italic'); });
-          ligne('Estimation par simulation : monstre suppos\u00e9 \u00e0 son maximum de PV sans CDM ni frappes r\u00e9centes.', '').style.fontSize = '11px';
+          var fn = ligne('Estimation par simulation : monstre suppos\u00e9 \u00e0 son maximum de PV sans CDM ni frappes r\u00e9centes.', ''); fn.style.fontSize = '11px'; planBox.appendChild(fn);
         }
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     });
     box.appendChild(btn); box.appendChild(res);
-    var form = document.querySelector('form[action=""]');
-    if (form && form.parentNode) form.parentNode.insertBefore(box, form);
-    else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+    document.getElementById('mhx-tac-infos').appendChild(box);
   }
 
   // Formulaire du sortil\u00e8ge T\u00e9l\u00e9portation (champs X / Y / N \u00ab tpx tpy tpn \u00bb) : sous les champs, zone d'arriv\u00e9e possible
