@@ -2404,6 +2404,7 @@
     var TAC = { data: null, ideal: true, sel: {}, cur: [] }; // plan \u00ab parfait \u00bb par d\u00e9faut (sorts r\u00e9ussis, jamais r\u00e9sist\u00e9s)
     var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Projectile Magique/, 'PM').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
     var pc = function (x) { return Math.round(x * 100) + ' %'; };
+    var degTxt = function (o) { return o.deg ? ' \u2248' + o.deg : ''; }; // d\u00e9g\u00e2ts moyens subis par le monstre apr\u00e8s armure (magique pour un sort, physique + magique pour une comp\u00e9tence)
     var majPied = function (carte, pl, sel) { // recalcul serveur de la chance de tuer pour les frappes choisies (dans l'ordre)
       var pied = carte.querySelector('.mhx-carte-pied'); pied.style.opacity = '.5';
       var jeton = (carte.mhxJeton = (carte.mhxJeton || 0) + 1);
@@ -2424,8 +2425,8 @@
       var pied = el('div', 'mhx-carte-pied'); pied.appendChild(document.createTextNode('\ud83c\udfaf ')); pied.appendChild(el('b', null, pc(pl.p_kill) + ' de chances')); pied.appendChild(el('span', 'mhx-dep', ' (' + pl.degats_attendus + ' dgts attendus)'));
       var opt = {}; pl.options.forEach(function (o) { opt[o.i] = o; });
       var chip = function (o, actif) {
-        var c = el('button', 'mhx-chip' + (actif ? ' mhx-chip-on' : ''), court(o.attaque)); c.type = 'button';
-        c.title = o.nom + ' \u2014 ' + o.attaque + ' (' + o.quand + ') : clique pour ' + (actif ? 'retirer' : 'ajouter \u00e0 la fin');
+        var c = el('button', 'mhx-chip' + (actif ? ' mhx-chip-on' : ''), court(o.attaque) + degTxt(o)); c.type = 'button';
+        c.title = o.nom + ' \u2014 ' + o.attaque + ' (' + o.quand + ')' + (o.deg ? ' : \u2248 ' + o.deg + ' PV de d\u00e9g\u00e2ts apr\u00e8s armure' : '') + ' \u2014 clique pour ' + (actif ? 'retirer' : 'ajouter \u00e0 la fin');
         c.addEventListener('click', function () { var k = st.indexOf(o.i); if (k >= 0) st.splice(k, 1); else st.push(o.i); remplit(); majPied(carte, pl, st); });
         return c;
       };
@@ -2448,7 +2449,7 @@
         });
         if (!groupes.length) corps.appendChild(el('div', 'mhx-carte-l mhx-dep', 'Aucune frappe : clique sur une frappe ci-dessous.'));
         var libres = pl.options.filter(function (o) { return st.indexOf(o.i) < 0; });
-        if (libres.length) { var a = el('div', 'mhx-carte-l mhx-libres'); a.appendChild(el('span', 'mhx-dep', 'Ajouter : ')); libres.forEach(function (o) { var c = chip(o, false); c.textContent = o.nom + ' ' + court(o.attaque) + (o.quand === 'apr\u00e8s Acc. m\u00e9tabolique' ? ' (apr\u00e8s AM)' : ''); a.appendChild(c); }); corps.appendChild(a); }
+        if (libres.length) { var a = el('div', 'mhx-carte-l mhx-libres'); a.appendChild(el('span', 'mhx-dep', 'Ajouter : ')); libres.forEach(function (o) { var c = chip(o, false); c.textContent = o.nom + ' ' + court(o.attaque) + degTxt(o) + (o.quand === 'apr\u00e8s Acc. m\u00e9tabolique' ? ' (apr\u00e8s AM)' : ''); a.appendChild(c); }); corps.appendChild(a); }
         TAC.cur = TAC.cur.filter(function (x) { return x.cle !== cle; }); TAC.cur.push({ cle: cle, t: pl.t_ts, sel: st, titre: titre });
       };
       remplit(); carte.appendChild(pied); planBox.appendChild(carte);
