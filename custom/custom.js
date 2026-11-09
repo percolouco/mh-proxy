@@ -1776,7 +1776,7 @@
       MONSTRE_PROCHAIN_TOUR = s.minMs; // pour le plan de finition (fin de la fenetre : le monstre peut rejouer a partir de la)
       tacBox();
       var tr = document.getElementById('mhx-tac-tour'); tr.textContent = '';
-      var tt = document.createElement('div'); tt.className = 'mhx-tac-t mhx-tac-t-bleu'; tt.textContent = 'Chronom\u00e8tre'; tr.appendChild(tt);
+      var tt = document.createElement('div'); tt.className = 'mhx-tac-t mhx-tac-t-bleu'; tt.textContent = 'Infos DLA monstre'; tr.appendChild(tt);
       tr.appendChild(tacRow('Dur\u00e9e' + (/CDM\)/.test(s.dla) ? ' (CDM)' : ' (estim.)'), s.dla.replace(/ \(.*$/, '')));
       tr.appendChild(tacRow('D\u00e9but', s.debut.replace(' \u00e0', '')));
       tr.appendChild(tacRow('Rejoue', s.min.replace(' \u00e0', ''), 'mhx-tac-rouge'));
