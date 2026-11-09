@@ -2401,7 +2401,7 @@
     var res = el('div', 'mhx-fin-res');
     var planBox = document.getElementById('mhx-tac-plan');
     var btn = document.getElementById('mhx-tac-btn');
-    var TAC = { data: null, ideal: false, sel: {}, cur: [] };
+    var TAC = { data: null, ideal: true, sel: {}, cur: [] }; // plan \u00ab parfait \u00bb par d\u00e9faut (sorts r\u00e9ussis, jamais r\u00e9sist\u00e9s)
     var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Projectile Magique/, 'PM').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
     var pc = function (x) { return Math.round(x * 100) + ' %'; };
     var majPied = function (carte, pl, sel) { // recalcul serveur de la chance de tuer pour les frappes choisies (dans l'ordre)
@@ -2461,9 +2461,9 @@
       if (!pf) return;
       var m = TAC.ideal ? 'i' : 'r';
       var tete = el('div', 'mhx-tac-tete'); tete.appendChild(el('div', 'mhx-tac-t mhx-tac-t-vert', '\ud83e\udded Plan de finition'));
-      var lab = el('label', 'mhx-tac-ideal'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = TAC.ideal;
-      cb.addEventListener('change', function () { TAC.ideal = cb.checked; dessinePlans(); });
-      lab.appendChild(cb); lab.appendChild(document.createTextNode(' Ignorer % de r\u00e9ussite et r\u00e9sistance')); lab.title = 'Hypoth\u00e8se : chaque sort r\u00e9ussit et n\u2019est jamais r\u00e9sist\u00e9 (seuls le toucher et le critique restent al\u00e9atoires)';
+      var lab = el('label', 'mhx-tac-ideal'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = !TAC.ideal;
+      cb.addEventListener('change', function () { TAC.ideal = !cb.checked; dessinePlans(); });
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(' Tenir compte des % de r\u00e9ussite et du seuil de r\u00e9sistance')); lab.title = 'D\u00e9coch\u00e9 (plan parfait) : chaque sort r\u00e9ussit et n\u2019est jamais r\u00e9sist\u00e9, seuls le toucher et le critique restent al\u00e9atoires';
       tete.appendChild(lab); planBox.appendChild(tete);
       var pl = pf.plan;
       if (pl) {
