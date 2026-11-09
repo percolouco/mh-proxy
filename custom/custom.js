@@ -1231,13 +1231,13 @@
         ref.parentNode.insertBefore(td, ref);
       });
     };
-    // PV estimés par le serveur (CdM + frappes de notre groupe + régénération des tours rejoués) : utilisés seulement si le monstre a subi des frappes de notre groupe
+    // PV estim\u00e9s par le serveur (CdM + frappes de notre groupe + r\u00e9g\u00e9n\u00e9ration des tours rejou\u00e9s) : utilis\u00e9s seulement si le monstre a subi des frappes de notre groupe
     var calc = {}, calcAsked = {};
     var mid = function (a) { return a ? (a[1] === null ? a[0] : Math.round((a[0] + a[1]) / 2)) : null; };
     var fmtRM = function (cv) {
       var r = mid(cv.r), m = mid(cv.m);
       if (r === null) return null;
-      var rt = (cv.r[1] === null ? '≥' : (cv.r[0] !== cv.r[1] ? '~' : '')) + r;
+      var rt = (cv.r[1] === null ? '\u2265' : (cv.r[0] !== cv.r[1] ? '~' : '')) + r;
       var mt = m === null ? '?' : (cv.m[1] === null ? m + '+' : String(m));
       return rt + ' / ' + mt;
     };
@@ -1283,7 +1283,7 @@
     var readPv = function (id) {
       var pop = document.getElementById('popupCDM' + id);
       if (!pop) return null;
-      var res = null, bless = false, familier = false, regDes = null;
+      var res = null, bless = false, familier = false, regDes = null, autres = {};
       pop.querySelectorAll('tr').forEach(function (tr) {
         var c = tr.cells;
         if (!c || c.length < 2) return;
@@ -1308,6 +1308,13 @@
           // valeurs brutes (estimation Mountyzilla) pour le calcul serveur des PV actuels
           if (res && m) res.mz = { pv: [parseInt(m[1], 10), parseInt(m[2], 10)], avg: Math.round(parseFloat(String(m[3]).replace(',', '.'))) };
         }
+        var cle = /^(?:D\u00e9s d.)?Esquive$/i.test(lab) ? 'esq' : /^RM$/.test(lab) ? 'rm' : /^Armure physique$/i.test(lab) ? 'arm_p' : /^Armure magique$/i.test(lab) ? 'arm_m' : null;
+        if (cle) {
+          var cc = c[1].cloneNode(true);
+          cc.querySelectorAll('span').forEach(function (x) { x.remove(); });
+          var mv = mzMoyenne(cc.textContent.replace(/[\s\u00a0]+/g, ' '));
+          if (mv !== null) autres[cle] = mv;
+        }
         if (/^(?:D\u00e9s de )?R\u00e9g\u00e9n\u00e9ration$/i.test(lab)) {
           var rt = c[1].cloneNode(true);
           rt.querySelectorAll('span').forEach(function (x) { x.remove(); }); // intervalle jaune (80 %) retire
@@ -1317,6 +1324,7 @@
         }
       });
       if (familier) return { v: '', k: 'fam' };
+      if (res && res.mz) Object.keys(autres).forEach(function (k) { res.mz[k] = autres[k]; });
       if (res && res.mz && regDes) { res.mz.reg = [regDes[0], regDes[1]]; if (regDes[2] !== null) res.mz.regAvg = regDes[2]; }
       if (res && bless && res.k === 'ok') res.k = 'bless';
       return res;
@@ -2310,6 +2318,13 @@
     }
     return null;
   }
+  // moyenne d'une cellule Mountyzilla « 7-16 -> 11.5 D6 » (valeur apres la fleche, sinon milieu de la fourchette)
+  function mzMoyenne(txt) {
+    var m = /(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(txt || '');
+    if (!m) return null;
+    var f = function (x) { return parseFloat(String(x).replace(',', '.')); };
+    return m[3] ? f(m[3]) : (f(m[1]) + f(m[2])) / 2;
+  }
   function monsterMzRead() {
     var pvTxt = monsterMzRow(/^Points de Vie$/);
     if (!pvTxt) return null;
@@ -2321,6 +2336,12 @@
     var rgTxt = monsterMzRow(/^(?:D\u00e9s de )?R\u00e9g\u00e9n\u00e9ration$/);
     var r = rgTxt && /(\d+)(?:\s*-\s*(\d+))?(?:\s*(?:\u2192|->|\u2794|\u279c)\s*(\d+(?:[.,]\d+)?))?/.exec(rgTxt);
     if (r) { out.reg = [parseInt(r[1], 10), parseInt(r[2] || r[1], 10)]; if (r[3]) out.regAvg = parseFloat(r[3].replace(',', '.')); }
+    // esquive (nombre de des), RM et armures : pour le plan de finition (taux de touche, seuil de resistance, degats nets)
+    var ex = mzMoyenne(monsterMzRow(/^(?:D\u00e9s d.)?Esquive$/i)), rx = mzMoyenne(monsterMzRow(/^RM$/)), ap = mzMoyenne(monsterMzRow(/^Armure physique$/i)), am = mzMoyenne(monsterMzRow(/^Armure magique$/i));
+    if (ex !== null) out.esq = ex;
+    if (rx !== null) out.rm = rx;
+    if (ap !== null) out.arm_p = ap;
+    if (am !== null) out.arm_m = am;
     return out;
   }
   function monsterMzStore(id, mz) {
@@ -2333,7 +2354,7 @@
     } catch (e) { /* ignore */ }
   }
   function monsterMzGet(id) {
-    try { var o = (JSON.parse(localStorage.getItem(PV_MZ_KEY) || '{}') || {})[id]; return o ? { pv: o.pv, avg: o.avg, reg: o.reg, regAvg: o.regAvg } : null; } catch (e) { return null; }
+    try { var o = (JSON.parse(localStorage.getItem(PV_MZ_KEY) || '{}') || {})[id]; return o ? { pv: o.pv, avg: o.avg, reg: o.reg, regAvg: o.regAvg, esq: o.esq, rm: o.rm, arm_p: o.arm_p, arm_m: o.arm_m } : null; } catch (e) { return null; }
   }
   function addFinisseurs() {
     if (!/\/MonsterView\.php$/.test(location.pathname)) return;
@@ -2366,12 +2387,26 @@
         if (j.esquive) ligne(j.esquive.valeur + ' (' + j.esquive.source + ')', 'Esquive du monstre : ');
         (j.finisseurs || []).forEach(function (f) {
           var t = el('div', 'mhx-fin-troll'); t.appendChild(el('b', null, f.nom));
-          if (!f.options.length) t.appendChild(document.createTextNode(' : pas assez de frappes connues'));
+          var dp = f.dispo;
+          if (dp) { // couche 1 : disponibilite
+            t.appendChild(document.createTextNode(' — ' + (dp.dla_passee ? '✅ ' + dp.maintenant + ' (DLA du ' + dp.dla_hm + ' passée)' : (dp.pa_restants > 0 ? '✅ ' + dp.maintenant : '⏳ ' + dp.maintenant) + ' ; prochaine DLA le ' + dp.dla_hm + ' (' + dp.pa_a_la_dla + ' PA)')));
+            t.title = 'Profil lu le ' + dp.maj_profil + ' (UTC). Les PA et la DLA sont ceux de la dernière mise à jour de l’IT.';
+          }
           res.appendChild(t);
-          f.options.forEach(function (o) {
-            ligne(o.attaque + ' \u2014 d\u00e9g\u00e2ts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' \u2192 finition : ' + o.peut_finir : ''), '\u2022 ');
+          var pct = function (x) { return x === null || x === undefined ? '?' : Math.round(x * 100) + ' %'; };
+          (f.plan || []).forEach(function (o) { // couche 2 : cout, reussite, toucher, degats nets, degats attendus
+            var txt = o.attaque + ' — ' + o.pa + ' PA' + (o.pa_suppose ? '*' : '') + ' · réussite ' + pct(o.reussite) + ' · toucher ' + pct(o.toucher);
+            if (o.type === 'sort') txt += ' · plein ' + pct(o.plein) + (o.sr !== null ? ' (SR ' + Math.round(o.sr) + ' %)' : '');
+            txt += ' · dégâts nets ' + (o.deg_plein !== null ? o.deg_plein : '?') + (o.deg_reduit !== null ? ' (réduit ' + o.deg_reduit + ')' : '');
+            txt += o.attendu !== null ? ' → ~' + o.attendu + ' attendus par tentative (' + o.par_pa + ' / PA)' : ' → non estimable (esquive du monstre inconnue)';
+            var d = ligne(txt, '• ');
+            d.title = (o.esq_src ? 'Esquive du monstre : ' + o.esq_src + '. ' : '') + (o.sr_src ? 'SR : ' + o.sr_src + '. ' : '') + (o.armure !== null && o.armure !== undefined ? 'Armure retirée : ' + o.armure + '. ' : 'Armure du monstre inconnue (non retirée). ') + 'Jet d’attaque : ' + o.des_att + ' D6 ' + (o.bonus_att >= 0 ? '+' : '') + o.bonus_att + '.';
+          });
+          if (!(f.plan || []).length) f.options.forEach(function (o) { // sans plan : l'ancien affichage (historique des frappes)
+            ligne(o.attaque + ' — dégâts ' + o.deg_min + '/' + o.deg_moy + '/' + o.deg_max + (o.chance_toucher !== null ? ', toucher ~' + o.chance_toucher + ' %' : ', toucher inconnu') + (o.peut_finir ? ' → finition : ' + o.peut_finir : ''), '• ');
           });
         });
+        ligne('* coût en PA supposé (4) : à confirmer. Esquive du monstre estimée (jets observés ou dés Mountyzilla), armure de la fiche Mountyzilla si lue. Estimations.', '').style.fontSize = '11px';
         ligne('D\u00e9g\u00e2ts min/moy/max d\u00e9duits des frappes pass\u00e9es de chaque finisseur (sur d\u2019autres monstres : l\u2019armure du monstre n\u2019est pas prise en compte). Estimations.', '').style.fontSize = '11px';
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     });
