@@ -280,3 +280,12 @@ tr.mhx-cible > td { background: var(--mhx-cible) !important; background-image: n
 #mhx-tactique .mhx-fin-res { margin-top: 0; line-height: 1.35; }
 .mhx-tac-head .mhx-tac-btn { margin-left: 6px; }
 .mhx-tac-head h4 { margin-right: auto !important; }
+.mhx-tac-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 3px; }
+.mhx-tac-ideal { font-size: 11px; color: #5a4c25; cursor: pointer; }
+.mhx-chip { font: inherit; font-size: 12px; padding: 0 6px; margin: 1px 0; border-radius: 10px; border: 1px solid var(--mhx-brun); background: rgba(255,255,255,.55); color: var(--mhx-texte); cursor: pointer; }
+.mhx-chip:hover { background: #fff; }
+.mhx-chip-on { background: var(--mhx-brun); color: #fff; border-color: #7d5f27; font-weight: bold; }
+.mhx-chip-on:hover { background: #8b6a2c; }
+.mhx-chip-am { background: #e8d9a8; border-style: dashed; cursor: default; color: var(--mhx-texte); font-weight: bold; padding: 0 6px; border-radius: 10px; }
+.mhx-libres { margin-top: 4px; }
+.mhx-libres .mhx-chip { border-style: dashed; opacity: .85; margin-right: 3px; }

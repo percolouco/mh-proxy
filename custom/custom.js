@@ -2401,6 +2401,81 @@
     var res = el('div', 'mhx-fin-res');
     var planBox = document.getElementById('mhx-tac-plan');
     var btn = document.getElementById('mhx-tac-btn');
+    var TAC = { data: null, ideal: false, sel: {}, cur: [] };
+    var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Projectile Magique/, 'PM').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
+    var pc = function (x) { return Math.round(x * 100) + ' %'; };
+    var majPied = function (carte, pl, sel) { // recalcul serveur de la chance de tuer pour les frappes choisies (dans l'ordre)
+      var pied = carte.querySelector('.mhx-carte-pied'); pied.style.opacity = '.5';
+      var jeton = (carte.mhxJeton = (carte.mhxJeton || 0) + 1);
+      var z = monsterMzRead() || monsterMzGet(id);
+      fetch(PV_MONSTRE_URL + '?id=' + id + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : '') + '&custom=' + encodeURIComponent(JSON.stringify([{ t: pl.t_ts, sel: sel, ideal: TAC.ideal }])), { referrerPolicy: 'no-referrer' })
+        .then(function (r) { return r.ok ? r.json() : null; }).then(function (r) {
+          if (jeton !== carte.mhxJeton) return;
+          pied.style.opacity = '';
+          var c = r && r.plans_custom && r.plans_custom[0];
+          pied.textContent = '\ud83c\udfaf '; if (!c) { pied.appendChild(document.createTextNode('calcul impossible')); return; }
+          pied.appendChild(el('b', null, pc(c.p_kill) + ' de chances')); pied.appendChild(el('span', 'mhx-dep', ' (' + c.degats_attendus + ' dgts attendus)'));
+        }, function () { pied.style.opacity = ''; });
+    };
+    var dessineCarte = function (cls, titre, pl, cle) {
+      var st = TAC.sel[cle]; if (!st) st = TAC.sel[cle] = pl.sel.slice();
+      var carte = el('div', 'mhx-carte ' + cls); carte.appendChild(el('div', 'mhx-carte-t', titre));
+      var corps = el('div'); carte.appendChild(corps);
+      var pied = el('div', 'mhx-carte-pied'); pied.appendChild(document.createTextNode('\ud83c\udfaf ')); pied.appendChild(el('b', null, pc(pl.p_kill) + ' de chances')); pied.appendChild(el('span', 'mhx-dep', ' (' + pl.degats_attendus + ' dgts attendus)'));
+      var opt = {}; pl.options.forEach(function (o) { opt[o.i] = o; });
+      var chip = function (o, actif) {
+        var c = el('button', 'mhx-chip' + (actif ? ' mhx-chip-on' : ''), court(o.attaque)); c.type = 'button';
+        c.title = o.nom + ' \u2014 ' + o.attaque + ' (' + o.quand + ') : clique pour ' + (actif ? 'retirer' : 'ajouter \u00e0 la fin');
+        c.addEventListener('click', function () { var k = st.indexOf(o.i); if (k >= 0) st.splice(k, 1); else st.push(o.i); remplit(); majPied(carte, pl, st); });
+        return c;
+      };
+      var remplit = function () {
+        corps.textContent = '';
+        var groupes = [];
+        st.forEach(function (i) { var o = opt[i]; if (!o) return; var g = groupes[groupes.length - 1]; if (!g || g.troll !== o.troll) { g = { troll: o.troll, nom: o.nom, items: [] }; groupes.push(g); } g.items.push(o); });
+        var vu = {}, amFait = {};
+        groupes.forEach(function (g, n) {
+          var l = el('div', 'mhx-carte-l'); l.appendChild(document.createTextNode((n + 1) + '. ')); l.appendChild(el('b', null, g.nom)); l.appendChild(document.createTextNode(' \u2014 '));
+          g.items.forEach(function (o, k) {
+            var tr = pl.trolls[o.troll] || {};
+            if (k) l.appendChild(document.createTextNode(' + '));
+            if (o.quand === 'apr\u00e8s Acc. m\u00e9tabolique' && tr.am && !amFait[o.troll]) { amFait[o.troll] = 1; l.appendChild(el('span', 'mhx-chip mhx-chip-am', 'AM (\u2248 ' + tr.am.pv + ' PV)')); l.appendChild(document.createTextNode(' + ')); }
+            l.appendChild(chip(o, true));
+          });
+          var dep = !vu[g.troll] && (pl.trolls[g.troll] || {}).dep ? pl.trolls[g.troll].dep.replace(/^([\d.,]+) PA de d\u00e9placement.*$/, '+ DE $1PA') : '';
+          vu[g.troll] = 1; if (dep) l.appendChild(el('span', 'mhx-dep', ' (' + dep + ')'));
+          corps.appendChild(l);
+        });
+        if (!groupes.length) corps.appendChild(el('div', 'mhx-carte-l mhx-dep', 'Aucune frappe : clique sur une frappe ci-dessous.'));
+        var libres = pl.options.filter(function (o) { return st.indexOf(o.i) < 0; });
+        if (libres.length) { var a = el('div', 'mhx-carte-l mhx-libres'); a.appendChild(el('span', 'mhx-dep', 'Ajouter : ')); libres.forEach(function (o) { var c = chip(o, false); c.textContent = o.nom + ' ' + court(o.attaque) + (o.quand === 'apr\u00e8s Acc. m\u00e9tabolique' ? ' (apr\u00e8s AM)' : ''); a.appendChild(c); }); corps.appendChild(a); }
+        TAC.cur = TAC.cur.filter(function (x) { return x.cle !== cle; }); TAC.cur.push({ cle: cle, t: pl.t_ts, sel: st, titre: titre });
+      };
+      remplit(); carte.appendChild(pied); planBox.appendChild(carte);
+      if (st.join() !== pl.sel.join()) majPied(carte, pl, st);
+      return carte;
+    };
+    var dessinePlans = function () {
+      var j = TAC.data; if (!j) return; planBox.textContent = ''; TAC.cur = [];
+      var pf = TAC.ideal && j.plan_finition_ideal ? j.plan_finition_ideal : j.plan_finition;
+      if (!pf) return;
+      var m = TAC.ideal ? 'i' : 'r';
+      var tete = el('div', 'mhx-tac-tete'); tete.appendChild(el('div', 'mhx-tac-t mhx-tac-t-vert', '\ud83e\udded Plan de finition'));
+      var lab = el('label', 'mhx-tac-ideal'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = TAC.ideal;
+      cb.addEventListener('change', function () { TAC.ideal = cb.checked; dessinePlans(); });
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(' Ignorer % de r\u00e9ussite et r\u00e9sistance')); lab.title = 'Hypoth\u00e8se : chaque sort r\u00e9ussit et n\u2019est jamais r\u00e9sist\u00e9 (seuls le toucher et le critique restent al\u00e9atoires)';
+      tete.appendChild(lab); planBox.appendChild(tete);
+      var pl = pf.plan;
+      if (pl) {
+        if (pf.plan_maintenant) dessineCarte('mhx-c-rouge', '\u25b6\ufe0f Maintenant', pf.plan_maintenant, m + 'n');
+        dessineCarte(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? '\u25b6\ufe0f Maintenant' : '\u23f3 Meilleur moment : ' + pl.t.replace(' ', ' \u00e0 '), pl, m + 'm');
+      }
+      var ex = pf.exclus || [];
+      if (ex.length) { var dx = el('div', 'mhx-carte mhx-c-gris'); dx.appendChild(el('div', 'mhx-carte-t', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : ''))); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (\d+) pas \u00e0 faire/, 'trop loin ($1 pas)'))); dx.appendChild(l); }); planBox.appendChild(dx); }
+      (pf.notes || []).forEach(function (n) { var d = el('div', 'mhx-carte mhx-c-orange'); d.appendChild(el('div', 'mhx-carte-t', '\u26a0\ufe0f')); d.appendChild(el('div', 'mhx-carte-l', n)); planBox.appendChild(d); });
+      planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max' + (TAC.ideal ? ' \u2014 sorts toujours r\u00e9ussis, jamais r\u00e9sist\u00e9s' : '')));
+      if (pf.plan) document.getElementById('mhx-tac-wa').style.display = '';
+    };
     var calcule = function () {
       btn.disabled = true; res.textContent = 'Calcul en cours...'; planBox.textContent = '';
       fetch(PV_MONSTRE_URL + '?id=' + id + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (function () { var z = monsterMzRead() || monsterMzGet(id); if (z) monsterMzStore(id, z); return z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : ''; })(), { referrerPolicy: 'no-referrer' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
@@ -2419,33 +2494,7 @@
         var icone = { 'morte': '\u2620\ufe0f', 'finissable': '\u2705', 'bient\u00f4t finissable': '\ud83d\udfe1', 'encore r\u00e9sistante': '\ud83d\udee1\ufe0f' }[j.etat] || '';
         row('\u00c9tat', icone + ' ' + j.etat);
         if (j.esquive) row('Esquive', String(j.esquive.valeur)).title = j.esquive.source;
-        var pf = j.plan_finition; // plan de finition : court, par ordre de frappe
-        if (pf) {
-          var pc = function (x) { return Math.round(x * 100) + ' %'; };
-          planBox.appendChild(el('div', 'mhx-tac-t mhx-tac-t-vert', '\ud83e\udded Plan de finition'));
-          var carte = function (cls, titre) { var d = el('div', 'mhx-carte ' + cls); d.appendChild(el('div', 'mhx-carte-t', titre)); planBox.appendChild(d); return d; };
-          var li = function (d, txt, cls) { var x = el('div', 'mhx-carte-l' + (cls ? ' ' + cls : ''), txt); d.appendChild(x); return x; };
-          var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
-          var dessine = function (cls, titre, pl) {
-            var d = carte(cls, titre);
-            pl.sequence.forEach(function (x) {
-              var acts = x.actions.map(function (a) { return court(a.attaque) + (a.nb > 1 ? ' \u00d7' + a.nb : ''); }).join(' + ');
-              var dep = x.deplacement ? x.deplacement.replace(/^([\d.,]+) PA de d\u00e9placement.*$/, '+ DE $1PA') : '';
-              var l = el('div', 'mhx-carte-l' + (x.type === 'hypno' ? ' mhx-hypno' : '')); l.appendChild(document.createTextNode(x.ordre + '. ')); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' \u2014 ' + acts)); if (dep) l.appendChild(el('span', 'mhx-dep', ' (' + dep + ')')); d.appendChild(l);
-            });
-            var f = el('div', 'mhx-carte-pied'); f.appendChild(document.createTextNode('\ud83c\udfaf ')); f.appendChild(el('b', null, pc(pl.p_kill) + ' de chances')); f.appendChild(el('span', 'mhx-dep', ' (' + pl.degats_attendus + ' dgts attendus)')); d.appendChild(f);
-          };
-          var pl = pf.plan;
-          if (pl) {
-            if (pf.plan_maintenant) dessine('mhx-c-rouge', '\u25b6\ufe0f Maintenant', pf.plan_maintenant);
-            dessine(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? '\u25b6\ufe0f Maintenant' : '\u23f3 Meilleur moment : ' + pl.t.replace(' ', ' \u00e0 '), pl);
-          }
-          var ex = pf.exclus || [];
-          if (ex.length) { var dx = carte('mhx-c-gris', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : '')); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (\d+) pas \u00e0 faire/, 'trop loin ($1 pas)'))); dx.appendChild(l); }); }
-          (pf.notes || []).forEach(function (n) { li(carte('mhx-c-orange', '\u26a0\ufe0f'), n); });
-          planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max'));
-          if (pf.plan) document.getElementById('mhx-tac-wa').style.display = '';
-        }
+        TAC.data = j; TAC.sel = {}; dessinePlans();
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     };
     btn.addEventListener('click', calcule);
@@ -2457,7 +2506,7 @@
       if (!/^\d+$/.test(tid || '')) tid = null;
       if (!tid) { wa.textContent = '\u26a0\ufe0f Troll inconnu : ouvre ta page Profil ou Ma vue puis reviens'; setTimeout(function () { wa.textContent = '\ud83d\udcf2 WhatsApp'; }, 6000); return; }
       wa.disabled = true; wa.textContent = 'Envoi...';
-      var body = 'troll=' + encodeURIComponent(tid) + '&id=' + encodeURIComponent(id) + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : '');
+      var body = 'troll=' + encodeURIComponent(tid) + '&id=' + encodeURIComponent(id) + (MONSTRE_PROCHAIN_TOUR ? '&fin_ms=' + Math.round(MONSTRE_PROCHAIN_TOUR) : '') + (z ? '&mz=' + encodeURIComponent(JSON.stringify(z)) : '') + (TAC.cur.length ? '&ideal=' + (TAC.ideal ? 1 : 0) + '&custom=' + encodeURIComponent(JSON.stringify(TAC.cur.map(function (c) { return { t: c.t, sel: c.sel, ideal: TAC.ideal }; }))) : '');
       fetch(PLAN_WA_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, referrerPolicy: 'no-referrer' })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (r) { wa.textContent = r && r.sent ? '\u2705 Envoy\u00e9' : '\u26a0\ufe0f ' + ((r && r.error) || '\u00e9chec'); setTimeout(function () { wa.disabled = false; wa.textContent = '\ud83d\udcf2 WhatsApp'; }, 4000); })
