@@ -1158,6 +1158,8 @@
     if (res && !res.sig) res.sig = (txt.match(/jet[^:]{0,40}: ?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
     var troll = currentTrollId();
     if (!res || !troll) return;
+    // estimation Mountyzilla du monstre touche (lue sur sa page ou dans Ma vue), pour la ligne \u00ab PV restants \u00bb du message
+    (res.monstres || []).forEach(function (mo) { var z = /^\d+$/.test(mo.id || '') ? (monsterMzGet(mo.id) || ((pvCache()[mo.id] || {}).mz || null)) : null; if (z) mo.mz = z; });
     mhdPost(NOTIF_LANCER_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(res)), function (ok) {
       mhdBadge(ok ? 'Action signal\u00e9e sur WhatsApp' : 'Action : envoi WhatsApp impossible', !ok);
     });
