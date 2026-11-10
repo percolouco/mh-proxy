@@ -1130,6 +1130,25 @@
     return { type: 'faiblesse', cible: { nom: m[1], id: m[2] }, tours: parseInt(m[3], 10), seuil: se ? parseInt(se[1], 10) : null, jet: je ? parseInt(je[1], 10) : null,
       plein: !!(ph && /pleinement/.test(ph[1])), reduit: /EFFET R[E\u00c9]DUIT|partiellement|\u00e0 moiti\u00e9/i.test(apres.slice(0, 400)), effets: eff, sig: (je ? je[1] : '') + '|' + m[2] };
   }
+  // Compétence Lancer de Potions : potion, cible, jets, effet et durée -> groupe WhatsApp.
+  function parseLancerPotion(txt) {
+    if (!/Compétence ?: ?Lancer de Potions?/.test(txt)) return null;
+    var po = /lancer la potion ?: ?\[(\d+)\] (.+?) \((\d+) sur (\d+) ?%\)/.exec(txt);
+    var jc = /utiliser cette compétence[^:]{0,40}: ?jet de (\d+) sur \(?([\d+]+)\)? ?%/.exec(txt);
+    var ci = /Vous avez (?:touché|raté|manqué)e? votre cible ?: ?(?:une?|le|la|l’|l')\s?(.+?) \((\d+)\)/.exec(txt);
+    var ef = /Son effet est le suivant ?: ?(.+?) ?\| ?Durée ?: ?(\d+) tours?/.exec(txt);
+    var pa = /coûté (\d+) PA/.exec(txt), co = /(\d+) ?% de concentration/.exec(txt);
+    if (!po && !jc) return null;
+    var seuil = null;
+    if (jc) { seuil = 0; jc[2].split('+').forEach(function (v) { seuil += parseInt(v, 10) || 0; }); }
+    var effs = [], re = /\b([A-Z]{2,5}) ?: ?(-?\d+)/g, x;
+    if (ef) while ((x = re.exec(ef[1]))) effs.push({ k: x[1], v: parseInt(x[2], 10) });
+    return { type: 'potion', potion: po ? { id: po[1], nom: po[2], jet: parseInt(po[3], 10), sur: parseInt(po[4], 10) } : null,
+      comp: jc ? { jet: parseInt(jc[1], 10), seuil: seuil, ok: /R\u00c9USSI/.test(txt.slice(Math.max(0, jc.index - 60), jc.index)) } : null,
+      reussi: !!po && /réussi à lancer la potion/.test(txt), touche: !!ci && /touché/.test(txt.slice(Math.max(0, ci.index), ci.index + 20)),
+      cible: ci ? { nom: ci[1], id: ci[2] } : null, effets: effs, tours: ef ? parseInt(ef[2], 10) : null, pa: pa ? parseInt(pa[1], 10) : null, conc: co ? parseInt(co[1], 10) : null,
+      sig: (jc ? jc[1] : '') + '|' + (po ? po[1] + '|' + po[3] : '') + '|' + (ci ? ci[2] : '') };
+  }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
@@ -1151,6 +1170,13 @@
     if (tre && troll0) {
       mhdPost(NOTIF_TRESOR_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(tre)), function (ok) {
         mhdBadge(ok ? 'Tr\u00e9sor utilis\u00e9 signal\u00e9 sur WhatsApp' : 'Tr\u00e9sor : envoi WhatsApp impossible', !ok);
+      });
+      return;
+    }
+    var pot = parseLancerPotion(txt);
+    if (pot && troll0) {
+      mhdPost(NOTIF_LANCER_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(pot)), function (ok) {
+        mhdBadge(ok ? 'Lancer de potion signal\u00e9 sur WhatsApp' : 'Potion : envoi WhatsApp impossible', !ok);
       });
       return;
     }
