@@ -2498,7 +2498,7 @@
         dessineCarte(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? '\u25b6\ufe0f Maintenant' : '\u23f3 Meilleur moment : ' + pl.t.replace(' ', ' \u00e0 '), pl, m + 'm');
       }
       var ex = pf.exclus || [];
-      if (ex.length) { var dx = el('div', 'mhx-carte mhx-c-gris'); dx.appendChild(el('div', 'mhx-carte-t', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : ''))); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (\d+) pas \u00e0 faire/, 'trop loin ($1 pas)'))); dx.appendChild(l); }); planBox.appendChild(dx); }
+      if (ex.length) { var dx = el('div', 'mhx-carte mhx-c-gris'); dx.appendChild(el('div', 'mhx-carte-t', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : ''))); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (.+)$/, 'trop loin ($1)'))); dx.appendChild(l); }); planBox.appendChild(dx); }
       (pf.notes || []).forEach(function (n) { var d = el('div', 'mhx-carte mhx-c-orange'); d.appendChild(el('div', 'mhx-carte-t', '\u26a0\ufe0f')); d.appendChild(el('div', 'mhx-carte-l', n)); planBox.appendChild(d); });
       planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max' + (TAC.ideal ? ' \u2014 sorts toujours r\u00e9ussis, jamais r\u00e9sist\u00e9s' : '')));
       if (pf.plan) document.getElementById('mhx-tac-wa').style.display = '';
