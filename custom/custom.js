@@ -2293,6 +2293,7 @@
   // Aggro : derniere personne frappee par un monstre. Page du monstre : lue dans ses evenements, affichee et envoyee
   // au serveur MH (table mh_aggro) ; page Ma vue : colonne « Aggro » entre PV et Ref., lue sur le serveur.
   var AGGRO_URL = 'https://mh.percolouco.com/notif/aggro.php';
+  var AGGRO_LAST = null; // derni\u00e8re cible vis\u00e9e par ce monstre (page MonsterView), null si inconnue
   // Derniere cible visee d'apres les evenements d'une page de monstre (document deja charge ou recupere en arriere-plan).
   // Renvoie null si le tableau d'evenements est absent, {vide:true} s'il ne contient aucun coup du monstre.
   function aggroLast(doc, raw) {
@@ -2346,13 +2347,16 @@
     if (!last) return;
     var id = last.monstre || (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
     if (!last.vide) {
-      var box = document.createElement('div');
-      box.className = 'mhx-monstre';
-      box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible vis\u00e9e :</b> ';
-      box.appendChild(document.createTextNode(last.nom + ' (' + last.cible + ') le ' + last.date));
-      var form = document.querySelector('form[action=""]');
-      if (form && form.parentNode) form.parentNode.insertBefore(box, form);
-      else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+      AGGRO_LAST = last; // affich\u00e9e tout en bas de \u00ab Infos monstre \u00bb (Analyse tactique)
+      if (!document.getElementById('mhx-tactique')) { // pas de fiche d'analyse : ancienne bo\u00eete autonome
+        var box = document.createElement('div');
+        box.className = 'mhx-monstre';
+        box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible vis\u00e9e :</b> ';
+        box.appendChild(document.createTextNode(last.nom + ' (' + last.cible + ') le ' + last.date));
+        var form = document.querySelector('form[action=""]');
+        if (form && form.parentNode) form.parentNode.insertBefore(box, form);
+        else if (document.body) document.body.insertBefore(box, document.body.firstChild);
+      }
     }
     var me = aggroTroll();
     if (me && id) aggroSend(me, id, last);
@@ -2521,6 +2525,7 @@
         var icone = { 'morte': '\u2620\ufe0f', 'finissable': '\u2705', 'bient\u00f4t finissable': '\ud83d\udfe1', 'encore r\u00e9sistante': '\ud83d\udee1\ufe0f' }[j.etat] || '';
         row('\u00c9tat', icone + ' ' + j.etat);
         if (j.esquive) row('Esquive', String(j.esquive.valeur)).title = j.esquive.source;
+        if (AGGRO_LAST) row('Aggro', AGGRO_LAST.nom + ' (' + AGGRO_LAST.cible + ')').title = 'Derni\u00e8re cible vis\u00e9e par le monstre, le ' + AGGRO_LAST.date;
         TAC.data = j; TAC.sel = {}; dessinePlans();
       }, function () { btn.disabled = false; res.textContent = 'Serveur injoignable.'; });
     };
