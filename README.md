@@ -241,3 +241,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 1.1.0 | 2026-11-10 | Compétence Lancer de Potions : potion, jets (compétence et lancer), cible touchée, effet et durée, PA lus dans la page de résultat et envoyés dans le groupe WhatsApp (type `potion`). |
 | 1.1.1 | 2026-11-10 | Plan de finition : « trop loin » exprimé en cases / niveaux (au lieu de « pas »). |
 | 1.1.2 | 2026-11-10 | Fiche monstre : l'Aggro (dernière cible visée par le monstre, lue dans ses événements) est affichée tout en bas de « Infos monstre » de l'Analyse tactique, quand elle est connue (plus de boîte séparée). |
+| 1.1.3 | 2026-11-12 | Fiche monstre : suppression de l'encadré « ⚔️ Aggro » (la donnée reste dans « Infos monstre » de l'Analyse tactique). |

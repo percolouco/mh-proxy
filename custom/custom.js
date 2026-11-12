@@ -2348,15 +2348,6 @@
     var id = last.monstre || (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
     if (!last.vide) {
       AGGRO_LAST = last; // affich\u00e9e tout en bas de \u00ab Infos monstre \u00bb (Analyse tactique)
-      if (!document.getElementById('mhx-tactique')) { // pas de fiche d'analyse : ancienne bo\u00eete autonome
-        var box = document.createElement('div');
-        box.className = 'mhx-monstre';
-        box.innerHTML = '<h4>\u2694\ufe0f Aggro</h4><b>Derni\u00e8re cible vis\u00e9e :</b> ';
-        box.appendChild(document.createTextNode(last.nom + ' (' + last.cible + ') le ' + last.date));
-        var form = document.querySelector('form[action=""]');
-        if (form && form.parentNode) form.parentNode.insertBefore(box, form);
-        else if (document.body) document.body.insertBefore(box, document.body.firstChild);
-      }
     }
     var me = aggroTroll();
     if (me && id) aggroSend(me, id, last);
