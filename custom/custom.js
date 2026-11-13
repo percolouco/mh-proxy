@@ -3351,6 +3351,9 @@
           if (String(m.id) === sid && p.obs && (!vu || p.obs > vu.o)) vu = { x: m.x, y: m.y, n: m.n, o: p.obs, t: 'vu le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') };
         });
       });
+      // derni\u00e8re position vue dans les vues du groupe (serveur), conserv\u00e9e avec sa date
+      var sv = null; data.cibles.forEach(function (c) { if (String(c.monstre) === sid && c.vu) sv = c.vu; });
+      if (sv && (!vu || (vu.o && sv.at > vu.o))) vu = { x: sv.x, y: sv.y, n: sv.n, t: 'vu le ' + sv.at.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') };
       return vu ? ' \u2014 X=' + vu.x + ' Y=' + vu.y + ' N=' + vu.n + ' (' + vu.t + ')' : ' \u2014 position inconnue';
     };
     var ensure = function () {
