@@ -820,7 +820,7 @@
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
     var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt) || /R\u00e9sultat de l.action : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt);
-    if (!tt || !/jet de \d+ sur \d+ ?%/.test(txt)) return;
+    if (!tt || !/jet de \d+ sur [\d+() ]+ ?%/.test(txt)) return;
     var troll = currentTrollId();
     if (!troll) return;
     var degats = 0;
