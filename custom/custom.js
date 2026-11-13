@@ -266,6 +266,31 @@
   // pour chaque gowap de la liste commune on envoie au serveur MH ses infos du moment (DLA, PA, PV, vue, position, poids, ordres).
   // A chaque ouverture de la page (10 s minimum entre deux lectures), puis toutes les 60 s tant que la page reste ouverte.
   var INFOS_URL = 'https://mh.percolouco.com/gowap/gowap_infos.php';
+  // Etat d'un suivant (ex. [Immobilis\u00e9 ou Surcharg\u00e9]) : seulement sur sa fiche Profil (simple GET, lecture seule), relue au plus toutes les 10 minutes par suivant.
+  var GETAT_KEY = 'mhx-gowap-etat';
+  function gowapEtat(gid, cb) {
+    var all = {};
+    try { all = JSON.parse(localStorage.getItem(GETAT_KEY) || '{}') || {}; } catch (e) { all = {}; }
+    var c = all[gid];
+    if (c && Date.now() - c.t < 10 * 60 * 1000) { cb(c.e); return; }
+    fetch('/mountyhall/MH_Play/Play_a_Action.php?type=F&id=-4&id_target=' + gid, { credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+      .then(function (buf) {
+        if (!buf) { cb(c ? c.e : null); return; }
+        var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(buf), 'text/html'), res = null;
+        var profil = false; // la ligne \u00ab Etat \u00bb n'existe que si le suivant a un \u00e9tat particulier : on v\u00e9rifie donc d'abord que c'est bien la fiche Profil
+        doc.querySelectorAll('td').forEach(function (td) {
+          var t = td.textContent.trim();
+          if (t === 'Description') profil = true;
+          if (res === null && t === 'Etat' && td.nextElementSibling) res = td.nextElementSibling.textContent.replace(/[\s\u00a0]+/g, ' ').trim();
+        });
+        if (!profil) { cb(c ? c.e : null); return; } // page non reconnue : on ne change rien
+        if (res === null) res = '';
+        all[gid] = { e: res, t: Date.now() };
+        try { localStorage.setItem(GETAT_KEY, JSON.stringify(all)); } catch (e) { /* stockage indisponible */ }
+        cb(res);
+      }).catch(function () { cb(c ? c.e : null); });
+  }
   var GINFO_KEY = 'mhx-gowap-infos-t';
   function majInfosGowaps(apres, force) {
     if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body) return;
@@ -306,7 +331,11 @@
           });
           var suite = function (i) {
             if (i >= envois.length) { if (apres) apres(); return; }
-            mhdPost(INFOS_URL, 'id=' + envois[i][0] + '&troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(envois[i][1])), function () { suite(i + 1); });
+            var envoyer = function (etat) {
+              if (etat !== null && etat !== undefined) envois[i][1].etat = etat; // \u00e9tat lu sur la fiche Profil (ex. \u00ab Immobilis\u00e9 ou Surcharg\u00e9 \u00bb), '' = aucun
+              mhdPost(INFOS_URL, 'id=' + envois[i][0] + '&troll=' + id + '&data=' + encodeURIComponent(JSON.stringify(envois[i][1])), function () { suite(i + 1); });
+            };
+            gowapEtat(envois[i][0], envoyer);
           };
           suite(0);
         })
@@ -356,10 +385,11 @@
         c.appendChild(l);
         // poids port\u00e9 > moiti\u00e9 de sa dur\u00e9e de tour : surcharg\u00e9 / immobilis\u00e9 (alerte visuelle)
         var pmin = lv && lv.poids ? parseInt(lv.poids, 10) : NaN;
-        if (feat('turnstart_surcharge') && !isNaN(pmin) && lv.tour > 0 && pmin > lv.tour / 2) {
+        var etatImmo = lv && /Immobilis|Surcharg/i.test(lv.etat || '');
+        if (feat('turnstart_surcharge') && (etatImmo || (!isNaN(pmin) && lv.tour > 0 && pmin > lv.tour / 2))) {
           c.classList.add('mhx-mg-surcharge');
           var al = document.createElement('span'); al.className = 'mhx-mg-alerte'; al.textContent = ' \u26a0 SURCHARG\u00c9 / IMMOBILIS\u00c9';
-          al.title = 'Poids port\u00e9 : ' + pmin + ' minutes, plus de la moiti\u00e9 de son tour (' + Math.round(lv.tour / 2) + ' minutes)';
+          al.title = etatImmo ? '\u00c9tat indiqu\u00e9 par le jeu : ' + lv.etat : 'Poids port\u00e9 : ' + pmin + ' minutes, plus de la moiti\u00e9 de son tour (' + Math.round(lv.tour / 2) + ' minutes)';
           c.appendChild(al);
         }
         var lignes = [], resume = [];
