@@ -2485,7 +2485,7 @@
       var tete = el('div', 'mhx-tac-tete'); tete.appendChild(el('div', 'mhx-tac-t mhx-tac-t-vert', '\ud83e\udded Plan de finition'));
       var lab = el('label', 'mhx-tac-ideal'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = !TAC.ideal;
       cb.addEventListener('change', function () { TAC.ideal = !cb.checked; dessinePlans(); });
-      lab.appendChild(cb); lab.appendChild(document.createTextNode(' Tenir compte des % de r\u00e9ussite et du seuil de r\u00e9sistance')); lab.title = 'D\u00e9coch\u00e9 (plan parfait) : chaque sort r\u00e9ussit et n\u2019est jamais r\u00e9sist\u00e9, seuls le toucher et le critique restent al\u00e9atoires';
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(' Tenir compte des % de r\u00e9ussite et du seuil de r\u00e9sistance')); lab.title = 'D\u00e9coch\u00e9 (plan parfait) : chaque sort r\u00e9ussit et n\u2019est jamais r\u00e9sist\u00e9, seuls le toucher et le critique restent al\u00e9atoires. Avec l\u2019Hypnotisme, ou si le finisseur a plus de 60 % de chances de critique, seuls les d\u00e9g\u00e2ts critiques sont compt\u00e9s';
       tete.appendChild(lab); planBox.appendChild(tete);
       var pl = pf.plan;
       if (pl) {
@@ -2495,7 +2495,7 @@
       var ex = pf.exclus || [];
       if (ex.length) { var dx = el('div', 'mhx-carte mhx-c-gris'); dx.appendChild(el('div', 'mhx-carte-t', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : ''))); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (.+)$/, 'trop loin ($1)'))); dx.appendChild(l); }); planBox.appendChild(dx); }
       (pf.notes || []).forEach(function (n) { var d = el('div', 'mhx-carte mhx-c-orange'); d.appendChild(el('div', 'mhx-carte-t', '\u26a0\ufe0f')); d.appendChild(el('div', 'mhx-carte-l', n)); planBox.appendChild(d); });
-      planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max' + (TAC.ideal ? ' \u2014 sorts toujours r\u00e9ussis, jamais r\u00e9sist\u00e9s' : '')));
+      planBox.appendChild(el('div', 'mhx-tac-note', '*Simulation sur PV max' + (TAC.ideal ? ' \u2014 sorts toujours r\u00e9ussis, jamais r\u00e9sist\u00e9s ; critiques seuls avec Hypnotisme ou si plus de 60 % de chances de critique' : '')));
       if (pf.plan) document.getElementById('mhx-tac-wa').style.display = '';
     };
     var calcule = function () {
