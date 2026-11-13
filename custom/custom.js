@@ -279,7 +279,7 @@
         if (!buf) { cb(c ? c.e : null); return; }
         var doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(buf), 'text/html'), res = null;
         var profil = false; // la ligne \u00ab Etat \u00bb n'existe que si le suivant a un \u00e9tat particulier : on v\u00e9rifie donc d'abord que c'est bien la fiche Profil
-        doc.querySelectorAll('td').forEach(function (td) {
+        doc.querySelectorAll('th, td').forEach(function (td) {
           var t = td.textContent.trim();
           if (t === 'Description') profil = true;
           if (res === null && t === 'Etat' && td.nextElementSibling) res = td.nextElementSibling.textContent.replace(/[\s\u00a0]+/g, ' ').trim();
@@ -1517,6 +1517,28 @@
 
   // Page \u00ab Suivants \u00bb : affiche la date limite d'action (DLA) de chaque suivant dans son encart bleu.
   // Elle est déjà dans le data-json du <h3> : aucune requête supplémentaire.
+  // Page Suivants : alerte rouge « immobilis\u00e9 / surcharg\u00e9 » sur chaque suivant dont la fiche Profil indique cet \u00e9tat (lecture seule, une fiche \u00e0 la fois, 10 min de cache)
+  function addSuivantsEtat() {
+    if (!/\/Play_e_follo\.php$/.test(location.pathname)) return;
+    var liste = [];
+    document.querySelectorAll('.monstre-entete h3[data-json]').forEach(function (h3) {
+      var d; try { d = JSON.parse(h3.getAttribute('data-json')); } catch (e) { return; }
+      if (d && d.id && !h3.querySelector('.mhx-immo')) liste.push([d.id, h3]);
+    });
+    (function suite(i) {
+      if (i >= liste.length) return;
+      gowapEtat(liste[i][0], function (etat) {
+        if (etat && /Immobilis|Surcharg/i.test(etat) && !liste[i][1].querySelector('.mhx-immo')) {
+          var al = document.createElement('span');
+          al.className = 'mhx-immo'; al.textContent = ' \u26a0 IMMOBILIS\u00c9 / SURCHARG\u00c9';
+          al.style.cssText = 'color:#fff;background:#c00;border-radius:3px;padding:1px 6px;font-size:12px;margin-left:6px;white-space:nowrap';
+          al.title = '\u00c9tat indiqu\u00e9 par le jeu sur la fiche Profil : ' + etat;
+          liste[i][1].appendChild(al);
+        }
+        suite(i + 1);
+      });
+    })(0);
+  }
   function addFollowerDla() {
     if (!/\/Play_e_follo\.php$/.test(location.pathname)) return;
     var pad = function (n) { return (n < 10 ? '0' : '') + n; };
@@ -4081,6 +4103,7 @@
       ['suivants_pa', 'PA disponibles \u00e0 c\u00f4t\u00e9 de la DLA de chaque suivant (page Suivants)'],
       ['suivants_vue', 'Port\u00e9e de vue de chaque suivant (page Suivants)'],
       ['suivants_hors_vue', 'Picto \u00ab hors de la vue du troll \u00bb sur les suivants (page Suivants)'],
+      ['suivants_immo', 'Alerte immobilis\u00e9 / surcharg\u00e9 sur chaque suivant (page Suivants)'],
       ['turnstart_surcharge', 'Alerte gowap surcharg\u00e9 / immobilis\u00e9 (page de connexion)'],
       ['ordres_dla', 'PA et DLA estim\u00e9s sur les ordres de d\u00e9placement (page Ordres)'],
       ['transbahuter_gowaps', 'Couleur et poids port\u00e9 des gowaps (page Transbahuter)'],
@@ -4251,7 +4274,7 @@
     setTimeout(tente, 2500); // le jeu charge les tableaux apres l'ouverture de la page
   }
 
-  function demarrer() { addLoginGarde(); try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); feat('vue_cumuls') && addCumulsButton(); } feat('vue_maj_it') && sendVueMaj(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { addLoginGarde(); try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); feat('vue_cumuls') && addCumulsButton(); } feat('vue_maj_it') && sendVueMaj(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('suivants_immo') && addSuivantsEtat(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
