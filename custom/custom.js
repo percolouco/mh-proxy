@@ -3649,7 +3649,7 @@
         var c = tr.cells;
         if (!c || c.length < 3 || tr.getAttribute('data-mhx-ev')) return;
         var d = /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/.exec(c[0].textContent);
-        var ty = c[1].textContent, kinds = /COMBAT/i.test(ty) ? ['combat'] : /MONSTRE/i.test(ty) ? ['pouvoir'] : /SORTIL/i.test(ty) ? ['sort'] : /COMP.TENCE/i.test(ty) ? ['competence'] : null; // COMBAT : attaques ; MONSTRE : pouvoirs ; SORTILEGE / COMPETENCE
+        var ty = c[1].textContent, kinds = /COMBAT/i.test(ty) ? ['combat'] : /MONSTRE/i.test(ty) ? ['pouvoir'] : /SORTIL/i.test(ty) ? ['sort'] : /POTION/i.test(ty) ? ['competence'] : /COMP.TENCE/i.test(ty) ? ['competence'] : null; // COMBAT : attaques ; MONSTRE : pouvoirs ; SORTILEGE / COMPETENCE
         if (!d || !kinds) return;
         var ts = epoch(d, [null, d[4], d[5], d[6]]);
         var txt = c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, '');
@@ -3657,7 +3657,8 @@
           var m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(e.event_time || '');
           if (!m) return false;
           var te = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000;
-          return kinds.indexOf(e.kind) !== -1 && Math.abs(te - ts) <= 2 && (e.actor_id || e.target_id) && (!e.actor_id || txt.indexOf('(' + e.actor_id + ')') !== -1) && (!e.target_id || txt.indexOf('(' + e.target_id + ')') !== -1);
+          var dt = te - ts; // les mails sans \u00ab Il \u00e9tait alors \u00bb (sorts, comp\u00e9tences, potions) sont dat\u00e9s en UTC : d\u00e9calage de 1 h (hiver) ou 2 h (\u00e9t\u00e9) tol\u00e9r\u00e9
+          return kinds.indexOf(e.kind) !== -1 && (Math.abs(dt) <= 2 || Math.abs(dt + 3600) <= 2 || Math.abs(dt + 7200) <= 2) && (e.actor_id || e.target_id) && (!e.actor_id || txt.indexOf('(' + e.actor_id + ')') !== -1) && (!e.target_id || txt.indexOf('(' + e.target_id + ')') !== -1);
         });
         var cd = kinds[0] === 'competence' ? cdmFor(ts, txt) : null, cdh = cd ? cdmHtml(cd) : '';
         if (!found.length) {
