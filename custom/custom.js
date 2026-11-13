@@ -819,7 +819,7 @@
   function sendKiki() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
-    var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt);
+    var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt) || /R\u00e9sultat de l.action : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt);
     if (!tt || !/jet de \d+ sur \d+ ?%/.test(txt)) return;
     var troll = currentTrollId();
     if (!troll) return;
@@ -827,7 +827,7 @@
     (txt.match(/inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/g) || []).forEach(function (x) { degats = Math.max(degats, parseInt(x.replace(/\D/g, ''), 10)); });
     var cible = /(?:attaqu\u00e9|lanc\u00e9|saisir) (?:une|un|la|le|l\u2019|l')?\s?(.+?) \(\d+\)/.exec(txt);
     var data = {
-      nom: tt[1], reussi: /Vous avez R\u00c9USSI \u00e0 utiliser/.test(txt), reduit: kikiReduit(txt), degats: degats, cible: cible ? cible[1] : '',
+      pa: (function () { var m = /co\u00fbt\u00e9 (\d+) PA/.exec(txt); return m ? parseInt(m[1], 10) : 0; })(), nom: tt[1], reussi: /Vous avez R\u00c9USSI \u00e0 utiliser/.test(txt), reduit: kikiReduit(txt), degats: degats, cible: cible ? cible[1] : '',
       sig: (txt.match(/(?:jet de|Jet de R\u00e9sistance :?|Jet d'Attaque est de :?) ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|')
     };
     mhdPost(NOTIF_KIKI_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
@@ -1118,7 +1118,7 @@
     if (pv) mon.pv = parseInt(pv[1], 10);
     if (px) mon.px = parseInt(px[1], 10);
     var jets = (txt.match(/(?:Votre jet d'Attaque|Le jet (?:d'Esquive|de r\u00e9flexe) de votre adversaire|Jet de R\u00e9sistance) (?:est de )?: ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|');
-    var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt); // titre de l'\u00e9cran : \u00ab Sortil\u00e8ge : Vampirisme \u00bb
+    var tt = /(?:Comp\u00e9tence|Sortil\u00e8ge) : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt) || /R\u00e9sultat de l.action : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt); // titre de l'\u00e9cran : \u00ab Sortil\u00e8ge : Vampirisme \u00bb
     return { type: 'attaque', nom: tt ? tt[1] : '', moyen: m[3] === 'un sortil\u00e8ge' ? 'sortil\u00e8ge' : 'comp\u00e9tence', effet: ef ? ef[1].toLowerCase().replace('reduit', 'r\u00e9duit') : (plein ? 'plein' : ''), critique: crit, sig: jets, monstres: [mon] };
   }
   // Sortilège sans dégâts (Hypnotisme...) : cible influencée, effet et état de la cible.
