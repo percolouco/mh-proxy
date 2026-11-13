@@ -827,7 +827,7 @@
     (txt.match(/inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/g) || []).forEach(function (x) { degats = Math.max(degats, parseInt(x.replace(/\D/g, ''), 10)); });
     var cible = /(?:attaqu\u00e9|lanc\u00e9|saisir) (?:une|un|la|le|l\u2019|l')?\s?(.+?) \(\d+\)/.exec(txt);
     var data = {
-      pa: (function () { var m = /co(?:u|\u00fb)t\u00e9 (\d+) PA/.exec(txt); return m ? parseInt(m[1], 10) : 0; })(), nom: tt[1], reussi: /Vous avez R\u00c9USSI \u00e0 utiliser/.test(txt), reduit: kikiReduit(txt), degats: degats, cible: cible ? cible[1] : '',
+      sr: /Jet de R\u00e9sistance/i.test(txt) || kikiReduit(txt), pa: (function () { var m = /co(?:u|\u00fb)t\u00e9 (\d+) PA/.exec(txt); return m ? parseInt(m[1], 10) : 0; })(), nom: tt[1], reussi: /Vous avez R\u00c9USSI \u00e0 utiliser/.test(txt), reduit: kikiReduit(txt), degats: degats, cible: cible ? cible[1] : '',
       sig: (txt.match(/(?:jet de|Jet de R\u00e9sistance :?|Jet d'Attaque est de :?) ?-?\d+/g) || []).map(function (x) { return x.replace(/\D/g, ''); }).join('|')
     };
     mhdPost(NOTIF_KIKI_URL, 'troll=' + troll + '&data=' + encodeURIComponent(JSON.stringify(data)), function () {});
@@ -845,7 +845,7 @@
       var lignes = [
         { nom: 'Essais', val: function (t) { return t.essais || null; }, txt: function (t) { return String(t.essais); }, mode: null },
         { nom: 'Rat\u00e9s / essai', val: function (t) { return pct(t.rates, t.essais); }, txt: function (t) { return t.essais ? t.rates + ' / ' + t.essais + ' (' + Math.round(pct(t.rates, t.essais)) + ' %)' : '-'; }, mode: 'bas' },
-        { nom: 'R\u00e9duits / essai', val: function (t) { return pct(t.reduits, t.essais); }, txt: function (t) { return t.essais ? t.reduits + ' / ' + t.essais + ' (' + Math.round(pct(t.reduits, t.essais)) + ' %)' : '-'; }, mode: 'bas' },
+        { nom: 'R\u00e9duits / jet de SR', val: function (t) { return pct(t.reduits, t.essais_sr); }, txt: function (t) { return t.essais_sr ? t.reduits + ' / ' + t.essais_sr + ' (' + Math.round(pct(t.reduits, t.essais_sr)) + ' %)' : '-'; }, tip: function () { return 'Seulement les actions qui provoquent un jet de r\u00e9sistance (cibles monstre ou troll)'; }, mode: 'bas' },
         { nom: 'D\u00e9g\u00e2t max', val: function (t) { return t.degat_max || null; }, txt: function (t) { return t.degat_max ? String(t.degat_max) : '-'; }, tip: function (t) { return t.degat_max ? t.degat_max_sort + (t.degat_max_nom ? ' sur ' + t.degat_max_nom : '') : ''; }, mode: 'haut' }
       ];
       var wrap = document.createElement('div');
