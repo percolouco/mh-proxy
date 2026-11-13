@@ -141,6 +141,87 @@
     });
   }
 
+  // Page Ma vue : bouton « Cumuls » -> aperçu du message (heures de cumul des trolls du groupe ToD, ou forces de frappe à l'heure du cumul d'un troll « trigger »)
+  // -> « Confirmer » -> groupe WhatsApp. Rien n'est envoyé avant le clic sur Confirmer ; l'aperçu est calculé par le serveur (lecture seule).
+  var NOTIF_CUMULS_URL = 'https://mh.percolouco.com/notif/cumuls_whatsapp.php';
+  var CUMULS_GROUPE = [['95681', 'Perco'], ['101587', 'Killdray'], ['113075', 'Telekom'], ['113379', 'Flak Flak'], ['101586', 'Taotd']];
+  function addCumulsButton() {
+    if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
+    var tries = 0;
+    (function place() {
+      var tab = document.getElementById('VUE_trolls');
+      if (!tab) { if (++tries < 20) setTimeout(place, 500); return; }
+      if (document.getElementById('mhx-cumuls-btn') || !tab.parentNode) return;
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'margin: 4px 0; text-align: left;';
+      var b = document.createElement('input');
+      b.type = 'button'; b.id = 'mhx-cumuls-btn'; b.className = 'mh_form_submit';
+      b.value = '📲 Cumuls du groupe';
+      b.title = 'Envoyer sur WhatsApp les heures de cumul des trolls du groupe (aperçu et confirmation avant l’envoi)';
+      b.addEventListener('click', ouvre);
+      wrap.appendChild(b);
+      tab.parentNode.insertBefore(wrap, tab);
+    })();
+    function ouvre() {
+      if (document.getElementById('mhx-sacro-pop')) return;
+      var troll = currentTrollId();
+      var ov = document.createElement('div'); ov.id = 'mhx-sacro-pop';
+      var box = document.createElement('div'); box.className = 'mhx-sacro-box';
+      var head = document.createElement('div'); head.className = 'mh_tdtitre mhx-sacro-head';
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'mhx-sacro-x'; x.textContent = '×'; x.title = 'Fermer'; x.setAttribute('aria-label', 'Fermer');
+      head.appendChild(x);
+      var body = document.createElement('div'); body.className = 'mhx-sacro-body';
+      var q = document.createElement('div'); q.textContent = 'Envoyer ce message sur WhatsApp ?';
+      var lab = document.createElement('label'); lab.style.cssText = 'display:block; margin: 8px 0; font-size: 13px;';
+      lab.appendChild(document.createTextNode('Troll « trigger » (facultatif) : '));
+      var sel = document.createElement('select');
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— aucun (cumuls seuls) —'; sel.appendChild(o0);
+      CUMULS_GROUPE.forEach(function (g) { var o = document.createElement('option'); o.value = g[0]; o.textContent = g[1]; sel.appendChild(o); });
+      lab.appendChild(sel);
+      var prev = document.createElement('div');
+      prev.className = 'mhx-sacro-who'; prev.style.cssText = 'text-align: left; white-space: pre-line; font-weight: normal; background: rgba(255,255,255,.6); border: 1px solid #b9a77a; border-radius: 6px; padding: 8px;';
+      prev.textContent = 'Calcul en cours...';
+      var st = document.createElement('div'); st.className = 'mhx-sacro-st';
+      var btns = document.createElement('div');
+      var mk = function (label) { var bt = document.createElement('input'); bt.type = 'button'; bt.className = 'mh_form_submit mhx-sacro-btn'; bt.value = label; return bt; };
+      var ok = mk('Confirmer'), no = mk('Annuler');
+      ok.disabled = true;
+      var jeton = 0;
+      var charge = function () {
+        var n = ++jeton; ok.disabled = true; st.textContent = ''; prev.style.opacity = '.5';
+        fetch(NOTIF_CUMULS_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body: 'dry=1&troll=' + encodeURIComponent(troll || 0) + '&trigger=' + encodeURIComponent(sel.value) })
+          .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
+          .then(function (j) {
+            if (n !== jeton) return;
+            prev.style.opacity = '';
+            if (j && j.message) { prev.textContent = j.message; ok.disabled = false; } else prev.textContent = 'Calcul impossible' + (j && j.error ? ' : ' + j.error : '.');
+          });
+      };
+      sel.addEventListener('change', charge);
+      var close = function () { document.removeEventListener('keydown', onKey); if (ov.parentNode) ov.parentNode.removeChild(ov); };
+      var onKey = function (ev) { if (ev.key === 'Escape') close(); };
+      no.addEventListener('click', close); x.addEventListener('click', close);
+      document.addEventListener('keydown', onKey);
+      ov.addEventListener('click', function (ev) { if (ev.target === ov) close(); });
+      ok.addEventListener('click', function () {
+        if (!troll) { st.textContent = 'Troll connecté introuvable.'; return; }
+        ok.disabled = true; st.textContent = 'Envoi...';
+        fetch(NOTIF_CUMULS_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body: 'troll=' + encodeURIComponent(troll) + '&trigger=' + encodeURIComponent(sel.value) })
+          .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
+          .then(function (j) {
+            if (j && j.sent) { st.textContent = 'Message envoyé sur WhatsApp.'; setTimeout(close, 1200); }
+            else { st.textContent = j && j.raison ? 'Pas envoyé : ' + j.raison + '.' : 'Envoi impossible.'; ok.disabled = !(j && j.raison) ? false : true; }
+          });
+      });
+      btns.appendChild(ok); btns.appendChild(no);
+      body.appendChild(q); body.appendChild(lab); body.appendChild(prev); body.appendChild(st); body.appendChild(btns);
+      box.appendChild(head); box.appendChild(body); ov.appendChild(box); document.body.appendChild(ov);
+      charge();
+    }
+  }
+
   // Page Ma vue : picto à côté du nom des monstres touchés par un Flash Aveuglant (durée approximative : tours x durée du tour du lanceur).
   function addEffectIcons() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
@@ -3947,6 +4028,7 @@
       ['vue_chasse', 'Gestion de la chasse : cibles prioritaires et positions de chasse du groupe'],
       ['vue_trolls_etat', 'Colonnes PA / PV / DLA des trolls'],
       ['vue_sacro', 'Clic sur les PV d\u2019un troll pour demander un sacro'],
+      ['vue_cumuls', 'Bouton \u00ab Cumuls du groupe \u00bb : heures de cumul (et forces de frappe d\u2019un troll \u00ab trigger \u00bb) envoy\u00e9es sur WhatsApp'],
       ['vue_maj_it', 'Mise \u00e0 jour de ta vue dans l\u2019IT quand tu ouvres Ma vue (partielle si filtres, rien de supprim\u00e9 hors du cadre affich\u00e9)']
     ]],
     ['Pages monstre et troll', [
@@ -4133,7 +4215,7 @@
     setTimeout(tente, 2500); // le jeu charge les tableaux apres l'ouverture de la page
   }
 
-  function demarrer() { addLoginGarde(); try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); } feat('vue_maj_it') && sendVueMaj(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
+  function demarrer() { addLoginGarde(); try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } addVueSwitch(); syncVuePref(); applyBlocs(); if (vueEnabled()) { feat('vue_pv') && addMonsterPv(); feat('vue_aggro') && addAggroCol(); feat('vue_gowaps_liste') && colorVueGowaps(); feat('vue_marques') && colorVueMarks(); feat('vue_filtres_tresors') && addTresorFilters(); feat('vue_effets') && addEffectIcons(); feat('vue_trolls_etat') && addTrollEtat(); feat('vue_sacro') && addSacroClick(); feat('vue_cumuls') && addCumulsButton(); } feat('vue_maj_it') && sendVueMaj(); sendPortalNotice(); sendLancerNotice(); rememberGowapPerks(); feat('menu_it') && addItButton(); feat('menu_pistage') && addPistageImage(); feat('menu_ecuyers') && addEcuyers(); sendBonusMalus(); if (feat('turnstart_gowaps')) { majInfosGowaps(addMesGowaps); addMesGowaps(); if (/\/TurnStart\.php$/.test(location.pathname)) setInterval(function () { majInfosGowaps(addMesGowaps); }, 60000); } sendKiki(); feat('profil_kiki') && addKikiMeter(); feat('suivants_dla') && addFollowerDla(); feat('transbahuter_gowaps') && addTransbahuterGowaps(); sendMission(); sendTrollInfo(); feat('monstre_analyse') && addMonsterAnalysis(); feat('monstre_aggro') && addMonsterAggro(); feat('monstre_finisseurs') && addFinisseurs(); feat('tp_prepa') && addTpPrepa(); sendTresorsVue(); feat('ordres_tresors') && addTresorsOrdres(); addGowapVue(); feat('ordres_dla') && addOrdreDistance(); feat('ordres_tresors') && addAllerChercherPopup(); feat('ordres_parcours') && addParcoursRecolte(); rememberPosition(); feat('commandes') && addCommandesSync(); feat('vue_gowaps_ramasseurs') && addGowapEvents(); feat('vue_portails') && addPortailDest(); feat('vue_portails_sorties') && addTpAlerte(); feat('vue_hypno') && addHypnoVue(); feat('vue_chasse') && addChasse(); feat('vue_tresors_ident') && addTresorsIdent(); feat('evenements_scriz') && addEventDetails();  addFeaturesOptions(); }
   function init() { try { var t = currentTrollId(); if (t) localStorage.setItem('mhx-troll', t); } catch (e) { /* ignore */ } featLoad(demarrer); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
