@@ -152,15 +152,16 @@
       var tab = document.getElementById('VUE_trolls');
       if (!tab) { if (++tries < 20) setTimeout(place, 500); return; }
       if (document.getElementById('mhx-cumuls-btn') || !tab.parentNode) return;
-      var wrap = document.createElement('div');
-      wrap.style.cssText = 'margin: 4px 0; text-align: left;';
-      var b = document.createElement('input');
+      var b = document.createElement('button');
       b.type = 'button'; b.id = 'mhx-cumuls-btn'; b.className = 'mh_form_submit';
-      b.value = '📲 Cumuls du groupe';
-      b.title = 'Envoyer sur WhatsApp les heures de cumul des trolls du groupe (aperçu et confirmation avant l’envoi)';
-      b.addEventListener('click', ouvre);
-      wrap.appendChild(b);
-      tab.parentNode.insertBefore(wrap, tab);
+      b.textContent = '\ud83d\udcf2 Cumuls';
+      b.title = 'Envoyer sur WhatsApp les heures de cumul des trolls du groupe (aper\u00e7u et confirmation avant l\u2019envoi)';
+      b.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); ouvre(); }); // le titre du bloc est un <label> : un clic le replierait
+      // m\u00eame ligne que les boutons Filtre / Envoyer... / Copier du titre Trolls ; sinon juste au-dessus du tableau
+      var wrap = tab.closest ? tab.closest('.collapsible-wrap') : null;
+      var titre = wrap && wrap.querySelector('label[for^="toggle_"] > div');
+      if (titre) { b.classList.add('mhx-cumuls-ligne'); titre.appendChild(b); }
+      else { var d = document.createElement('div'); d.style.cssText = 'margin: 2px 0;'; d.appendChild(b); tab.parentNode.insertBefore(d, tab); }
     })();
     function ouvre() {
       if (document.getElementById('mhx-sacro-pop')) return;
@@ -168,14 +169,14 @@
       var ov = document.createElement('div'); ov.id = 'mhx-sacro-pop';
       var box = document.createElement('div'); box.className = 'mhx-sacro-box';
       var head = document.createElement('div'); head.className = 'mh_tdtitre mhx-sacro-head';
-      var x = document.createElement('button'); x.type = 'button'; x.className = 'mhx-sacro-x'; x.textContent = '×'; x.title = 'Fermer'; x.setAttribute('aria-label', 'Fermer');
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'mhx-sacro-x'; x.textContent = '\u00d7'; x.title = 'Fermer'; x.setAttribute('aria-label', 'Fermer');
       head.appendChild(x);
       var body = document.createElement('div'); body.className = 'mhx-sacro-body';
       var q = document.createElement('div'); q.textContent = 'Envoyer ce message sur WhatsApp ?';
       var lab = document.createElement('label'); lab.style.cssText = 'display:block; margin: 8px 0; font-size: 13px;';
-      lab.appendChild(document.createTextNode('Troll « trigger » (facultatif) : '));
+      lab.appendChild(document.createTextNode('Troll \u00ab trigger \u00bb (facultatif) : '));
       var sel = document.createElement('select');
-      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— aucun (cumuls seuls) —'; sel.appendChild(o0);
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = '\u2014 aucun (cumuls seuls) \u2014'; sel.appendChild(o0);
       CUMULS_GROUPE.forEach(function (g) { var o = document.createElement('option'); o.value = g[0]; o.textContent = g[1]; sel.appendChild(o); });
       lab.appendChild(sel);
       var prev = document.createElement('div');
@@ -205,14 +206,14 @@
       document.addEventListener('keydown', onKey);
       ov.addEventListener('click', function (ev) { if (ev.target === ov) close(); });
       ok.addEventListener('click', function () {
-        if (!troll) { st.textContent = 'Troll connecté introuvable.'; return; }
+        if (!troll) { st.textContent = 'Troll connect\u00e9 introuvable.'; return; }
         ok.disabled = true; st.textContent = 'Envoi...';
         fetch(NOTIF_CUMULS_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
           body: 'troll=' + encodeURIComponent(troll) + '&trigger=' + encodeURIComponent(sel.value) })
           .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
           .then(function (j) {
-            if (j && j.sent) { st.textContent = 'Message envoyé sur WhatsApp.'; setTimeout(close, 1200); }
-            else { st.textContent = j && j.raison ? 'Pas envoyé : ' + j.raison + '.' : 'Envoi impossible.'; ok.disabled = !(j && j.raison) ? false : true; }
+            if (j && j.sent) { st.textContent = 'Message envoy\u00e9 sur WhatsApp.'; setTimeout(close, 1200); }
+            else { st.textContent = j && j.raison ? 'Pas envoy\u00e9 : ' + j.raison + '.' : 'Envoi impossible.'; ok.disabled = !(j && j.raison) ? false : true; }
           });
       });
       btns.appendChild(ok); btns.appendChild(no);
