@@ -242,3 +242,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 1.1.1 | 2026-11-10 | Plan de finition : « trop loin » exprimé en cases / niveaux (au lieu de « pas »). |
 | 1.1.2 | 2026-11-10 | Fiche monstre : l'Aggro (dernière cible visée par le monstre, lue dans ses événements) est affichée tout en bas de « Infos monstre » de l'Analyse tactique, quand elle est connue (plus de boîte séparée). |
 | 1.1.3 | 2026-11-12 | Fiche monstre : suppression de l'encadré « ⚔️ Aggro » (la donnée reste dans « Infos monstre » de l'Analyse tactique). |
+| 1.1.4 | 2026-11-13 | Plan de finition « parfait » : avec l’Hypnotisme en place, toutes les frappes sont critiques ; sans Hypnotisme, si un finisseur a plus de 60 % de chances de critique, seuls les dégâts critiques sont comptés (mention dans l’info-bulle et la note du plan). |
