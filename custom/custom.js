@@ -1199,6 +1199,9 @@
     var jets = (txt.match(/jet de (\d+) sur/) || [])[1] || '';
     var res = { type: 'baroufle', sons: parseInt(so[1], 10), symphonie: sy ? sy[1] : '', effets: effets, tours: ef ? parseInt(ef[2], 10) : 0, sig: jets };
     if (po) { res.x = po[1]; res.y = po[2]; res.n = po[3]; }
+    // nature des effets (magique / physique) : lue dans le texte entre la symphonie et la position, si le jeu l'indique
+    var nat = /\b(magique|physique)s?\b/i.exec(txt.slice(Math.max(0, txt.indexOf('symphonie suivante'))));
+    if (nat) res.nature = nat[1].toLowerCase();
     return res;
   }
   // Sortil\u00e8ge Sacrifice : soin de la cible, PV perdus par le lanceur et PV restants (lus dans la page de r\u00e9sultat)
