@@ -846,6 +846,7 @@
         { nom: 'Essais', val: function (t) { return t.essais || null; }, txt: function (t) { return String(t.essais); }, mode: null },
         { nom: 'Rat\u00e9s / essai', val: function (t) { return pct(t.rates, t.essais); }, txt: function (t) { return t.essais ? t.rates + ' / ' + t.essais + ' (' + Math.round(pct(t.rates, t.essais)) + ' %)' : '-'; }, mode: 'bas' },
         { nom: 'R\u00e9duits / jet de SR', val: function (t) { return pct(t.reduits, t.essais_sr); }, txt: function (t) { return t.essais_sr ? t.reduits + ' / ' + t.essais_sr + ' (' + Math.round(pct(t.reduits, t.essais_sr)) + ' %)' : '-'; }, tip: function () { return 'Seulement les actions qui provoquent un jet de r\u00e9sistance (cibles monstre ou troll)'; }, mode: 'bas' },
+        { nom: 'PA g\u00e2ch\u00e9s', val: function (t) { return t.rates ? (t.pa_perdus || 0) : null; }, txt: function (t) { return String(t.pa_perdus || 0); }, tip: function () { return 'PA perdus sur les sorts et comp\u00e9tences rat\u00e9s'; }, mode: 'bas' },
         { nom: 'D\u00e9g\u00e2t max', val: function (t) { return t.degat_max || null; }, txt: function (t) { return t.degat_max ? String(t.degat_max) : '-'; }, tip: function (t) { return t.degat_max ? t.degat_max_sort + (t.degat_max_nom ? ' sur ' + t.degat_max_nom : '') : ''; }, mode: 'haut' }
       ];
       var wrap = document.createElement('div');
