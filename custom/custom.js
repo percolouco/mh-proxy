@@ -1265,6 +1265,15 @@
       cible: ci ? { nom: ci[1], id: ci[2] } : null, effets: effs, tours: ef ? parseInt(ef[2], 10) : null, pa: pa ? parseInt(pa[1], 10) : null, conc: co ? parseInt(co[1], 10) : null,
       sig: (jc ? jc[1] : '') + '|' + (po ? po[1] + '|' + po[3] : '') + '|' + (ci ? ci[2] : '') };
   }
+  // Passage de niveau en s'entra\u00eenant : \u00ab Vous \u00eates de plus pass\u00e9 au niveau X \u00bb (+ mouche apprivois\u00e9e \u00e9ventuelle) -> groupe WhatsApp.
+  // Lecture seule de la page de r\u00e9sultat ; les entra\u00eenements sans passage de niveau ne d\u00e9clenchent rien.
+  var NOTIF_NIVEAU_URL = 'https://mh.percolouco.com/notif/niveau_whatsapp.php';
+  function parseNiveau(txt) {
+    var m = /Vous \u00eates de plus pass\u00e9 au niveau (\d+)/.exec(txt);
+    if (!m) return null;
+    var c = /Vous avez gagn\u00e9 une mouche apprivois\u00e9e ?: ?(.+?)\. Prenez-en bien soin/.exec(txt);
+    return { niveau: parseInt(m[1], 10), cadeau: c ? c[1] : '', sig: m[1] };
+  }
   function sendLancerNotice() {
     if (!/\/Play_a_ActionResult\.php$/.test(location.pathname) || !document.body) return;
     var txt = document.body.textContent.replace(/[\s\u00a0]+/g, ' ');
@@ -1286,6 +1295,13 @@
     if (tre && troll0) {
       mhdPost(NOTIF_TRESOR_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(tre)), function (ok) {
         mhdBadge(ok ? 'Tr\u00e9sor utilis\u00e9 signal\u00e9 sur WhatsApp' : 'Tr\u00e9sor : envoi WhatsApp impossible', !ok);
+      });
+      return;
+    }
+    var niv = parseNiveau(txt);
+    if (niv && troll0) {
+      mhdPost(NOTIF_NIVEAU_URL, 'troll=' + troll0 + '&data=' + encodeURIComponent(JSON.stringify(niv)), function (ok) {
+        mhdBadge(ok ? 'Passage de niveau signal\u00e9 sur WhatsApp' : 'Niveau : envoi WhatsApp impossible', !ok);
       });
       return;
     }
