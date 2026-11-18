@@ -3,6 +3,10 @@ services:
     image: nginx:1.27-alpine
     container_name: mh-proxy
     restart: unless-stopped
+    # Secrets du badge et du relais vers le site mh : valeurs dans /opt/container/mh-proxy/.env (hors Git)
+    environment:
+      MHX_BADGE_SECRET: ${MHX_BADGE_SECRET:-}
+      MHX_API_KEY: ${MHX_API_KEY:-}
     volumes:
       - /home/perco/projects/mh-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - /home/perco/projects/mh-proxy/custom:/usr/share/nginx/custom:ro

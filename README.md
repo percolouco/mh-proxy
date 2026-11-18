@@ -15,17 +15,39 @@ avec une **surcouche perso** (CSS/JS) sans rien installer sur le poste.
   `/_mhx/custom.css` et `/_mhx/custom.js` (fichiers du dossier `custom/`, servis sans cache).
 - `custom.js` est protégé par `window.__mhx` contre une double exécution.
 - `custom.js` ajoute un bouton **IT** dans le menu de gauche (sous « Ma vue ») qui ouvre `https://mh.percolouco.com/tactique/tactique.php` dans le cadre de contenu ; images `custom/img/interfaceit.jpg` (normal) et `interfaceit2.jpg` (survol), style dans `custom.css`.
-- `custom.js` intègre aussi les fonctions des userscripts **MHD** (Firefox/Chrome), sans rien installer : un seul code pour tous les navigateurs (pas de `GM_*`, les endpoints de `mh.percolouco.com` autorisent le CORS). Lecture de la page affichée uniquement, jamais d'action dans le jeu :
+- `custom.js` intègre aussi les fonctions des userscripts **MHD** (Firefox/Chrome), sans rien installer : un seul code pour tous les navigateurs (pas de `GM_*`). Depuis la 2.0.0, ces appels passent par le **relais** du proxy `/_mhx/api/...` (voir « Sécurité »), plus en direct vers `mh.percolouco.com`. Lecture de la page affichée uniquement, jamais d'action dans le jeu :
   - pages **Gestion des Étapes / Récompenses / Équipe** d'une mission : envoi automatique à `mission/includes/update/update_mission.php` (pastille verte/rouge en haut à droite) ;
   - **TurnStart.php** : envoi de la ligne troll à `tactique/includes/sp_mh/parser_handler.php` ;
   - **profil d'un monstre** (`MonsterView.php`) : encart « Analyse Tactique » (DLA estimée, prochain tour/cumul).
 - Les pages `frameset` n'ont pas de `</head>` : seule leur contenu (cadres) est injecté, c'est voulu.
 
+## Sécurité (2.0.0)
+
+- **Porte de connexion** (`mh_gate.js`, côté serveur) : seuls les trolls du groupe peuvent se connecter via le proxy.
+  Le formulaire est lu strictement (un seul champ `as_Login`, nom non encodé, format formulaire classique) et toute URL
+  `fichier.php/suite` est refusée (403). Le mot de passe n'est jamais lu ni journalisé. Les boutons qui « s'enfuient »
+  de `custom.js` ne sont qu'un easter egg côté navigateur.
+- **Badge** : quand MH accepte la connexion (302 vers une page du jeu), le proxy pose le cookie `mhx_badge`
+  (numéro du troll + expiration 30 jours, signé HMAC-SHA256 avec `MHX_BADGE_SECRET`). Sans badge valide, toute page
+  du jeu renvoie vers la page de connexion (sauf accueil, connexion, mot de passe perdu et fichiers statiques).
+  Déconnexion MH = badge retiré. Le badge n'est jamais transmis à MH.
+- **Relais `/_mhx/api/<chemin>`** vers le site mh (conteneur `mh`, réseau Docker) : badge obligatoire (sinon 401),
+  ajoute `X-MHX-Key` (`MHX_API_KEY`) et `X-MHX-Troll` (numéro du badge), ne transmet aucun cookie. Chemins relayés :
+  `notif/*.php`, `gowap/*.php`, `evenements/api.php`, `enchantements/includes/update/sync-commandes.php`,
+  `mission/includes/update/update_mission.php`, `tactique/includes/sp_mh/parser_handler.php`.
+  Le site n'accepte plus ces appels en direct (voir `SECURITE.md` du dépôt mh).
+- Aucune adresse de joueur n'est transmise à MH (`X-Forwarded-*`, `X-Real-IP` retirés). DNS : uniquement celui de Docker.
+- En-têtes `Referrer-Policy: same-origin` et `X-Frame-Options: SAMEORIGIN`.
+- Secrets (`MHX_BADGE_SECRET`, `MHX_API_KEY`) : `/opt/container/mh-proxy/.env` (chmod 600, hors Git), déclarés par
+  `env` dans `deploy/nginx.main.conf`.
+
 ## Fichiers
 
 ```
 mh-proxy/
-├── nginx.conf                  # proxy + injection de la surcouche
+├── nginx.conf                  # proxy + injection de la surcouche + badge + relais /_mhx/api/
+├── mh_gate.js                  # porte de connexion, badge signé (njs)
+├── mh_proxy.inc                # directives communes vers MH
 ├── custom/custom.css|js        # surcouche perso (à éditer, pas de rebuild)
 ├── custom/img/                 # images de la surcouche (bouton IT)
 ├── deploy/docker-compose.yml   # copié dans /opt/container/mh-proxy/
@@ -36,6 +58,7 @@ mh-proxy/
 
 ```bash
 cp deploy/docker-compose.yml /opt/container/mh-proxy/ && cd /opt/container/mh-proxy && docker compose up -d
+# secrets : /opt/container/mh-proxy/.env (MHX_BADGE_SECRET, MHX_API_KEY = même valeur que dans /opt/container/mh/.env)
 # après modification de nginx.conf : docker compose restart   (pas un simple reload, le fichier est monté)
 ```
 
@@ -247,3 +270,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 1.2.1 | 2026-11-13 | Bouton « 📲 Cumuls » : placé dans le titre du bloc Trolls (à côté de Filtre / Envoyer... / Copier) et plus compact ; texte du bouton et de la fenêtre en séquences \\uXXXX (le « 📲 » s’affichait en caractères illisibles) ; le clic ne replie plus le bloc. |
 | 1.2.2 | 2026-11-13 | Plan de finition : quand l’Hypnotisme fait partie du plan, les dégâts « ≈ » affichés sur chaque frappe sont ceux calculés AVEC l’Hypnotisme (en plan parfait : critiques) au lieu de ceux sans Hypnotisme ; la liste « Ajouter » et les info-bulles suivent. |
 | 1.3.0 | 2026-11-16 | Passage de niveau en s'entraînant (« Vous êtes de plus passé au niveau X », mouche apprivoisée comprise) lu sur la page de résultat et envoyé dans le groupe WhatsApp (`notif/niveau_whatsapp.php`, option « notif_whatsapp »). Les entraînements sans passage de niveau ne déclenchent rien. |
+| 2.0.0 | 2026-11-18 | Sécurité : porte de connexion non contournable (URL `PlayStart2.php/…`, `as_Login` en double ou encodé refusés), badge signé posé à la connexion et exigé sur toutes les pages du jeu, relais `/_mhx/api/` vers le site mh (la surcouche n'appelle plus mh.percolouco.com en direct, le troll vient du badge), plus aucune adresse de joueur transmise à MH, plus de DNS 8.8.8.8, en-têtes Referrer-Policy / X-Frame-Options. **À revert avec le commit du même jour du dépôt mh.** |

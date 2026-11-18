@@ -53,9 +53,9 @@
 
   // Page Ma vue : clic sur la colonne PV d'un troll -> popup « envoyer une demande de sacro » -> confirmer -> message dans le groupe WhatsApp.
   // Rien n'est envoyé au jeu ; le message part seulement après le clic sur « Confirmer ».
-  var NOTIF_FLASH_URL = 'https://mh.percolouco.com/notif/flash_whatsapp.php';
-  var EFFETS_URL = 'https://mh.percolouco.com/notif/effets_monstres.php';
-  var NOTIF_SACRO_URL = 'https://mh.percolouco.com/notif/sacro_whatsapp.php';
+  var NOTIF_FLASH_URL = '/_mhx/api/notif/flash_whatsapp.php';
+  var EFFETS_URL = '/_mhx/api/notif/effets_monstres.php';
+  var NOTIF_SACRO_URL = '/_mhx/api/notif/sacro_whatsapp.php';
   function addSacroClick() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     document.addEventListener('click', function (e) {
@@ -143,7 +143,7 @@
 
   // Page Ma vue : bouton « Cumuls » -> aperçu du message (heures de cumul des trolls du groupe ToD, ou forces de frappe à l'heure du cumul d'un troll « trigger »)
   // -> « Confirmer » -> groupe WhatsApp. Rien n'est envoyé avant le clic sur Confirmer ; l'aperçu est calculé par le serveur (lecture seule).
-  var NOTIF_CUMULS_URL = 'https://mh.percolouco.com/notif/cumuls_whatsapp.php';
+  var NOTIF_CUMULS_URL = '/_mhx/api/notif/cumuls_whatsapp.php';
   var CUMULS_GROUPE = [['95681', 'Perco'], ['101587', 'Killdray'], ['113075', 'Telekom'], ['113379', 'Flak Flak'], ['101586', 'Taotd']];
   function addCumulsButton() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
@@ -265,7 +265,7 @@
   // Connexion (TurnStart.php) : lecture en arriere-plan (simple GET, rien n'est soumis dans le jeu) de la page Equipement > Suivants ;
   // pour chaque gowap de la liste commune on envoie au serveur MH ses infos du moment (DLA, PA, PV, vue, position, poids, ordres).
   // A chaque ouverture de la page (10 s minimum entre deux lectures), puis toutes les 60 s tant que la page reste ouverte.
-  var INFOS_URL = 'https://mh.percolouco.com/gowap/gowap_infos.php';
+  var INFOS_URL = '/_mhx/api/gowap/gowap_infos.php';
   // Etat d'un suivant (ex. [Immobilis\u00e9 ou Surcharg\u00e9]) : seulement sur sa fiche Profil (simple GET, lecture seule), relue au plus toutes les 10 minutes par suivant.
   var GETAT_KEY = 'mhx-gowap-etat';
   function gowapEtat(gid, cb) {
@@ -450,7 +450,7 @@
 
   // Page de connexion (TurnStart.php) : « Vos Bonus et Malus en cours » et « Pas encore actifs » -> serveur MH
   // (table mh_bonus_malus). La liste envoyée remplace la précédente : pas de doublon si on se reconnecte.
-  var NOTIF_BM_URL = 'https://mh.percolouco.com/notif/bonus_malus.php';
+  var NOTIF_BM_URL = '/_mhx/api/notif/bonus_malus.php';
   function sendBonusMalus() {
     if (!/\/TurnStart\.php$/.test(location.pathname) || !document.body) return;
     var id = document.body.getAttribute('data-idtroll') || currentTrollId();
@@ -705,7 +705,7 @@
   // pour décider tout de suite au chargement ; si le serveur dit autre chose, la copie est corrigée et la page rechargée une fois.
   //  - interrupteur ON / OFF de toutes les améliorations du script (PV, PA, DLA, couleurs, pictos, filtres, sacro) ; défaut ON ;
   //  - blocs Monstres / Trôlls / Trésors... ouverts ou fermés à l'ouverture de la page ; défaut ouverts (comportement du jeu).
-  var PREFS_VUE_URL = 'https://mh.percolouco.com/notif/prefs_vue.php';
+  var PREFS_VUE_URL = '/_mhx/api/notif/prefs_vue.php';
   var VUE_RE = /\/Play_vue2\.php$/;
   function vueTrollId() {
     var id = document.body && document.body.getAttribute('data-idtroll');
@@ -810,7 +810,7 @@
   // Kiki Meter : chaque essai de sortilège / compétence (page de résultat) est compté sur le serveur MH : essais, réussis / ratés,
   // effets réduits, dégât max. Un résultat est un essai s'il porte le titre « Sortilège : X » ou « Compétence : X » et le jet d'utilisation
   // (« jet de N sur N % ») ; réussi s'il contient « Vous avez RÉUSSI à utiliser », sinon raté.
-  var NOTIF_KIKI_URL = 'https://mh.percolouco.com/notif/kiki.php';
+  var NOTIF_KIKI_URL = '/_mhx/api/notif/kiki.php';
   // Effet r\u00e9duit : m\u00eame lecture que le message WhatsApp (\u00ab a donc un EFFET R\u00c9DUIT \u00bb), accents ou casse diff\u00e9rents accept\u00e9s.
   function kikiReduit(txt) {
     var ef = /a donc un (EFFET [A-Z\u00c0-\u00dc]+)/i.exec(txt);
@@ -886,7 +886,7 @@
 
   // Gowaps en couleur : liste commune à tous les navigateurs, stockée sur mh.percolouco.com
   // (table mh_gowap_perks). Lecture / affichage uniquement, rien n'est soumis dans le jeu.
-  var PERKS_URL = 'https://mh.percolouco.com/gowap/gowap_perks.php';
+  var PERKS_URL = '/_mhx/api/gowap/gowap_perks.php';
   var PERK_COLORS = { vert: '#8fcf9a', rouge: '#e8a0a0', orange: '#f2c48d', jaune: '#efe48a', violet: '#c8a8e0' };
 
   // GET si body est vide, POST sinon ; cb(liste {id: couleur}) ou cb(null) en cas d'erreur
@@ -972,7 +972,7 @@
 
   // Gowaps « a moi » : case a cocher dans la liste commune -> rattache le gowap au troll connecte (un seul proprietaire par gowap),
   // stocke sur le serveur MH ; affiches sur TurnStart.php au-dessus de « Votre Equipement utilise ». Lecture / affichage uniquement.
-  var MINE_URL = 'https://mh.percolouco.com/gowap/gowap_mine.php';
+  var MINE_URL = '/_mhx/api/gowap/gowap_mine.php';
   function mineCall(troll, body, cb) {
     var opt = { referrerPolicy: 'no-referrer' };
     if (body) {
@@ -1048,7 +1048,7 @@
   // Résultat du sortilège Téléportation : le portail créé est signalé dans le groupe WhatsApp (envoi fait par
   // le serveur MH). Lecture du texte affich\u00e9 seulement, rien n'est soumis dans le jeu ; un portail n'est
   // envoy\u00e9 qu'une fois (le serveur garde son num\u00e9ro).
-  var NOTIF_PORTAIL_URL = 'https://mh.percolouco.com/notif/portail_whatsapp.php';
+  var NOTIF_PORTAIL_URL = '/_mhx/api/notif/portail_whatsapp.php';
   // Num\u00e9ro du troll connect\u00e9 : data-idtroll de la page, sinon d'un cadre du m\u00eame jeu (menu, vue...) ouvert avec
   // la m\u00eame session. Pas de valeur m\u00e9moris\u00e9e d'une autre session : mieux vaut ne rien envoyer qu'un mauvais nom.
   function currentTrollId() {
@@ -1064,7 +1064,7 @@
   }
   // R\u00e9sultat d'un Lancer de Cr\u00e9atures : monstres touch\u00e9s, d\u00e9g\u00e2ts, morts -> groupe WhatsApp (m\u00eame principe que le portail).
   // Deux pages possibles : la saisie (« Vous tentez de saisir… ») et le lancer (« Vous avez lancé X sur Y »).
-  var NOTIF_LANCER_URL = 'https://mh.percolouco.com/notif/lancer_whatsapp.php';
+  var NOTIF_LANCER_URL = '/_mhx/api/notif/lancer_whatsapp.php';
   function parseLancer(txt) {
     var art = '(?:une|un|la|le|l\u2019|l\')\\s?', mon = '(.+?) \\((\\d+)\\)';
     var deg = function (t, re) { var m = re.exec(t); return m ? parseInt(m[1], 10) : null; };
@@ -1206,7 +1206,7 @@
     return res;
   }
   // Sortil\u00e8ge Sacrifice : soin de la cible, PV perdus par le lanceur et PV restants (lus dans la page de r\u00e9sultat)
-  var NOTIF_SACRIFICE_URL = 'https://mh.percolouco.com/notif/sacrifice_whatsapp.php';
+  var NOTIF_SACRIFICE_URL = '/_mhx/api/notif/sacrifice_whatsapp.php';
   function parseSacrifice(txt) {
     if (!/Sortil\u00e8ge ?: ?Sacrifice/.test(txt) || !/R\u00c9USSI/.test(txt)) return null;
     var so = /Vous avez soign\u00e9 (.+?) \((\d+)\) de (\d+) Points? de Vie/.exec(txt);
@@ -1217,7 +1217,7 @@
     return { cible_id: so[2], cible_nom: so[1], soin: parseInt(so[3], 10), perdus: parseInt(pe[1], 10), vie: parseInt(vi[1], 10), vie_max: parseInt(vi[2], 10), sig: jet ? jet[1] + '|' + jet[2] : '' };
   }
   // Potion ou Parchemin utilis\u00e9 : tr\u00e9sor, effet, dur\u00e9e, effet imm\u00e9diat et PA (lus dans la page de r\u00e9sultat)
-  var NOTIF_TRESOR_URL = 'https://mh.percolouco.com/notif/tresor_whatsapp.php';
+  var NOTIF_TRESOR_URL = '/_mhx/api/notif/tresor_whatsapp.php';
   function parseTresorUtilise(txt) {
     var t = /Vous avez utilis\u00e9 un tr\u00e9sor ?: ?\[(\d+)\] (.+?) Son effet est le suivant ?:/.exec(txt);
     if (!t) return null;
@@ -1267,7 +1267,7 @@
   }
   // Passage de niveau en s'entra\u00eenant : \u00ab Vous \u00eates de plus pass\u00e9 au niveau X \u00bb (+ mouche apprivois\u00e9e \u00e9ventuelle) -> groupe WhatsApp.
   // Lecture seule de la page de r\u00e9sultat ; les entra\u00eenements sans passage de niveau ne d\u00e9clenchent rien.
-  var NOTIF_NIVEAU_URL = 'https://mh.percolouco.com/notif/niveau_whatsapp.php';
+  var NOTIF_NIVEAU_URL = '/_mhx/api/notif/niveau_whatsapp.php';
   function parseNiveau(txt) {
     var m = /Vous \u00eates de plus pass\u00e9 au niveau (\d+)/.exec(txt);
     if (!m) return null;
@@ -1361,7 +1361,7 @@
   //    « ~65 PV » (valeur après la flèche) + ⚠.
   // Si le monstre a subi des frappes de notre groupe depuis sa dernière CdM : « PV actuels / PV max » estimés par le serveur (notif/pv_monstres.php), même code couleur.
   var PV_KEY = 'mhx-pv-monstres-4';
-  var PV_MONSTRES_URL = 'https://mh.percolouco.com/notif/pv_monstres.php';
+  var PV_MONSTRES_URL = '/_mhx/api/notif/pv_monstres.php';
   function pvCache() {
     try { return JSON.parse(localStorage.getItem(PV_KEY) || '{}') || {}; } catch (e) { return {}; }
   }
@@ -1663,8 +1663,8 @@
   // lecture de la page affichée uniquement, envoi des infos à mh.percolouco.com
   // (aucune action dans le jeu). Même code pour tous les navigateurs : pas de GM_*.
   // ---------------------------------------------------------------------------
-  var MHD_MISSION_URL = 'https://mh.percolouco.com/mission/includes/update/update_mission.php';
-  var MHD_TROLL_URL = 'https://mh.percolouco.com/tactique/includes/sp_mh/parser_handler.php';
+  var MHD_MISSION_URL = '/_mhx/api/mission/includes/update/update_mission.php';
+  var MHD_TROLL_URL = '/_mhx/api/tactique/includes/sp_mh/parser_handler.php';
 
   function mhdPost(url, body, done) {
     fetch(url, {
@@ -2022,7 +2022,7 @@
 
   // Tresors : la liste vue sur Ma vue est envoyee au serveur MH (par troll, elle remplace la precedente) et reaffichee
   // sur la page Ordres d'un suivant (Equipement > Suivants > Ordres), au-dessus de la carte du trajet. Affichage seulement.
-  var TRESORS_URL = 'https://mh.percolouco.com/notif/tresors_vue.php';
+  var TRESORS_URL = '/_mhx/api/notif/tresors_vue.php';
   function sendTresorsVue() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     // Grande vue : le tableau se remplit lentement. On n'envoie qu'une fois le nombre de lignes stable (2 relevés identiques, 2 s
@@ -2139,7 +2139,7 @@
   function distGowap(it, g) { return Math.max(Math.abs(it.x - g.x), Math.abs(it.y - g.y), Math.abs(it.n - g.n)); }
 
   // Marques « tresor en cours de recuperation » : partagees entre joueurs (serveur MH), une seule couleur, retirees seulement par celui qui les a posees
-  var MARKS_URL = 'https://mh.percolouco.com/gowap/tresor_marks.php';
+  var MARKS_URL = '/_mhx/api/gowap/tresor_marks.php';
   function marksCall(body, cb) {
     var opt = { referrerPolicy: 'no-referrer' };
     if (body) {
@@ -2446,7 +2446,7 @@
 
   // Aggro : derniere personne frappee par un monstre. Page du monstre : lue dans ses evenements, affichee et envoyee
   // au serveur MH (table mh_aggro) ; page Ma vue : colonne « Aggro » entre PV et Ref., lue sur le serveur.
-  var AGGRO_URL = 'https://mh.percolouco.com/notif/aggro.php';
+  var AGGRO_URL = '/_mhx/api/notif/aggro.php';
   var AGGRO_LAST = null; // derni\u00e8re cible vis\u00e9e par ce monstre (page MonsterView), null si inconnue
   // Derniere cible visee d'apres les evenements d'une page de monstre (document deja charge ou recupere en arriere-plan).
   // Renvoie null si le tableau d'evenements est absent, {vide:true} s'il ne contient aucun coup du monstre.
@@ -2509,8 +2509,8 @@
 
   // Fiche d'un monstre : bouton \u00ab Suivi PV / finisseurs \u00bb (PV restants estim\u00e9s d'apr\u00e8s la derni\u00e8re CdM et les frappes publi\u00e9es,
   // possibilit\u00e9s de finition de TeleKom et Flak Flak). Calcul fait par le serveur MH (notif/pv_monstre.php) ; affichage uniquement.
-  var PLAN_WA_URL = 'https://mh.percolouco.com/notif/plan_whatsapp.php';
-  var PV_MONSTRE_URL = 'https://mh.percolouco.com/notif/pv_monstre.php';
+  var PLAN_WA_URL = '/_mhx/api/notif/plan_whatsapp.php';
+  var PV_MONSTRE_URL = '/_mhx/api/notif/pv_monstre.php';
   var MONSTRE_PROCHAIN_TOUR = null; // ms : prochain tour estime du monstre (rempli par l'analyse tactique de la fiche)
   // Estimation Mountyzilla lue sur la page du monstre (lignes \u00ab Points de Vie 200-470 -> 335 PV \u00bb et \u00ab D\u00e9s de R\u00e9g\u00e9n\u00e9ration \u00bb), m\u00e9moris\u00e9e pour la colonne PV de Ma vue.
   var PV_MZ_KEY = 'mhx-pv-mz-1';
@@ -2700,7 +2700,7 @@
   // Formulaire du sortil\u00e8ge T\u00e9l\u00e9portation (champs X / Y / N \u00ab tpx tpy tpn \u00bb) : sous les champs, zone d'arriv\u00e9e possible
   // (d\u00e9viation max d'apr\u00e8s les r\u00e8gles du jeu + dispersion) et alerte si un trou de M\u00e9t\u00e9orite est \u00e0 6 cases ou moins.
   // Calcul fait par le serveur MH (notif/tp_info.php) ; affichage seulement, le bouton Action n'est jamais touch\u00e9.
-  var TP_INFO_URL = 'https://mh.percolouco.com/notif/tp_info.php';
+  var TP_INFO_URL = '/_mhx/api/notif/tp_info.php';
   function addTpPrepa() {
     var ix = document.getElementById('originex'), iy = document.getElementById('originey'), inn = document.getElementById('originen');
     if (!ix || !iy || !inn || document.getElementById('mhx-tpprepa')) return;
@@ -2862,7 +2862,7 @@
 
   // Page Ma vue : deux colonnes pour les trolls, PA (après Actions) et PV (avant Réf.), lues dans le récap tactique du
   // serveur MH (mêmes valeurs, mêmes couleurs). Cellule vide quand le serveur ne connaît pas le troll.
-  var ETAT_URL = 'https://mh.percolouco.com/notif/trolls_etat.php';
+  var ETAT_URL = '/_mhx/api/notif/trolls_etat.php';
   function addTrollEtat() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var etat = null, started = false, t0 = 0;
@@ -3024,7 +3024,7 @@
 
   // Page \u00ab Mes commandes \u00bb (Play_e_enchantements.php) : une case par commande pour la suivre dans le suivi des enchantements du site MH.
   // Le texte est lu comme le formulaire du site (objet, boutique X=|Y=|N=, 3 composants). Rien n'est envoy\u00e9 pour une commande non coch\u00e9e.
-  var ENCH_URL = 'https://mh.percolouco.com/enchantements/includes/update/sync-commandes.php';
+  var ENCH_URL = '/_mhx/api/enchantements/includes/update/sync-commandes.php';
   function addCommandesSync() {
     if (!/\/Play_e_enchantements\.php$/.test(location.pathname) || document.getElementById('mhx-commandes')) return;
     var troll = currentTrollId();
@@ -3099,7 +3099,7 @@
   // Gowaps de la vue qui ne sont pas dans la liste commune : on lit en arri\u00e8re-plan (lecture seule, une page \u00e0 la fois, 1 \u00e0 10 s entre
   // deux) la page de chaque gowap de la vue (les plus proches d'abord) et on compte ses \u00e9v\u00e9nements \u00ab s'est \u00e9brou\u00e9 \u00bb et \u00ab a ramass\u00e9 un tr\u00e9sor \u00bb. Au moins 3 de chaque :
   // le nom du gowap est soulign\u00e9 en rose. Les lectures sont partag\u00e9es via le serveur MH (gowap_events.php) : gard\u00e9es 6 h pour tous, jamais relues avant.
-  var EVENTS_URL = 'https://mh.percolouco.com/gowap/gowap_events.php';
+  var EVENTS_URL = '/_mhx/api/gowap/gowap_events.php';
   function addGowapEvents() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var KEY = 'mhx-gwev', TTL = 6 * 3600 * 1000, cache = {}, perks = null, queue = null, running = false, actif = false, fait = false;
@@ -3221,7 +3221,7 @@
 
   // Page \u00ab Ma vue \u00bb : destination des Portails de T\u00e9l\u00e9portation connus (relev\u00e9e dans le r\u00e9sultat du sortil\u00e8ge, stock\u00e9e sur le serveur MH),
   // ajout\u00e9e apr\u00e8s le nom du portail dans le tableau des lieux. Lecture / affichage uniquement.
-  var PORTAILS_URL = 'https://mh.percolouco.com/notif/portails.php';
+  var PORTAILS_URL = '/_mhx/api/notif/portails.php';
   var TP_RAYON = 5; // rayon (en cases) de l'alerte sur les sorties de TP qui ne sont pas du groupe
   function addPortailDest() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
@@ -3301,7 +3301,7 @@
   // Page Ma vue : monstres hypnotis\u00e9s (Hypnotisme lu par le proxy, stock\u00e9 sur le serveur MH) : ligne violette + picto apr\u00e8s le nom.
   // Le monstre redevient normal d\u00e8s qu'il a jou\u00e9 : sa page est relue en arri\u00e8re-plan (lecture seule, comme l'aggro) \u00e0 chaque ouverture
   // de la vue et, s'il a un \u00e9v\u00e9nement de sa part apr\u00e8s l'hypnotisme, l'hypno est marqu\u00e9e termin\u00e9e sur le serveur.
-  var HYPNO_URL = 'https://mh.percolouco.com/notif/hypno.php';
+  var HYPNO_URL = '/_mhx/api/notif/hypno.php';
   function addHypnoVue() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var hyp = null, checked = {}, running = false;
@@ -3368,7 +3368,7 @@
   // Stockées sur le serveur MH (notif/chasse.php). Les cibles sont colorées dans la vue de chaque membre et retirées à leur mort ;
   // pour chaque position, les monstres à 10 cases ou moins sont ceux de la dernière observation (vues de l'IT, ou Ma vue d'un membre qui couvre la zone).
   // Lecture / affichage seulement : rien n'est envoyé au jeu.
-  var CHASSE_URL = 'https://mh.percolouco.com/notif/chasse.php';
+  var CHASSE_URL = '/_mhx/api/notif/chasse.php';
   var CHASSE_RAYON = 10;
   function chassePost(body, cb) {
     var me = aggroTroll();
@@ -3567,7 +3567,7 @@
 
   // Page \u00ab Ma vue \u00bb : nom r\u00e9el des tr\u00e9sors d\u00e9j\u00e0 identifi\u00e9s (sort Identification des Tr\u00e9sors, lu dans les mails de la bo\u00eete MH par le serveur),
   // affich\u00e9 apr\u00e8s le nom g\u00e9n\u00e9rique ; les effets en infobulle. Lecture / affichage uniquement.
-  var IDENT_URL = 'https://mh.percolouco.com/evenements/api.php?tresors=';
+  var IDENT_URL = '/_mhx/api/evenements/api.php?tresors=';
   function addTresorsIdent() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var known = {}, asked = {};
@@ -3603,7 +3603,7 @@
   // Pages monstre / troll (MonsterView, PJView) : d\u00e9tail des lignes COMBAT du tableau des \u00e9v\u00e9nements (jets, r\u00e9sultat, d\u00e9g\u00e2ts...), tir\u00e9 des mails de
   // notification analys\u00e9s par le serveur MH (evenements/api.php?combats=). Une ligne est reli\u00e9e \u00e0 un mail par la m\u00eame date (\u00b12 s) et les deux
   // num\u00e9ros (acteur, cible) pr\u00e9sents dans sa description. Lecture / affichage uniquement.
-  var COMBATS_URL = 'https://mh.percolouco.com/evenements/api.php?combats=';
+  var COMBATS_URL = '/_mhx/api/evenements/api.php?combats=';
   function addEventDetails() {
     if (!/\/(MonsterView|PJView|PJView_Events)\.php$/.test(location.pathname)) return;
     var id = (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
@@ -3869,7 +3869,7 @@
   // ===== Parcours de r\u00e9colte partag\u00e9 : enregistr\u00e9 sur le serveur MH (notif/parcours.php), visible par tout le groupe, envoi des ordres au gowap =====
   // Chaque envoi d'ordres est un clic humain (par case, ou \u00ab Tout envoyer \u00bb apr\u00e8s confirmation) : il r\u00e9utilise la s\u00e9quence \u00ab Aller chercher \u00bb /
   // \u00ab Se d\u00e9placer vers \u00bb + \u00ab Arr\u00eat \u00bb ci-dessus (sans PA). Aucun envoi automatique.
-  var PARCOURS_URL = 'https://mh.percolouco.com/notif/parcours.php';
+  var PARCOURS_URL = '/_mhx/api/notif/parcours.php';
   function pcApi(me, body, cb) {
     fetch(PARCOURS_URL, { method: 'POST', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: 'troll=' + me + '&' + body })
       .then(function (r) { return r.json().catch(function () { return {}; }); }).then(function (j) { cb(j || {}); }, function () { cb(null); });
@@ -4142,7 +4142,7 @@
       ['menu_ecuyers', 'Liens vers les \u00e9cuyers']
     ]]
   ];
-  var FEAT_KEY = 'mhx-features', FEAT_URL = 'https://mh.percolouco.com/notif/prefs_features.php';
+  var FEAT_KEY = 'mhx-features', FEAT_URL = '/_mhx/api/notif/prefs_features.php';
   function featCache() { try { return JSON.parse(localStorage.getItem(FEAT_KEY) || '{}') || {}; } catch (e) { return {}; } }
   function featOff(troll) { var c = featCache()[troll]; return Array.isArray(c) ? c : null; }
   function featSetCache(troll, liste) { try { var c = featCache(); c[troll] = liste; localStorage.setItem(FEAT_KEY, JSON.stringify(c)); } catch (e) { /* stockage indisponible */ } }
@@ -4237,7 +4237,7 @@
   // Regles : jamais de suppression pour ce qui n'est pas affiche ; une categorie n'est envoyee que si son tableau est charge ;
   // si un filtre est actif (MZ, filtres du proxy, " Mais n'affiche pas ") la categorie est en " ajout seulement " ; le serveur ne supprime
   // que les lignes de la meme categorie situees dans le carre affiche (limite de vue) et absentes de la page.
-  var VUE_MAJ_URL = 'https://mh.percolouco.com/notif/vue_maj.php';
+  var VUE_MAJ_URL = '/_mhx/api/notif/vue_maj.php';
   function sendVueMaj() {
     if (!VUE_RE.test(location.pathname)) return;
     var troll = vueTrollId();

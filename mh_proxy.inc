@@ -6,7 +6,15 @@ proxy_http_version 1.1;
 
 proxy_set_header Host games.mountyhall.com;
 proxy_set_header User-Agent $mh_user_agent;
-proxy_set_header X-Forwarded-For $remote_addr;
+# Aucune adresse de joueur transmise à MH : on retire les en-têtes ajoutés par Traefik
+proxy_set_header X-Forwarded-For "";
+proxy_set_header X-Real-IP "";
+proxy_set_header X-Forwarded-Host "";
+proxy_set_header X-Forwarded-Port "";
+proxy_set_header X-Forwarded-Proto "";
+proxy_set_header X-Forwarded-Server "";
+# Le badge du proxy reste entre le navigateur et le proxy
+proxy_set_header Cookie $mhx_cookie_mh;
 # Pages non compressées pour pouvoir y injecter la surcouche
 proxy_set_header Accept-Encoding "";
 # Referer/Origin vus comme venant du site d'origine
