@@ -24,6 +24,8 @@ proxy_set_header Origin "";
 # Redirections et cookies ramenés sur ce domaine
 proxy_redirect ~^https?://(games|www)\.mountyhall\.com(.*)$ $scheme://$host$2;
 proxy_cookie_domain games.mountyhall.com $host;
+# Cookie de session MH protégé : illisible par JavaScript (HttpOnly), HTTPS uniquement, pas d'envoi intersite
+proxy_cookie_flags PHPSESSID httponly secure samesite=lax;
 
 # Liens absolus vers MH -> relatifs ; injection de la surcouche
 sub_filter_once off;

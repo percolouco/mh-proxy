@@ -1,6 +1,6 @@
 services:
   mh-proxy:
-    image: nginx:1.27-alpine
+    image: nginx:1.30-alpine  # branche stable (1.30.x), njs 1.0
     container_name: mh-proxy
     restart: unless-stopped
     # Secrets du badge et du relais vers le site mh : valeurs dans /opt/container/mh-proxy/.env (hors Git)

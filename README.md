@@ -38,6 +38,7 @@ avec une **surcouche perso** (CSS/JS) sans rien installer sur le poste.
   Le site n'accepte plus ces appels en direct (voir `SECURITE.md` du dépôt mh).
 - Aucune adresse de joueur n'est transmise à MH (`X-Forwarded-*`, `X-Real-IP` retirés). DNS : uniquement celui de Docker.
 - En-têtes `Referrer-Policy: same-origin` et `X-Frame-Options: SAMEORIGIN`.
+- Cookie de session MH en `HttpOnly; Secure; SameSite=Lax` (`proxy_cookie_flags` dans `mh_proxy.inc`).
 - Secrets (`MHX_BADGE_SECRET`, `MHX_API_KEY`) : `/opt/container/mh-proxy/.env` (chmod 600, hors Git), déclarés par
   `env` dans `deploy/nginx.main.conf`.
 
@@ -271,3 +272,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 1.2.2 | 2026-11-13 | Plan de finition : quand l’Hypnotisme fait partie du plan, les dégâts « ≈ » affichés sur chaque frappe sont ceux calculés AVEC l’Hypnotisme (en plan parfait : critiques) au lieu de ceux sans Hypnotisme ; la liste « Ajouter » et les info-bulles suivent. |
 | 1.3.0 | 2026-11-16 | Passage de niveau en s'entraînant (« Vous êtes de plus passé au niveau X », mouche apprivoisée comprise) lu sur la page de résultat et envoyé dans le groupe WhatsApp (`notif/niveau_whatsapp.php`, option « notif_whatsapp »). Les entraînements sans passage de niveau ne déclenchent rien. |
 | 2.0.0 | 2026-11-18 | Sécurité : porte de connexion non contournable (URL `PlayStart2.php/…`, `as_Login` en double ou encodé refusés), badge signé posé à la connexion et exigé sur toutes les pages du jeu, relais `/_mhx/api/` vers le site mh (la surcouche n'appelle plus mh.percolouco.com en direct, le troll vient du badge), plus aucune adresse de joueur transmise à MH, plus de DNS 8.8.8.8, en-têtes Referrer-Policy / X-Frame-Options. **À revert avec le commit du même jour du dépôt mh.** |
+| 2.1.0 | 2026-11-18 | Cookie de session MH (`PHPSESSID`) passé en HttpOnly / Secure / SameSite=Lax (`proxy_cookie_flags`) : illisible par JavaScript ; image nginx 1.27 (avril 2025) -> **nginx:1.30-alpine** (stable, njs 1.0). |
