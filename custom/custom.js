@@ -1248,7 +1248,7 @@
   }
   // Compétence Lancer de Potions : potion, cible, jets, effet et durée -> groupe WhatsApp.
   function parseLancerPotion(txt) {
-    if (!/Compétence ?: ?Lancer de Potions?/.test(txt)) return null;
+    if (!/Lancer de Potions?/.test(txt) && !/lancer la potion ?:/.test(txt)) return null;
     var po = /lancer la potion ?: ?\[(\d+)\] (.+?) \((\d+) sur (\d+) ?%\)/.exec(txt);
     var jc = /utiliser cette compétence[^:]{0,40}: ?jet de (\d+) sur \(?([\d+]+)\)? ?%/.exec(txt);
     var ci = /Vous avez (?:touché|raté|manqué)e? votre cible ?: ?(?:une?|le|la|l’|l')\s?(.+?) \((\d+)\)/.exec(txt);
@@ -1257,7 +1257,7 @@
     if (!po && !jc) return null;
     var seuil = null;
     if (jc) { seuil = 0; jc[2].split('+').forEach(function (v) { seuil += parseInt(v, 10) || 0; }); }
-    var effs = [], re = /\b([A-Z]{2,5}) ?: ?(-?\d+)/g, x;
+    var effs = [], re = /\b([A-Z]{2,5}) ?: ?([+-]?\d+)/g, x;
     if (ef) while ((x = re.exec(ef[1]))) effs.push({ k: x[1], v: parseInt(x[2], 10) });
     return { type: 'potion', potion: po ? { id: po[1], nom: po[2], jet: parseInt(po[3], 10), sur: parseInt(po[4], 10) } : null,
       comp: jc ? { jet: parseInt(jc[1], 10), seuil: seuil, ok: /R\u00c9USSI/.test(txt.slice(Math.max(0, jc.index - 60), jc.index)) } : null,
