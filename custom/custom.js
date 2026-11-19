@@ -3641,7 +3641,7 @@
       var crit = att != null && esq != null && att > esq * 2;
       var resiste = /r\u00e9sist\u00e9e/i.test(d.type || '') || (resi != null && sr != null && resi <= sr);
       var s = (mort ? 'MORT - ' : '') + esc(typ) + [esquive ? ' esquiv\u00e9(e)' : '', parfaite ? ' parfaitement' : '', crit ? ' critique' : '', resiste ? ' r\u00e9sist\u00e9(e)' : ''].join('') +
-        ' de ' + etre(e.actor_nom, e.actor_id) + ' sur ' + etre(e.target_nom, e.target_id);
+        ' de ' + etre(e.actor_nom, e.actor_id) + ' sur ' + etre(String(e.target_nom || '').replace(/\s*\(\d+\)\s*interpos.*$/i, ''), e.target_id);
       var imp = [];
       if (pv != null) imp.push('-' + pv + 'PV');
       if (d.pv_gagnes != null) imp.push('soin +' + d.pv_gagnes);
@@ -3649,6 +3649,7 @@
       if (d.capa_desc || d.capa_effet) imp.push('(' + esc((d.capa_desc ? d.capa_desc + ' ; ' : '') + (d.capa_effet || '') + (d.capa_tour != null ? ' pour ' + d.capa_tour + 'T' : '')) + ')');
       if (d.fatigue != null) imp.push('fatigue +' + d.fatigue);
       if (imp.length) s += ' : ' + imp.join(' ');
+      var ip = /interpos\S* par (?:une?\s+)?(.+?) \((\d+)\)/.exec(e.sujet || ''); if (ip) s += ' <i>(interpos\u00e9 : ' + etre(ip[1], ip[2]) + ')</i>';
       var car = [];
       if (att != null) car.push((bal ? 'destab ' : 'att ') + att);
       if (esq != null) car.push((bal ? 'stab ' : 'esq ') + esq);
@@ -3695,7 +3696,7 @@
         var c = tr.cells;
         if (!c || c.length < 3 || tr.getAttribute('data-mhx-ev')) return;
         var d = /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/.exec(c[0].textContent);
-        var ty = c[1].textContent, kinds = /COMBAT/i.test(ty) ? ['combat'] : /MONSTRE/i.test(ty) ? ['pouvoir'] : /SORTIL/i.test(ty) ? ['sort'] : /POTION/i.test(ty) ? ['competence'] : /COMP.TENCE/i.test(ty) ? ['competence'] : null; // COMBAT : attaques ; MONSTRE : pouvoirs ; SORTILEGE / COMPETENCE
+        var ty = c[1].textContent, mort = /^\s*MORT/i.test(ty), kinds = mort ? ['combat', 'sort', 'competence', 'pouvoir'] : /COMBAT/i.test(ty) ? ['combat'] : /MONSTRE/i.test(ty) ? ['pouvoir'] : /SORTIL/i.test(ty) ? ['sort'] : /POTION/i.test(ty) ? ['competence'] : /COMP.TENCE/i.test(ty) ? ['competence'] : null; // COMBAT : attaques ; MONSTRE : pouvoirs ; SORTILEGE / COMPETENCE
         if (!d || !kinds) return;
         var ts = epoch(d, [null, d[4], d[5], d[6]]);
         var txt = c[c.length - 1].textContent.replace(/[\s\u00a0]+/g, '');
@@ -3704,7 +3705,7 @@
           if (!m) return false;
           var te = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000;
           var dt = te - ts; // les mails sans \u00ab Il \u00e9tait alors \u00bb (sorts, comp\u00e9tences, potions) sont dat\u00e9s en UTC : d\u00e9calage de 1 h (hiver) ou 2 h (\u00e9t\u00e9) tol\u00e9r\u00e9
-          return kinds.indexOf(e.kind) !== -1 && (Math.abs(dt) <= 2 || Math.abs(dt + 3600) <= 2 || Math.abs(dt + 7200) <= 2) && (e.actor_id || e.target_id) && (!e.actor_id || txt.indexOf('(' + e.actor_id + ')') !== -1) && (!e.target_id || txt.indexOf('(' + e.target_id + ')') !== -1);
+          return kinds.indexOf(e.kind) !== -1 && (Math.abs(dt) <= 2 || Math.abs(dt + 3600) <= 2 || Math.abs(dt + 7200) <= 2) && (e.actor_id || e.target_id) && (!e.actor_id || txt.indexOf('(' + e.actor_id + ')') !== -1) && (mort ? (!e.detail || e.detail.mortel !== 0) : (!e.target_id || txt.indexOf('(' + e.target_id + ')') !== -1)); // MORT : le monstre tu\u00e9 peut \u00eatre un monstre interpos\u00e9, pas la cible du mail
         });
         var cd = kinds[0] === 'competence' ? cdmFor(ts, txt) : null, cdh = cd ? cdmHtml(cd) : '';
         if (!found.length) {
@@ -3714,7 +3715,9 @@
           neuf = true; return;
         }
         // plusieurs mails pour le m\u00eame combat (attaquant et d\u00e9fenseur) : m\u00eame signature, on garde le plus complet
-        found.sort(function (a, b) { return Object.keys(b.detail || {}).length - Object.keys(a.detail || {}).length; });
+        found.sort(function (a, b) { return (mort ? ((b.detail && b.detail.mortel) ? 1 : 0) - ((a.detail && a.detail.mortel) ? 1 : 0) : 0) || Object.keys(b.detail || {}).length - Object.keys(a.detail || {}).length; });
+        if (mort) found = found.filter(function (e) { return e.detail && (e.detail.mortel || (e.detail.vie != null && e.detail.vie <= 0)); }); // seule l'attaque qui a tu\u00e9
+        if (!found.length) return;
         var sigs = {}, fights = [];
         found.forEach(function (e) {
           var dd = e.detail || {}, k = [e.kind, e.degats, dd.vie, dd.jet_att, dd.jet_esq, dd.destab, dd.stab, e.px].join('|');
