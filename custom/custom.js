@@ -3605,8 +3605,9 @@
   // num\u00e9ros (acteur, cible) pr\u00e9sents dans sa description. Lecture / affichage uniquement.
   var COMBATS_URL = '/_mhx/api/evenements/api.php?combats=';
   function addEventDetails() {
-    if (!/\/(MonsterView|PJView|PJView_Events)\.php$/.test(location.pathname)) return;
+    if (!/\/(MonsterView|PJView|PJView_Events|Play)\.php$/.test(location.pathname)) return;
     var id = (/[?&]ai_IDPJ=(\d+)/.exec(location.search) || [])[1];
+    if (!id && /\/Play\.php$/.test(location.pathname)) id = currentTrollId() || (function () { try { return localStorage.getItem('mhx-troll'); } catch (e) { return null; } })(); // page \u00c9v\u00e9nements perso (Play.php) : le troll connect\u00e9
     if (!id) return;
     var evs = null, cdms = null;
     var epoch = function (d, t) { return Date.UTC(+d[3], +d[2] - 1, +d[1], +t[1], +t[2], +t[3]) / 1000; };
