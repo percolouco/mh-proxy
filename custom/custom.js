@@ -1101,6 +1101,21 @@
   }
   // Attaque réussie sur un monstre (sortilège ou compétence) : dégâts, PV perdus, mort, butin -> groupe WhatsApp.
   function parseAttaque(txt) {
+    // Fr\u00e9n\u00e9sie : deux attaques sur la page (\u00ab Votre premi\u00e8re Attaque \u00bb / \u00ab Votre seconde Attaque \u00bb), chacune lue \u00e0 part
+    var fr = /Votre premi\u00e8re Attaque(.*?)Votre seconde Attaque(.*?)(?: Cette action vous a co|$)/.exec(txt);
+    if (fr) {
+      var tf = /Comp\u00e9tence : (.{1,40}?)(?= (?:Vous|Votre)\b)/.exec(txt), coups = [], sigs = [];
+      [fr[1], fr[2]].forEach(function (seg, i) {
+        var r = parseAttaqueSimple(seg);
+        if (r) { r.monstres[0].coup = i + 1; coups.push(r.monstres[0]); sigs.push(r.sig); }
+      });
+      if (!coups.length) return null;
+      var r1 = parseAttaqueSimple(fr[1]) || parseAttaqueSimple(fr[2]);
+      return { type: 'attaque', nom: tf ? tf[1] : 'Fr\u00e9n\u00e9sie', moyen: 'comp\u00e9tence', effet: r1 ? r1.effet : '', critique: false, sig: sigs.join('|'), monstres: coups };
+    }
+    return parseAttaqueSimple(txt);
+  }
+  function parseAttaqueSimple(txt) {
     var m = /Vous avez attaqu\u00e9 (?:une|un|la|le|l\u2019|l')\s?(.+?) \((\d+)\) gr\u00e2ce \u00e0 (un sortil\u00e8ge|une comp\u00e9tence)/.exec(txt);
     if (!m || !/TOUCH\u00c9/.test(txt)) return null;
     var d = /inflig\u00e9 (\d+) points? de d\u00e9g\u00e2ts/.exec(txt);
