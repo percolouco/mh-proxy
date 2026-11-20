@@ -2451,6 +2451,7 @@
         var anciens = d.items.filter(function (it) { return it.age > d.age + 600; }).length; // vus lors d'une vue precedente
         var h = Math.floor(d.age / 3600), min = Math.floor(d.age / 60) % 60;
         info.textContent = d.items.length + ' tr\u00e9sors' + (anciens ? ' (dont ' + anciens + ' conserv\u00e9s d\u2019une vue pr\u00e9c\u00e9dente)' : '') + ', derni\u00e8re vue du ' + d.maj + ' (il y a ' + (h ? h + ' h ' : '') + min + ' min)' + (gp ? ' \u2014 distances depuis le suivant (X=' + gp.x + ' Y=' + gp.y + ' N=' + gp.n + ')' : '');
+        if (d.source === 'it') info.textContent = info.textContent.replace('derni\u00e8re vue du', 'vue de l\u2019IT du'); // la vue de l\u2019IT est plus r\u00e9cente que celle de Ma vue
         if (d.age > 86400) { info.className += ' mhx-to-vieux'; info.textContent += ' \u2014 vue ancienne, rouvre \u00ab Ma vue \u00bb'; }
         // seul le bloc « meme affichage que Ma vue » est conserve ; la ligne d'information (date de la vue) passe dedans
         addVueTable(box.parentNode, box, d, info.textContent, d.age > 86400);
