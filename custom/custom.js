@@ -3393,6 +3393,13 @@
       .then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (j) { if (cb) cb(j || {}); }, function () { if (cb) cb(null); });
   }
+  // dates du serveur (UTC, 'AAAA-MM-JJ HH:MM:SS') affich\u00e9es en heure locale du navigateur, 'JJ/MM HH:MM'
+  function dateLocale(s) {
+    var m = /^(\d+)-(\d+)-(\d+)[ T](\d+):(\d+):(\d+)/.exec(String(s || ''));
+    if (!m) return String(s || '');
+    var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])), z = function (v) { return (v < 10 ? '0' : '') + v; };
+    return z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes());
+  }
   function addChasse() {
     if (!/\/Play_vue2\.php$/.test(location.pathname)) return;
     var data = { cibles: [], positions: [] }, t0 = Date.now(), box = null, body = null, msg = null, ouvertes = {}, observe = {}, fileMort = [], verifie = false;
@@ -3406,12 +3413,12 @@
       });
       if (!vu) data.positions.forEach(function (p) {
         (p.monstres || []).forEach(function (m) {
-          if (String(m.id) === sid && p.obs && (!vu || p.obs > vu.o)) vu = { x: m.x, y: m.y, n: m.n, o: p.obs, t: 'vu le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') };
+          if (String(m.id) === sid && p.obs && (!vu || p.obs > vu.o)) vu = { x: m.x, y: m.y, n: m.n, o: p.obs, t: 'vu le ' + dateLocale(p.obs) };
         });
       });
       // derni\u00e8re position vue dans les vues du groupe (serveur), conserv\u00e9e avec sa date
       var sv = null; data.cibles.forEach(function (c) { if (String(c.monstre) === sid && c.vu) sv = c.vu; });
-      if (sv && (!vu || (vu.o && sv.at > vu.o))) vu = { x: sv.x, y: sv.y, n: sv.n, t: 'vu le ' + sv.at.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') };
+      if (sv && (!vu || (vu.o && sv.at > vu.o))) vu = { x: sv.x, y: sv.y, n: sv.n, t: 'vu le ' + dateLocale(sv.at) };
       return vu ? ' \u2014 X=' + vu.x + ' Y=' + vu.y + ' N=' + vu.n + ' (' + vu.t + ')' : ' \u2014 position inconnue';
     };
     var ensure = function () {
@@ -3466,7 +3473,7 @@
         var rcle = 'mhx-chasse-rayon-' + p.id, rayon = CHASSE_RAYON;
         try { rayon = parseInt(localStorage.getItem(rcle) || String(CHASSE_RAYON), 10) === 5 ? 5 : CHASSE_RAYON; } catch (e) { rayon = CHASSE_RAYON; }
         var visibles = p.monstres.filter(function (m) { return dist(m) <= rayon; });
-        var sm = el('summary', null, 'X=' + p.x + ' Y=' + p.y + ' N=' + p.n + ' \u2014 ' + visibles.length + ' monstre' + (visibles.length > 1 ? 's' : '') + ' \u00e0 ' + rayon + ' cases ou moins' + (p.obs ? ' (observ\u00e9 le ' + p.obs.replace(/^(\d+)-(\d+)-(\d+) (\d+:\d+).*$/, '$3/$2 $4') + ')' : ''));
+        var sm = el('summary', null, 'X=' + p.x + ' Y=' + p.y + ' N=' + p.n + ' \u2014 ' + visibles.length + ' monstre' + (visibles.length > 1 ? 's' : '') + ' \u00e0 ' + rayon + ' cases ou moins' + (p.obs ? ' (observ\u00e9 le ' + dateLocale(p.obs) + ')' : ''));
         d.appendChild(sm);
         var actions = el('div', 'mhx-chasse-ligne');
         var a = el('a', null, '\ud83d\uddfa\ufe0f Ouvrir dans l\'IT'); a.href = itLien(p); a.target = '_blank'; a.rel = 'noopener';
