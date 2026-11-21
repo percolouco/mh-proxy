@@ -2593,7 +2593,7 @@
     var planBox = document.getElementById('mhx-tac-plan');
     var btn = document.getElementById('mhx-tac-btn');
     var TAC = { data: null, ideal: true, sel: {}, cur: [] }; // plan \u00ab parfait \u00bb par d\u00e9faut (sorts r\u00e9ussis, jamais r\u00e9sist\u00e9s)
-    var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Projectile Magique/, 'PM').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
+    var court = function (t) { return t.replace(/^Vampirisme/, 'Vampi.').replace(/^Coup de Butoir/, 'CDB').replace(/^Projectile Magique/, 'PM').replace(/^Acc\u00e9l\u00e9ration du M\u00e9tabolisme \(\u2248 (\d+) PV sacrifi\u00e9s\)/, 'AM (\u2248 $1 PV)'); };
     var pc = function (x) { return Math.round(x * 100) + ' %'; };
     var degTxt = function (o, avecH) { var d = avecH && o.deg_h ? o.deg_h : o.deg; return d ? ' \u2248' + d : ''; }; // avecH : l'Hypnotisme fait partie de la s\u00e9lection -> d\u00e9g\u00e2ts moyens calcul\u00e9s avec l'esquive r\u00e9duite (deg_h, en plan parfait : critiques)
     var avecHyp = function (st) { return st.indexOf('H') >= 0; }; // d\u00e9g\u00e2ts moyens subis par le monstre apr\u00e8s armure (magique pour un sort, physique + magique pour une comp\u00e9tence)
@@ -2641,7 +2641,7 @@
           var nt = (pl.trolls[g.troll] || {}).note; if (nt && !noteVue[g.troll]) { noteVue[g.troll] = 1; corps.appendChild(el('div', 'mhx-carte-l mhx-dep', '\u26a0\ufe0f ' + nt)); }
         });
         if (!groupes.length) corps.appendChild(el('div', 'mhx-carte-l mhx-dep', 'Aucune frappe : clique sur une frappe ci-dessous.'));
-        var libres = pl.options.filter(function (o) { return st.indexOf(o.i) < 0; });
+        var libres = pl.options.filter(function (o) { return st.indexOf(o.i) < 0 && o.utile !== false; }); // pas de bouton « Ajouter » pour une frappe \u00e0 moins de 10 % de chances de toucher ou moins de 5 d\u00e9g\u00e2ts
         if (libres.length) { var a = el('div', 'mhx-carte-l mhx-libres'); a.appendChild(el('span', 'mhx-dep', 'Ajouter : ')); libres.forEach(function (o) { var c = chip(o, false); c.textContent = o.nom + ' ' + court(o.attaque) + degTxt(o, avecHyp(st)) + (o.quand === 'apr\u00e8s Acc. m\u00e9tabolique' ? ' (apr\u00e8s AM)' : ''); a.appendChild(c); }); corps.appendChild(a); }
         TAC.cur = TAC.cur.filter(function (x) { return x.cle !== cle; }); TAC.cur.push({ cle: cle, t: pl.t_ts, sel: st, titre: titre });
       };
