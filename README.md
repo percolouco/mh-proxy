@@ -280,3 +280,4 @@ Modifier `custom/custom.css|js` ne demande aucune action : rechargez la page.
 | 2.3.1 | 2026-11-20 | Ma vue, Gestion de la chasse : les dates « vu le » / « observé le » (UTC côté serveur) sont affichées en heure locale (décalage d’une heure corrigé). |
 | 2.3.2 | 2026-11-21 | Plan de finition : avertissement « cumul perdu … décaler sa DLA à la main » affiché sous la ligne du troll concerné. |
 | 2.3.3 | 2026-11-21 | Plan de finition : plan « possible » (75 à 90 %) et « meilleur essai » (< 75 %) signalés dans le titre de la carte ; plan « Maintenant » masqué sous 10 %. |
+| 2.3.4 | 2026-11-21 | Plan de finition : carte « Plan possible (75 à 90 %) » ajoutée avant le « Meilleur moment » quand un plan faisable existe plus tard. |

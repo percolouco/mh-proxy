@@ -2662,6 +2662,7 @@
       var pl = pf.plan;
       if (pl) {
         if (pf.plan_maintenant) dessineCarte('mhx-c-rouge', '\u25b6\ufe0f Maintenant', pf.plan_maintenant, m + 'n');
+        if (pf.plan_possible) dessineCarte('mhx-c-orange', '\ud83d\udfe1 Plan possible (' + Math.round(pf.plan_possible.p_kill * 100) + ' %) : \u23f3 ' + pf.plan_possible.t.replace(' ', ' \u00e0 '), pf.plan_possible, m + 'p');
         var pref = pf.statut === 'possible' ? '\ud83d\udfe1 Plan possible (' + Math.round(pl.p_kill * 100) + ' %) : ' : (pf.statut === 'insuffisant' ? '\ud83d\udfe0 Meilleur essai (insuffisant) : ' : '');
         dessineCarte(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? pref + '\u25b6\ufe0f Maintenant' : pref + '\u23f3 ' + (pref ? '' : 'Meilleur moment : ') + pl.t.replace(' ', ' \u00e0 '), pl, m + 'm');
       }
