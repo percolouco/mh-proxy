@@ -2662,7 +2662,8 @@
       var pl = pf.plan;
       if (pl) {
         if (pf.plan_maintenant) dessineCarte('mhx-c-rouge', '\u25b6\ufe0f Maintenant', pf.plan_maintenant, m + 'n');
-        dessineCarte(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? '\u25b6\ufe0f Maintenant' : '\u23f3 Meilleur moment : ' + pl.t.replace(' ', ' \u00e0 '), pl, m + 'm');
+        var pref = pf.statut === 'possible' ? '\ud83d\udfe1 Plan possible (' + Math.round(pl.p_kill * 100) + ' %) : ' : (pf.statut === 'insuffisant' ? '\ud83d\udfe0 Meilleur essai (insuffisant) : ' : '');
+        dessineCarte(pf.faisable ? 'mhx-c-vert' : 'mhx-c-orange', pl.t === 'maintenant' ? pref + '\u25b6\ufe0f Maintenant' : pref + '\u23f3 ' + (pref ? '' : 'Meilleur moment : ') + pl.t.replace(' ', ' \u00e0 '), pl, m + 'm');
       }
       var ex = pf.exclus || [];
       if (ex.length) { var dx = el('div', 'mhx-carte mhx-c-gris'); dx.appendChild(el('div', 'mhx-carte-t', '\ud83d\udeab Non utilis\u00e9' + (ex.length > 1 ? 's' : ''))); ex.forEach(function (x) { var l = el('div', 'mhx-carte-l'); l.appendChild(el('b', null, x.nom)); l.appendChild(document.createTextNode(' : ' + x.raison.replace(/ \(aucun cr\u00e9neau.*$/, '').replace(/^trop loin : encore (.+)$/, 'trop loin ($1)'))); dx.appendChild(l); }); planBox.appendChild(dx); }
